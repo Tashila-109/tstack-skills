@@ -32,7 +32,7 @@ ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 clean() {
 	local v
 	v=$(printf '%s' "$1" | tr '\t\n\r' '   ')
-	case "$v" in
+	case "${v#"${v%%[![:space:]]*}"}" in
 		=*|+*|-*|@*) printf "'%s" "$v" ;;
 		*) printf '%s' "$v" ;;
 	esac
