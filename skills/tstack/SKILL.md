@@ -26,6 +26,9 @@ Then find your runtime and read its reference in full:
 - neither: tell the human tstack needs T3 Code or Herdr, and stop.
 
 Read [references/dispatch.md](references/dispatch.md) before you launch a lead, delegate a worker, or run a skill that spawns subagents.
+A skill named in bold, such as **how** or **principle-model-the-domain**, is `../<name>/SKILL.md` beside this skill.
+Read that file in full when a step names it.
+These skills are marked for explicit use, so your harness's skill tool may refuse to load them for you.
 `tstack.mjs` means `node <this skill's directory>/scripts/tstack.mjs`.
 It owns the facts on disk: `home`, `brief`, `check` and `seat`.
 
