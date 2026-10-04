@@ -5,11 +5,13 @@
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>]
 //   node tstack.mjs seat <role> --runtime t3|herdr
+//   node tstack.mjs exclude [--project-skills]
+//   node tstack.mjs link-skills <worktree>
 //
 // Exit 0 on success, 1 on a refusal (the reason is on stderr), 2 on a usage error, 3 on anything unexpected.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -20,7 +22,7 @@ const ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
 export class Refusal extends Error {}
 class Usage extends Error {}
 
-export function taskHome(cwd = process.cwd()) {
+function gitCommonDir(cwd) {
 	let common;
 	try {
 		common = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
@@ -32,7 +34,67 @@ export function taskHome(cwd = process.cwd()) {
 		throw new Refusal(`not inside a Git checkout: ${cwd}`);
 	}
 	if (!common.endsWith(`${sep}.git`)) throw new Refusal(`no primary checkout for Git dir ${common}`);
-	return join(dirname(common), ".tstack");
+	return common;
+}
+
+export function taskHome(cwd = process.cwd()) {
+	return join(dirname(gitCommonDir(cwd)), ".tstack");
+}
+
+const SKILL_DIRS = [".agents/skills", ".claude/skills", ".pi/skills"];
+
+function projectSkills(primary) {
+	const lock = join(primary, "skills-lock.json");
+	if (!existsSync(lock)) throw new Refusal(`no per-project install: ${lock} is missing`);
+	const names = Object.keys(JSON.parse(readFileSync(lock, "utf8")).skills ?? {});
+	const bad = names.filter((n) => !ID.test(n));
+	if (bad.length) throw new Refusal(`skills-lock.json names that are not skill names: ${bad.join(", ")}`);
+	return names;
+}
+
+export function exclude(cwd, projectSkillsToo) {
+	const common = gitCommonDir(cwd);
+	const primary = dirname(common);
+	const wanted = ["/.tstack/"];
+	if (projectSkillsToo) {
+		wanted.push("/skills-lock.json");
+		for (const name of projectSkills(primary)) wanted.push(...SKILL_DIRS.map((d) => `/${d}/${name}`));
+	}
+	const path = join(common, "info", "exclude");
+	const have = new Set(existsSync(path) ? readFileSync(path, "utf8").split("\n").map((l) => l.trim()) : []);
+	const added = wanted.filter((line) => !have.has(line));
+	if (added.length) {
+		mkdirSync(dirname(path), { recursive: true });
+		const text = existsSync(path) ? readFileSync(path, "utf8") : "";
+		appendFileSync(path, `${text && !text.endsWith("\n") ? "\n" : ""}${added.join("\n")}\n`);
+	}
+	return added.length ? `added to ${path}:\n${added.join("\n")}` : `nothing to add to ${path}`;
+}
+
+export function linkSkills(cwd, worktree) {
+	const primary = dirname(gitCommonDir(cwd));
+	const target = resolve(worktree);
+	if (target === primary) throw new Refusal("link-skills takes a linked worktree, not the primary checkout");
+	let linked = 0;
+	for (const name of projectSkills(primary)) {
+		for (const dir of SKILL_DIRS) {
+			const from = join(primary, dir, name);
+			const to = join(target, dir, name);
+			if (!existsSync(from) || existsSync(to) || isLink(to)) continue;
+			mkdirSync(join(target, dir), { recursive: true });
+			symlinkSync(from, to);
+			linked++;
+		}
+	}
+	return `linked ${linked} skill path${linked === 1 ? "" : "s"} into ${target}`;
+}
+
+function isLink(path) {
+	try {
+		return lstatSync(path).isSymbolicLink();
+	} catch {
+		return false;
+	}
 }
 
 export function parseSteps(markdown) {
@@ -62,6 +124,7 @@ function insideTask(taskDir, path) {
 export function brief(home, id, opts) {
 	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
 	for (const key of ["playbook", "goal", "finish"]) if (!opts[key]) throw new Usage(`--${key} is required`);
+	if (!ID.test(opts.playbook)) throw new Usage(`--playbook must be a playbook name: ${opts.playbook}`);
 	const kind = opts.kind ?? "ship";
 	const delivery = opts.delivery ?? "local-only";
 	if (!["ship", "scout"].includes(kind)) throw new Usage(`--kind must be ship or scout: ${kind}`);
@@ -112,6 +175,14 @@ export function check(home, id, through) {
 	const taskPath = join(taskDir, "task.json");
 	if (!existsSync(taskPath)) throw new Refusal(`no task ${id} at ${taskDir}`);
 	const task = JSON.parse(readFileSync(taskPath, "utf8"));
+	const playbookPath = ID.test(task.playbook ?? "") ? join(SKILL_DIR, "playbooks", `${task.playbook}.md`) : "";
+	if (playbookPath && existsSync(playbookPath)) {
+		for (const fresh of parseSteps(readFileSync(playbookPath, "utf8"))) {
+			const frozen = task.steps.find((s) => s.n === fresh.n);
+			if (!frozen) task.steps.push(fresh);
+			else frozen.artifacts = [...new Set([...frozen.artifacts, ...fresh.artifacts])];
+		}
+	}
 	const wanted = task.steps
 		.filter((s) => through === undefined || s.n <= through)
 		.flatMap((s) => s.artifacts.map((path) => ({ step: `step ${s.n}`, path })));
@@ -153,7 +224,8 @@ export function parseSeat(text) {
 
 export function seat(models, role, runtime) {
 	const key = role.trim().toLowerCase();
-	const value = models.get(key) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
+	const value =
+		models.get(key) ?? models.get(key.split(",")[0].trim()) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
 	if (!value) throw new Refusal(`no line for role "${role}" in the models file; run tstack-setup to write it`);
 	return value.split(",").map((s) => {
 		const parsed = parseSeat(s.trim());
@@ -200,13 +272,15 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 	return merged;
 }
 
+const BOOLEAN_FLAGS = new Set(["--project-skills"]);
+
 function flags(args) {
 	const out = { _: [] };
 	for (let i = 0; i < args.length; i++) {
-		if (args[i].startsWith("--")) {
-			if (i + 1 >= args.length) throw new Usage(`${args[i]} needs a value`);
-			out[args[i].slice(2)] = args[++i];
-		} else out._.push(args[i]);
+		if (!args[i].startsWith("--")) out._.push(args[i]);
+		else if (BOOLEAN_FLAGS.has(args[i])) out[args[i].slice(2)] = true;
+		else if (i + 1 >= args.length) throw new Usage(`${args[i]} needs a value`);
+		else out[args[i].slice(2)] = args[++i];
 	}
 	return out;
 }
@@ -231,8 +305,13 @@ export function main(argv) {
 			return seat(loadModels(taskHome()), f._.join(" "), f.runtime)
 				.map((s) => JSON.stringify(s))
 				.join("\n");
+		case "exclude":
+			return exclude(process.cwd(), f["project-skills"] === true);
+		case "link-skills":
+			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
+			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, seat");
+			throw new Usage("commands: home, brief, check, seat, exclude, link-skills");
 	}
 }
 

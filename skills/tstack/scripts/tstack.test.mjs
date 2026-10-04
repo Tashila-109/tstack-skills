@@ -4,7 +4,8 @@ import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { Refusal, brief, check, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
+import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { Refusal, brief, check, exclude, linkSkills, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
 
 const PLAYBOOK = `### Sample
 
@@ -95,4 +96,46 @@ test("a project's models file cannot set launch flags, and seats cannot smuggle 
 	assert.throws(() => seat(parseModels("lead: claude/--settings=/tmp/evil.json"), "lead", "herdr"), Refusal);
 	assert.throws(() => seat(parseModels("lead: claude/opus --settings evil"), "lead", "herdr"), Refusal);
 	assert.deepEqual(seat(parseModels("lead: claude/claude-opus-5-5[1m]@max"), "lead", "herdr")[0].args.slice(0, 4), ["--model", "claude-opus-5-5[1m]", "--effort", "max"]);
+});
+
+test("a combined role line resolves by its first role", () => {
+	const models = parseModels("reflect judgment, reflect divergent, reflect synthesizer: claude/claude-opus-5-5@high");
+	assert.deepEqual(seat(models, "reflect judgment, divergent, synthesizer", "herdr")[0].args.slice(0, 2), ["--model", "claude-opus-5-5"]);
+	assert.throws(() => seat(models, "reflect divergent", "t3"), /no T3 instance/);
+});
+
+test("exclude and link-skills keep a per-project install out of Git and inside worktrees", () => {
+	const { dir } = scratch();
+	execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "commit", "-q", "--allow-empty", "-m", "init"]);
+	assert.throws(() => exclude(dir, true), /no per-project install/);
+	for (const d of [".agents/skills/how", ".claude/skills", ".pi/skills"]) mkdirSync(join(dir, d), { recursive: true });
+	writeFileSync(join(dir, ".agents/skills/how/SKILL.md"), "x");
+	execFileSync("ln", ["-s", "../../.agents/skills/how", join(dir, ".claude/skills/how")]);
+	writeFileSync(join(dir, "skills-lock.json"), JSON.stringify({ version: 1, skills: { how: {} } }));
+	assert.match(exclude(dir, true), /\/\.tstack\/\n\/skills-lock\.json\n\/\.agents\/skills\/how/);
+	assert.match(exclude(dir, true), /nothing to add/);
+	assert.doesNotMatch(execFileSync("git", ["-C", dir, "status", "--porcelain"], { encoding: "utf8" }), /skills|\.tstack/);
+	const wt = join(dir, "..", `${dir.split("/").at(-1)}-links`);
+	execFileSync("git", ["-C", dir, "worktree", "add", "-q", wt]);
+	assert.equal(linkSkills(wt, wt), "linked 2 skill paths into " + wt);
+	assert.equal(readFileSync(join(wt, ".claude/skills/how/SKILL.md"), "utf8"), "x");
+	assert.ok(lstatSync(join(wt, ".agents/skills/how")).isSymbolicLink());
+	assert.equal(existsSync(join(wt, ".pi/skills/how")), false);
+	assert.equal(linkSkills(wt, wt), "linked 0 skill paths into " + wt);
+	assert.throws(() => linkSkills(dir, dir), /not the primary checkout/);
+	writeFileSync(join(dir, "skills-lock.json"), JSON.stringify({ skills: { "../../escape": {} } }));
+	assert.throws(() => linkSkills(wt, wt), /not skill names/);
+});
+
+test("check keeps the playbook's artifacts even when task.json loses them", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "tamper", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => brief(home, "x", { playbook: "../sample", goal: "g", finish: "f", playbooksDir: playbooks }), /playbook name/);
+	const taskPath = join(home, "tasks", "tamper", "task.json");
+	const task = JSON.parse(readFileSync(taskPath, "utf8"));
+	task.playbook = "feature";
+	task.steps = [];
+	writeFileSync(taskPath, JSON.stringify(task));
+	writeFileSync(join(home, "tasks", "tamper", "report.md"), "done\n");
+	assert.throws(() => check(home, "tamper"), /missing step 1: evidence\/grounding\.md/);
 });
