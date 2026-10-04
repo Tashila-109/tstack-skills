@@ -30,6 +30,7 @@ At the start of a session, name yourself so leads can reach you:
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime herdr`.
 2. From the primary checkout, which must be on the default branch with no uncommitted changes, run `git worktree add ~/.tstack/worktrees/<project>/<id> -b task/<id>`.
+   If the primary checkout has a `skills-lock.json`, the skills are installed per project, so run `tstack.mjs link-skills <worktree>` too.
 3. `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <id> --no-focus`, and keep `.result.tab.tab_id` and `.result.root_pane.pane_id`.
 4. `herdr agent start <id>-lead --kind <kind> --pane <pane> -- <args...>`.
 5. `herdr agent prompt <id>-lead "<launch block>" --until working --timeout 30000`, with `main:` set to your agent name.
@@ -85,7 +86,7 @@ Read the screen before deciding.
 
 ### A candidate that needs its own checkout
 
-Cut a worktree from your branch: `git worktree add <path> -b task/<id>-<name>`.
+Cut a worktree from your branch: `git worktree add <path> -b task/<id>-<name>`, then `tstack.mjs link-skills <path>` if the skills are installed per project.
 Start the candidate's pane with `--cwd <path>`.
 Remove the worktree after you have taken what you need from it.
 Design sketches that only write files need no worktree: give each candidate its own directory under `<home>/tasks/<id>/evidence/`.

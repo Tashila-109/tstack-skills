@@ -17,6 +17,7 @@ The calls were measured on T3 Code (Nightly), 2026-10-05.
 - `t3_thread_send` with mode `auto` takes over a busy target's turn.
   Mode `queue` waits for the busy turn to end and starts an idle target at once.
   Always send with `queue`.
+- With a per-project install, a new T3 worktree gets the skills only through the project action that `tstack-setup` asks the human to add.
 - A delegated worker runs in its parent's checkout, and its completion wakes the parent as a new turn.
   End your turn instead of polling.
 - Seats come from `tstack.mjs seat`.
