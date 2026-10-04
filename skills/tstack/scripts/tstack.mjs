@@ -215,11 +215,16 @@ const HERDR = {
 	grok: { effort: (e) => ["--reasoning-effort", e], autonomy: ["--permission-mode", "bypassPermissions"] },
 };
 
+const EFFORTS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max", "ultra", "ultracode", "ultrathink"]);
+
 export function parseSeat(text) {
 	if (text === "inherit") return { inherit: true };
-	const m = text.match(/^([a-z0-9][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9._:/+[\]-]*?)(?:@([a-z0-9-]+))?$/i);
+	const m = text.match(/^([a-z0-9][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9._:/+@[\]-]*)$/i);
 	if (!m) throw new Refusal(`seat must be harness/model[@effort] or inherit, with no spaces or leading dashes: ${text}`);
-	return { harness: m[1].toLowerCase(), model: m[2], effort: m[3] };
+	const at = m[2].lastIndexOf("@");
+	const tail = at > 0 ? m[2].slice(at + 1) : "";
+	const effort = EFFORTS.has(tail.toLowerCase()) ? tail.toLowerCase() : undefined;
+	return { harness: m[1].toLowerCase(), model: effort ? m[2].slice(0, at) : m[2], effort };
 }
 
 export function seat(models, role, runtime) {

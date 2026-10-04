@@ -139,3 +139,9 @@ test("check keeps the playbook's artifacts even when task.json loses them", () =
 	writeFileSync(join(home, "tasks", "tamper", "report.md"), "done\n");
 	assert.throws(() => check(home, "tamper"), /missing step 1: evidence\/grounding\.md/);
 });
+
+test("a model ID may contain @ when the last segment is not an effort", () => {
+	const models = parseModels("lead: pi/cursor/claude-opus-5-5@300k@high\nfeature: pi/cursor/claude-opus-5-5@300k");
+	assert.deepEqual(seat(models, "lead", "herdr")[0].args.slice(0, 4), ["--model", "cursor/claude-opus-5-5@300k", "--thinking", "high"]);
+	assert.deepEqual(seat(models, "feature", "herdr")[0].args, ["--model", "cursor/claude-opus-5-5@300k"]);
+});
