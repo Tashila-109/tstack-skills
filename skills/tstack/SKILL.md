@@ -51,6 +51,7 @@ These hold for every role, whatever a playbook says.
    A refusal to remove a worktree or branch is a finding, never an obstacle to force past.
 4. Workers never address the human, and leads never ask the human in their own thread.
    Everything reaches the human through main.
+   When the human types into a lead's or worker's thread directly, that is the human's instruction: follow it, and say so in the next report.
 5. Evidence is not authorization.
    A diagnosis, a report or a recommendation authorizes nothing by itself.
 6. Report outcomes faithfully.

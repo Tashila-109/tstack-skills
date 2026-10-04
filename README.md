@@ -1,0 +1,65 @@
+# tstack-skills
+
+tstack runs coding work the way a small, careful team does.
+You talk to one agent, **main**.
+Main writes a brief for each task and hands it to a **lead** in its own Git worktree.
+The lead follows a playbook for that kind of work, such as a bug fix or a feature, and hands scoped jobs to **workers** on the models you chose.
+Every skill-bearing step leaves a file the next step reads, so the rigor is checked, not assumed.
+Only you authorize a merge.
+
+tstack-skills is the whole workflow as plain agent skills.
+It runs on two runtimes:
+- **[T3 Code](https://t3.codes)**, where main is a thread, each lead is a thread in its own worktree, and workers are T3 child tasks;
+- **[Herdr](https://herdr.dev)**, where main is an agent in a pane, each lead gets its own tab, and workers get panes beside it.
+
+Main, leads and workers run on Claude Code, Codex or Pi, and workers can also run on Grok Build.
+
+## Requirements
+
+- Node.js 20 or newer, with `npx`.
+- Git, and the GitHub CLI `gh` if you want tasks delivered as pull requests.
+- T3 Code, or Herdr 0.9.3 or newer.
+- At least one agent CLI, signed in: Claude Code, Codex or Pi.
+  Grok Build is optional, for worker seats.
+
+## Install
+
+Clone this repository, then install every skill globally from the clone:
+
+```sh
+git clone <tstack-skills repository> ~/tstack-skills
+npx skills add ~/tstack-skills -g -a claude-code codex pi -y
+```
+
+This copies the skills to `~/.agents/skills`, which Codex and Pi read, and links them from `~/.claude/skills` and `~/.pi/agent/skills`.
+Every project and every worktree then sees them.
+After you pull changes, run the same `npx skills add` command again, because installed skills are copies.
+
+To install into one project only, run the command from that project without `-g`.
+[Getting started](docs/getting-started.md#install-into-one-project) covers what that changes.
+
+## Start
+
+In your project, start your agent and run the setup skill once:
+
+| Harness | Setup | Start main |
+| --- | --- | --- |
+| Claude Code | `/tstack-setup` | `/tstack` |
+| Codex, or any thread in T3 | `$tstack-setup` | `$tstack` |
+| Pi | `/skill:tstack-setup` | `/skill:tstack` |
+
+Then tell main what you want and how you will know it is done:
+
+```text
+$tstack users see "Hello, undefined" when they pass a name. Repro first, then fix it. Done means `node greet.mjs Ada` prints "Hello, Ada".
+```
+
+## Read further
+
+- [Getting started](docs/getting-started.md): install, set up a scratch project, and run one task end to end on T3 and on Herdr.
+- [T3 Code](docs/runtimes/t3.md) and [Herdr](docs/runtimes/herdr.md): what each runtime shows you and how to check on a lead.
+- [Plan](PLAN.md): the design decisions and the build phases.
+
+## License
+
+The skills under `skills/` include third-party text under the MIT license in [LICENSES/THIRD-PARTY-MIT.txt](LICENSES/THIRD-PARTY-MIT.txt).
