@@ -146,8 +146,8 @@ const HERDR = {
 
 export function parseSeat(text) {
 	if (text === "inherit") return { inherit: true };
-	const m = text.match(/^([a-z0-9-]+)\/(.+?)(?:@([a-z0-9-]+))?$/i);
-	if (!m) throw new Refusal(`seat must be harness/model[@effort] or inherit: ${text}`);
+	const m = text.match(/^([a-z0-9][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9._:/+[\]-]*?)(?:@([a-z0-9-]+))?$/i);
+	if (!m) throw new Refusal(`seat must be harness/model[@effort] or inherit, with no spaces or leading dashes: ${text}`);
 	return { harness: m[1].toLowerCase(), model: m[2], effort: m[3] };
 }
 
@@ -191,8 +191,11 @@ export function seat(models, role, runtime) {
 
 export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? join(homedir(), ".tstack")) {
 	const merged = new Map();
-	for (const path of [join(globalDir, "models.md"), join(home, "models.md")]) {
-		if (existsSync(path)) for (const [k, v] of parseModels(readFileSync(path, "utf8"))) merged.set(k, v);
+	const read = (path) => (existsSync(path) ? parseModels(readFileSync(path, "utf8")) : new Map());
+	for (const [k, v] of read(join(globalDir, "models.md"))) merged.set(k, v);
+	for (const [k, v] of read(join(home, "models.md"))) {
+		if (k.startsWith("herdr args")) throw new Refusal(`"${k}" is allowed only in ${join(globalDir, "models.md")}, because launch flags can grant an agent more access`);
+		merged.set(k, v);
 	}
 	return merged;
 }

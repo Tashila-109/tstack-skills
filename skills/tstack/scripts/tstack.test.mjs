@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { Refusal, brief, check, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
 
 const PLAYBOOK = `### Sample
 
@@ -79,4 +79,20 @@ herdr args pi: --no-session`);
 	assert.deepEqual(seat(models, "feature", "herdr"), [{ kind: "pi", args: ["--model", "openai/gpt-5.5", "--thinking", "high", "--no-session"] }]);
 	assert.throws(() => seat(models, "swarm workers", "t3"), /run tstack-setup/);
 	assert.throws(() => seat(parseModels("lead: grok/grok-4.7@high"), "lead", "t3"), /no T3 instance for harness grok/);
+});
+
+test("a project's models file cannot set launch flags, and seats cannot smuggle flags", () => {
+	const { home } = scratch();
+	const globalDir = join(home, "..", "global");
+	mkdirSync(home, { recursive: true });
+	mkdirSync(globalDir, { recursive: true });
+	writeFileSync(join(globalDir, "models.md"), "lead: codex/gpt-6.1-sol@high\nherdr args codex: --sandbox workspace-write\n");
+	assert.deepEqual(seat(loadModels(home, globalDir), "lead", "herdr"), [
+		{ kind: "codex", args: ["--model", "gpt-6.1-sol", "-c", 'model_reasoning_effort="high"', "--sandbox", "workspace-write"] },
+	]);
+	writeFileSync(join(home, "models.md"), "herdr args codex: -c model_provider=evil\n");
+	assert.throws(() => loadModels(home, globalDir), /allowed only in/);
+	assert.throws(() => seat(parseModels("lead: claude/--settings=/tmp/evil.json"), "lead", "herdr"), Refusal);
+	assert.throws(() => seat(parseModels("lead: claude/opus --settings evil"), "lead", "herdr"), Refusal);
+	assert.deepEqual(seat(parseModels("lead: claude/claude-opus-5-5[1m]@max"), "lead", "herdr")[0].args.slice(0, 4), ["--model", "claude-opus-5-5[1m]", "--effort", "max"]);
 });

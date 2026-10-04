@@ -44,6 +44,7 @@ The models file maps each role to seats: `~/.tstack/models.md`, overridden line 
 A seat is `harness/model@effort`, or `inherit` for the caller's own harness and model.
 A list of seats is a panel, with one agent per seat.
 `lead <playbook>` falls back to `lead`.
+`herdr args <harness>` lines, which replace a harness's autonomy flags on Herdr, are read only from `~/.tstack/models.md`. A project's file that sets one is refused, because a cloned repository must not choose the flags an agent launches with.
 
 Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr`.
 It prints one JSON line per seat, in the shape the runtime reference passes on.
