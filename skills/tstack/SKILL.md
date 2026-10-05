@@ -64,7 +64,7 @@ These hold for every role, whatever a playbook says.
 
 ### Intake
 
-1. Run `tstack.mjs home`.
+1. Run `tstack.mjs home`, then `tstack.mjs exclude`, so this project's records stay out of Git.
    If no models file exists at `~/.tstack/models.md` or `<home>/models.md`, run the `tstack-setup` skill first.
 2. Read `<home>/backlog.md` and `<home>/learnings.md` when they exist.
 3. Classify the ask.
