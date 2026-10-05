@@ -33,7 +33,7 @@ At the start of a session, name yourself so leads can reach you:
    If the primary checkout has a `skills-lock.json`, the skills are installed per project, so run `tstack.mjs link-skills <worktree>` too.
 3. `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <id> --no-focus`, and keep `.result.tab.tab_id` and `.result.root_pane.pane_id`.
 4. `herdr agent start <id>-lead --kind <kind> --pane <pane> -- <args...>`.
-5. `herdr agent prompt <id>-lead "<launch block>" --until working --timeout 30000`, with `main:` set to your agent name.
+5. `herdr agent prompt <id>-lead "<launch block>" --wait --until working --timeout 30000`, with `main:` set to your agent name.
 6. Write the tab ID and worktree path to `<home>/tasks/<id>/lead.txt`.
 7. End your turn.
    The lead prompts you when it reports.
@@ -72,7 +72,7 @@ For a decision, start the message with `decision <id>:`, and end your turn after
    The first is `herdr pane split --current --direction right --cwd "$PWD" --no-focus`.
    Each later one splits the previous worker's pane with `--direction down`.
 4. `herdr agent start <id>-<name> --kind <kind> --pane <pane> -- <args...>`.
-5. `herdr agent prompt <id>-<name> "<filled worker preamble>" --until working --timeout 30000`.
+5. `herdr agent prompt <id>-<name> "<filled worker preamble>" --wait --until working --timeout 30000`.
 6. Start every independent worker before you wait on any.
 
 ### collect
