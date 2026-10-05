@@ -50,6 +50,16 @@ Then the lead works the tickets in order:
 
 After the last ticket, the reviewers check the whole branch, and a final worker drives every user-visible outcome in the spec against the baseline from ticket `00`.
 
+## Larger programs
+
+Spec-driven fits a feature you can cut into tickets.
+For work that spans phases, each with its own live and performance checks, two playbooks share one spec format:
+- Multi-phase plan writes and gates `design.md` and `spec.md`, then stops, so you can review the plan before anyone builds;
+- Orchestrate runs the same gates, then asks you to authorize the build, pilots the first phase, and builds the rest.
+
+`check-plan.mjs` checks the spec's structure before you see it: every phase has unit, live and performance boxes, and a regression lane against trunk.
+It cannot tell whether the evidence is true; the reviewers and your gates do that.
+
 ## What you get
 
 When it finishes, main asks whether to merge.

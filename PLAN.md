@@ -240,6 +240,14 @@ The steps were:
 
 ### Phase 4: the remaining playbooks
 
+Done on 2026-10-05.
+Multi-phase plan and orchestrate came from tstackv2's adaptations, with `check-plan.mjs` and gates under `decisions/`.
+Babysit, shipping and the two autopilots came from upstream, with `gh` for every PR operation and merges only through main.
+Autopilot-full merges under one recorded grant from the human, and both autopilots are main's programs, not a lead's playbook.
+The as-written playbooks gained `Artifact:` lines where a step leaves evidence.
+None of these has run live yet; the first PR-delivery task in tstack-router is the first test of babysit.
+The plan was:
+
 These need real adaptation, and come back from upstream when they do:
 - babysit, using `watch_pull_request` on T3
 - shipping

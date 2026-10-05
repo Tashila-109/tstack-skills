@@ -33,6 +33,7 @@ Start with Full access, and ask the human to pin this thread so T3 never auto-se
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime t3`.
 2. Read the base branch: the primary checkout's current branch, which must be the default branch with no uncommitted changes.
+   An autopilot-stack link uses the previous link's task branch instead.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": false }`

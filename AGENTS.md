@@ -9,7 +9,7 @@ Read [PLAN.md](PLAN.md) for the design and the build phases, and [README.md](REA
 skills/tstack/              the router: roles, rules, intake table, principles index
   playbooks/                one file per kind of work
   references/               dispatch rules, the T3 and Herdr runtimes, the worker preamble
-  scripts/tstack.mjs        home, brief, check, seat, exclude, link-skills; tests beside it
+  scripts/                  tstack.mjs (home, brief, check, seat, exclude, link-skills) and check-plan.mjs, with tests beside them
 skills/tstack-setup/        project setup and the models file template
 skills/<name>/              every other skill; agents/openai.yaml keeps Codex from invoking it on its own
 docs/                       getting started, runtime guides, and dated verification records
@@ -34,7 +34,7 @@ LICENSES/                   third-party notices
 
 ## Checks
 
-- `node --test skills/tstack/scripts/tstack.test.mjs` must pass, and so must `bun test ./skills/tstack/scripts/tstack.test.mjs`.
+- `node --test skills/tstack/scripts/*.test.mjs` must pass, and so must `bun test ./skills/tstack/scripts/`.
 - After editing a skill, reinstall from this checkout to try it: `npx skills add "$PWD" -g -a claude-code codex pi -y`.
 - A claim that something works on a runtime is a dated record under `docs/verification/`, not a sentence in a commit message.
 

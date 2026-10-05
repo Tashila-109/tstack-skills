@@ -33,6 +33,7 @@ Every skill carries `agents/openai.yaml` with `allow_implicit_invocation: false`
 | `<project>/.tstack/models.md` | `tstack-setup`, on request | Lines that differ for this project. It may not hold `herdr args` lines. |
 | `<project>/.tstack/backlog.md` | main | One line per task, `- <id>: <summary> (running)`, with finished tasks under `## done`. |
 | `<project>/.tstack/learnings.md` | main | One-line lessons, which `tstack.mjs brief` copies into every new brief. |
+| `<project>/.tstack/autopilot-<name>.md` | main | An autopilot's queue, its order, and the human's merge grant in their words. |
 | `<project>/.tstack/tasks/<id>/task.json` | `tstack.mjs brief` | The frozen playbook steps and the artifacts each step must write. |
 | `<project>/.tstack/tasks/<id>/brief.md` | `tstack.mjs brief` | The goal, the finish, the steps, and the learnings. |
 | `<project>/.tstack/tasks/<id>/lead.txt` | main | The lead's T3 thread ID, or its Herdr tab and worktree. |
@@ -59,6 +60,9 @@ It needs Node 20 or newer, or Bun, and no packages.
 | `seat <role> --runtime t3\|herdr` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag each per-project skill path, to `.git/info/exclude`. |
 | `link-skills <worktree>` | Links a per-project install into a linked worktree. |
+
+`scripts/check-plan.mjs <spec.md>` checks a multi-phase spec's structure: its sections in order, and unit, live and performance boxes in every phase, with a regression lane against trunk.
+It prints one summary line per phase and the problem count, and exits 1 when there is a problem.
 
 Exit codes are 0 for success, 1 for a refusal with its reason on stderr, 2 for a usage error, and 3 for anything unexpected.
 
@@ -112,9 +116,10 @@ Main picks one per task from the [router's intake table](../skills/tstack/SKILL.
 
 | Status | Playbooks |
 | --- | --- |
-| Adapted, so `check` enforces each step's artifact | investigation, gardener, spec-driven, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
-| As written, so `check` enforces only `report.md` | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run, session-pickup, pause-safely, worktree-cleanup |
-| Not yet available | multi-phase-plan, orchestrate, babysit, shipping, autopilot-full, autopilot-stack |
+| Adapted, so `check` enforces each step's artifact | investigation, gardener, spec-driven, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
+| As written with `Artifact:` lines, so `check` enforces the files they name | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run |
+| As written, so `check` enforces only `report.md` | session-pickup, pause-safely, worktree-cleanup |
+| Run by main across several tasks | autopilot-full, autopilot-stack |
 
 ## Skills
 

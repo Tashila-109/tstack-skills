@@ -56,3 +56,17 @@ Then it asks whether to merge.
 
 Ask for PR delivery in your request, such as "open a PR for it".
 Nothing merges without your explicit word, whatever else you said.
+
+## Land a stack of PRs
+
+A green check list does not mean a stack is safe to land.
+Ask for Shipping:
+
+```text
+$tstack ship the open stack from #41 up.
+```
+
+The lead has a worker who did not write the code verify each PR on the real surface, then finds the run of verified PRs from the bottom.
+It records each verdict with the patch it covered in `evidence/verdicts.md`.
+On your word, main lands that run one PR at a time, bottom first.
+Before each merge it checks the PR's patch still matches its verdict, and it stops at the first PR that changed or was never verified.

@@ -30,6 +30,7 @@ At the start of a session, name yourself so leads can reach you:
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime herdr`.
 2. From the primary checkout, which must be on the default branch with no uncommitted changes, run `git worktree add ~/.tstack/worktrees/<project>/<id> -b task/<id>`.
+   An autopilot-stack link branches from the previous link's task branch instead: add that branch name as the last argument.
    If the primary checkout has a `skills-lock.json`, the skills are installed per project, so run `tstack.mjs link-skills <worktree>` too.
 3. `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <id> --no-focus`, and keep `.result.tab.tab_id` and `.result.root_pane.pane_id`.
 4. `herdr agent start <id>-lead --kind <kind> --pane <pane> -- <args...>`.

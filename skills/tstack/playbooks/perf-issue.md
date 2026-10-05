@@ -3,6 +3,8 @@
 **You own the measurement story. Plan, review, verify the numbers.** Tie every fix to a measurement, don't read source instead of measuring.
 
 1. Capture a baseline trace via the matching control skill. Vet the baseline, and each later number, with the **benchmark-checklist** skill.
+   Write the baseline, how it was captured, and the checklist's answers to `evidence/baseline.md`.
+   Artifact: `evidence/baseline.md`
 2. `how` to ground hypotheses. Don't claim a perf ceiling without running it first.
    Try the performance mantras in order, cheapest first:
    1. Don't do it. Stop work whose result nothing uses rather than cheapening it.
@@ -14,11 +16,15 @@
    7. Do it cheaper.
 
    When an earlier mantra meets the target, stop.
+   Artifact: `results/how.md`
 3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured perf-issue model (default `grok-4.7-xhigh-fast`). Review the diff. Capture a post-fix trace.
    Apply the **sequence-verifiable-units** principle skill, verifying each attempt before trying the next.
 4. Parse and compare the artifacts (JSON to sqlite, diff). "Inconclusive" or wrong-surface is not a pass. Flag it.
+   Write the before and after comparison, with the one primary number, to `evidence/compare.md`.
+   Artifact: `evidence/compare.md`
 5. Cite the measurement in the PR.
 6. Run **Opening a PR**.
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
 
 For sustained improvement against a metric rather than a one-off fix, use the Hillclimb playbook (`playbooks/hillclimb.md`).
 

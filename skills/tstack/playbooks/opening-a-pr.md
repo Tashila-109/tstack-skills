@@ -8,7 +8,7 @@ Every delivery mode runs the cleanup in **PRs** below: `/deslop`, `/no-comments`
 Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
 The calling step names that artifact.
 - `local-only` delivery stops after **Commits** and the cleanup: no push and no PR. The clean branch is the deliverable, and main merges it on the human's word.
-- `pr` delivery pushes `task/<id>`, opens the PR against the default branch, and starts watch-pr. Report the PR's full URL to main. Main merges on the human's word.
+- `pr` delivery pushes `task/<id>`, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says. Report the PR's full URL to main. Main merges on the human's word.
 
 **Worktree.** Work from a git worktree off main. Subagents inherit it. Multiple `Task` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
 

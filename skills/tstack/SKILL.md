@@ -36,7 +36,7 @@ It owns the facts on disk: `home`, `brief`, `check` and `seat`.
 
 | Role | Owns | Never |
 | --- | --- | --- |
-| main | intake, briefs, launching leads, relaying decisions, merging on the human's word, cleanup, learnings | editing project files, running a playbook, delegating workers, deciding for the human |
+| main | intake, briefs, launching leads, relaying decisions, merging on the human's word, cleanup, learnings, and the autopilot programs | editing project files, running a task's playbook, delegating workers, deciding for the human |
 | lead | one task: its playbook, worktree, branch, stage commits, PR, worker briefs, its report | merging, starting another lead, asking the human directly |
 | worker | its brief's scope in its checkout, evidence, its result file | Git writes, starting tstack agents, addressing the human |
 
@@ -236,12 +236,12 @@ Comments follow the same rule as the reply. Write them clean as you go. Keep a c
 
 ## Playbooks
 
-Main picks one per task and the lead runs it.
+Main picks one per task and the lead runs it, except the two autopilot programs, which main runs across several tasks.
 Take the first row that fits, because rows run from the most specific request to the most general.
 
 **Adapted** playbooks name the artifacts that `tstack.mjs check` enforces and use the verbs from dispatch.md.
-**As written** playbooks run unadapted. Read their Cursor terms through dispatch.md's table. `check` enforces only `report.md` for them.
-**Not yet** playbooks need tooling tstack has not ported. Tell the human and offer the closest adapted playbook.
+**As written** playbooks keep the upstream text, with `Artifact:` lines and tstack notes added where a step leaves evidence. Read their Cursor terms through dispatch.md's table. `check` enforces the artifacts they name and `report.md`.
+**Main's program** playbooks are run by main, which briefs one task per queue item and audits each lead's result.
 
 | The request | Playbook | Status |
 | --- | --- | --- |
@@ -255,7 +255,7 @@ Take the first row that fits, because rows run from the most specific request to
 | Writing or editing a SKILL.md, a playbook, or agent instructions. | `authoring-a-skill` | As written |
 | Sustained improvement of one metric against a target, one measured change at a time. | `hillclimb` | As written |
 | A measured slowness to trace and improve against a baseline. | `perf-issue` | As written |
-| Work that spans phases or stacked PRs. | `multi-phase-plan` | Not yet |
+| A plan for work that spans phases or stacked PRs, with no build yet. | `multi-phase-plan` | Adapted |
 | A long task to drive to a checkable predicate without stopping ("run until done"). | `autonomous-run` | As written |
 | A feature the human wants grilled live, then designed, specified and ticketed, with their approval at each gate. | `spec-driven` | Adapted |
 | A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), work the human will review after stepping away, or a request no other row fits. | `figure-it-out` | Adapted |
@@ -266,8 +266,10 @@ Take the first row that fits, because rows run from the most specific request to
 | Suspending in-flight work so it can resume. | `pause-safely` | As written |
 | Reclaiming disk from merged or abandoned worktrees. | `worktree-cleanup` | As written |
 | The delivery checkpoint at the end of another playbook. | `opening-a-pr` | Adapted |
-| A standing multi-day program with many stacked PRs. | `orchestrate` | Not yet |
-| Driving a PR or stack to merge-ready, or landing a green stack. | `babysit`, `shipping` | Not yet |
-| A queue of PRs on full autopilot. | `autopilot-full`, `autopilot-stack` | Not yet |
+| Work that spans phases, authorized to be planned and built. | `orchestrate` | Adapted |
+| Driving a PR or a stack to merge-ready: conflicts, review threads, CI. | `babysit` | Adapted |
+| Verifying a green stack and landing the verified run. | `shipping` | Adapted |
+| A queue of independent PRs to build, verify and merge under one grant from the human. | `autopilot-full` | Main's program |
+| A queue of changes to build and verify as one stack the human lands. | `autopilot-stack` | Main's program |
 
 Each playbook is `playbooks/<name>.md` beside this file.
