@@ -56,7 +56,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 | --- | --- |
 | `home` | Prints `<primary checkout>/.tstack`, from any checkout of the project. |
 | `brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship\|scout] [--delivery local-only\|pr]` | Creates the task directory with `task.json` and `brief.md`. Refuses an existing task ID. |
-| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer. Without `--through`, it also requires `report.md`. |
+| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer. Without `--through`, it also requires `report.md`, and with `pr` delivery `evidence/babysit.md`. |
 | `seat <role> --runtime t3\|herdr` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag each per-project skill path, to `.git/info/exclude`. |
 | `link-skills <worktree>` | Links a per-project install into a linked worktree. |

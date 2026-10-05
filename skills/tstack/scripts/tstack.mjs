@@ -187,7 +187,10 @@ export function check(home, id, through) {
 	const wanted = task.steps
 		.filter((s) => through === undefined || s.n <= through)
 		.flatMap((s) => s.artifacts.map((path) => ({ step: `step ${s.n}`, path })));
-	if (through === undefined) wanted.push({ step: "final report", path: "report.md" });
+	if (through === undefined) {
+		if (task.delivery === "pr") wanted.push({ step: "pr delivery", path: "evidence/babysit.md" });
+		wanted.push({ step: "final report", path: "report.md" });
+	}
 	const missing = wanted.filter(({ path }) => {
 		const full = insideTask(taskDir, path);
 		if (!existsSync(full) || !statSync(full).isFile()) return true;

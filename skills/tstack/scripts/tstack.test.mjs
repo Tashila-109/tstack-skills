@@ -166,3 +166,14 @@ test("a gate artifact counts only with a granted answer", () => {
 	writeFileSync(file, "# Approve the design?\n\n## Answer\n\ngranted\nShip it, 2026-10-05\n");
 	assert.equal(check(home, "gated", 1), "ok gated: 1 required file present");
 });
+
+test("a pr-delivery task is done only with babysit evidence", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "pr", { playbook: "plain", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
+	const task = join(home, "tasks", "pr");
+	writeFileSync(join(task, "report.md"), "done\n");
+	assert.throws(() => check(home, "pr"), /missing pr delivery: evidence\/babysit\.md/);
+	writeFileSync(join(task, "evidence/babysit.md"), "drive: PR #1 merge-ready at abc123\n");
+	assert.equal(check(home, "pr"), "ok pr: 2 required files present");
+});

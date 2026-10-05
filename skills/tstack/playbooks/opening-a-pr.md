@@ -8,7 +8,7 @@ Every delivery mode runs the cleanup in **PRs** below: `/deslop`, `/no-comments`
 Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
 The calling step names that artifact.
 - `local-only` delivery stops after **Commits** and the cleanup: no push and no PR. The clean branch is the deliverable, and main merges it on the human's word.
-- `pr` delivery pushes `task/<id>`, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says. Report the PR's full URL to main. Main merges on the human's word.
+- `pr` delivery pushes `task/<id>`, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Report done to main, with the PR's full URL, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done. Main merges on the human's word.
 
 **Worktree.** Work from a git worktree off main. Subagents inherit it. Multiple `Task` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
 
@@ -39,6 +39,6 @@ After these sections, attach videos or screenshots when they prove a claim. Do n
 
 **Readiness.** Open every PR ready, never as a draft. A built-in PR tool can default to draft, so set `draft: false` on every creation call through it. With Origin, pass `--status open`. With `gh`, omit `--draft`. If a PR still opens as a draft, mark it ready through the PR tool, or run `origin pr ready <number>` or `gh pr ready <number>` according to the resolved forge. Run `origin pr view <number>` or `gh pr view <number>` before you refer to PR status.
 
-**Babysit.** Opening a PR does not start a babysit. Post the URL and keep building. Finish the phase or stack first. Run a separate babysit pass only when the user asks for one after the whole stack exists. A babysit for each new PR stalls the build and spends checks on commits that later waves restart. Push back when feedback drifts from intent.
+**Babysit.** In tstack a task delivers one PR, and the `pr` delivery line above says when its lead babysits it. Push back when feedback drifts from intent.
 
-Only the lead opens a PR. It runs `interrogate` when the design is contested, `/deslop`, and `/no-comments` first, then reports the URL to main and does not babysit it.
+Only the lead opens a PR. It runs `interrogate` when the design is contested, `/deslop`, and `/no-comments` first, then babysits it as the `pr` delivery line says.
