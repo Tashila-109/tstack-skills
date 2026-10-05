@@ -24,16 +24,17 @@ Main, leads and workers run on Claude Code, Codex or Pi, and workers can also ru
 
 ## Install
 
-Clone this repository, then install every skill globally from the clone:
+Install every skill globally from this repository:
 
 ```sh
-git clone <tstack-skills repository> ~/tstack-skills
-npx skills add ~/tstack-skills -g -a claude-code codex pi -y
+npx skills add Tashila-109/tstack-skills -g -a claude-code codex pi -y
 ```
+
+The repository is private, so `npx skills` clones it with your own Git credentials.
 
 This copies the skills to `~/.agents/skills`, which Codex and Pi read, and links them from `~/.claude/skills` and `~/.pi/agent/skills`.
 Every project and every worktree then sees them.
-After you pull changes, run the same `npx skills add` command again, because installed skills are copies.
+To update, run the same command again, because installed skills are copies.
 
 To install into one project only, run the command from that project without `-g`.
 [Getting started](docs/getting-started.md#install-into-one-project) covers what that changes.

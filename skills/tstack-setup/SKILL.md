@@ -17,7 +17,7 @@ The skills are installed in one of two ways:
 - **per project**: `<primary checkout>/.agents/skills/tstack/SKILL.md` and `<primary checkout>/skills-lock.json` exist.
 
 If neither holds, give the human the install command and stop.
-`<source>` is the tstack-skills clone path or repository they install from.
+`<source>` is `Tashila-109/tstack-skills`, or the path of a local clone.
 
 ```sh
 npx skills add <source> -g -a claude-code codex pi -y   # global

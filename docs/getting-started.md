@@ -9,11 +9,10 @@ You can follow only the T3 part or only the Herdr part.
 
 ## Install
 
-Clone tstack-skills and install every skill globally from the clone:
+Install every skill globally:
 
 ```sh
-git clone <tstack-skills repository> ~/tstack-skills
-npx skills add ~/tstack-skills -g -a claude-code codex pi -y
+npx skills add Tashila-109/tstack-skills -g -a claude-code codex pi -y
 ```
 
 Check that the router is installed where all three harnesses look:
@@ -164,7 +163,7 @@ To keep tstack out of your global skills, run the install from inside a project,
 
 ```sh
 cd ~/tstack-scratch
-npx skills add ~/tstack-skills -a claude-code codex pi -y
+npx skills add Tashila-109/tstack-skills -a claude-code codex pi -y
 ```
 
 The skills land in the project's `.agents/skills`, `.claude/skills` and `.pi/skills`, with a `skills-lock.json`.

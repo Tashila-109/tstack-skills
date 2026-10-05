@@ -18,7 +18,7 @@ Their first message is a `tstack launch` block naming their role, and they read 
 
 | Mode | Command | Where the skills land | Worktrees |
 | --- | --- | --- | --- |
-| Global (default) | `npx skills add <source> -g -a claude-code codex pi -y` | `~/.agents/skills`, linked from `~/.claude/skills` and `~/.pi/agent/skills` | Every worktree sees them. |
+| Global (default) | `npx skills add Tashila-109/tstack-skills -g -a claude-code codex pi -y` | `~/.agents/skills`, linked from `~/.claude/skills` and `~/.pi/agent/skills` | Every worktree sees them. |
 | Per project | the same, without `-g`, run in the project | `.agents/skills`, `.claude/skills`, `.pi/skills`, and `skills-lock.json` | `tstack.mjs link-skills` links them into each new worktree. |
 
 Installs are copies.
