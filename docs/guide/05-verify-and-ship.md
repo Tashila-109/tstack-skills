@@ -57,6 +57,10 @@ Then it asks whether to merge.
 Ask for PR delivery in your request, such as "open a PR for it".
 Nothing merges without your explicit word, whatever else you said.
 
+To stop being asked, give main a standing grant, such as "merge PRs once the verification and the reviews pass".
+Main writes it to `.tstack/grants.md` in your words, checks its conditions on the exact commit before each merge, and quotes it whenever it uses it.
+Delete the file, or tell main, to withdraw it.
+
 ## Land a stack of PRs
 
 A green check list does not mean a stack is safe to land.

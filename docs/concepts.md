@@ -29,6 +29,7 @@ These hold for every role, whatever a playbook says:
 1. Main never writes project files.
    It writes only its own records under `.tstack/`, and runs the Git commands for creating worktrees, merging and cleaning up.
 2. Merging, discarding work, and anything destructive or irreversible happen only on your explicit word for that action.
+   A standing merge grant you give main, which it keeps in `.tstack/grants.md`, counts as that word for the merges it covers.
 3. Unlanded work is never torn down.
    When Git refuses to remove a worktree, that is a finding to look at, never an obstacle to force past.
 4. Only main talks to you.

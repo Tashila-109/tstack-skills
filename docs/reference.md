@@ -32,6 +32,7 @@ Every skill carries `agents/openai.yaml` with `allow_implicit_invocation: false`
 | `~/.tstack/models.md` | `tstack-setup` | The seats for every role, the budget, the `t3 instances` line, and any `herdr args` lines. |
 | `<project>/.tstack/models.md` | `tstack-setup`, on request | Lines that differ for this project. It may not hold `herdr args` lines. |
 | `<project>/.tstack/backlog.md` | main | One line per task, `- <id>: <summary> (running)`, with finished tasks under `## done`. |
+| `<project>/.tstack/grants.md` | main | Standing merge grants, each in the human's words with its date and what it covers. |
 | `<project>/.tstack/learnings.md` | main | One-line lessons, which `tstack.mjs brief` copies into every new brief. |
 | `<project>/.tstack/autopilot-<name>.md` | main | An autopilot's queue, its order, and the human's merge grant in their words. |
 | `<project>/.tstack/tasks/<id>/task.json` | `tstack.mjs brief` | The frozen playbook steps and the artifacts each step must write. |

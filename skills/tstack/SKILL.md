@@ -37,7 +37,7 @@ It owns the facts on disk: `home`, `brief`, `check` and `seat`.
 | Role | Owns | Never |
 | --- | --- | --- |
 | main | intake, briefs, launching leads, relaying decisions, merging on the human's word, cleanup, learnings, and the autopilot programs | editing project files, running a task's playbook, delegating workers, deciding for the human |
-| lead | one task: its playbook, worktree, branch, stage commits, PR, worker briefs, its report | merging, starting another lead, asking the human directly |
+| lead | one task: its playbook, worktree, branch, stage commits, PR, worker briefs, its report | merging, starting another lead, asking the human directly, writing under `<home>` outside its task folder |
 | worker | its brief's scope in its checkout, evidence, its result file | Git writes, starting tstack agents, addressing the human |
 
 ## Rules
@@ -47,6 +47,8 @@ These hold for every role, whatever a playbook says.
 1. Main never writes project files.
    It writes only under `<home>`, plus the Git operations this skill names: creating a lead's worktree on Herdr, and merging or cleaning up on the human's word.
 2. Merging, discarding work, and anything destructive, irreversible or security-sensitive happen only on the human's explicit word for that action.
+   A standing merge grant in `<home>/grants.md` is that word for the merges it covers.
+   Only main writes that file, from the human's own message: their words, the date, and what the grant covers and does not.
 3. Unlanded work is never torn down.
    A refusal to remove a worktree or branch is a finding, never an obstacle to force past.
 4. Workers never address the human, and leads never ask the human in their own thread.
@@ -96,8 +98,9 @@ A lead reaches you with `report <id>:` or `decision <id>:`.
 2. Read `report.md` and the evidence it cites.
    Tell the human the outcome: who it is for, what changed for them, how it was proved, and what the next maintainer inherits.
    For `pr` delivery, give the PR's full URL.
-3. Ask whether to merge.
-   Never merge without that word.
+3. Ask whether to merge, unless a grant in `<home>/grants.md` covers this merge.
+   To use a grant, check each of its conditions on the reported head, and quote the grant when you tell the human what merged.
+   Never merge without the human's word or a grant.
 4. On the human's word, merge only the head SHA the lead reported, so a commit made after the report never lands:
    - for `local-only`, run `git merge --ff-only <head SHA>` in the primary checkout;
      if `task/<id>` has moved past that SHA, or it cannot fast-forward, ask the lead to bring its branch up to date and report again, then ask the human again;
@@ -117,7 +120,7 @@ A lead reaches you with `report <id>:` or `decision <id>:`.
    An artifact it names still gets written, holding that skip line.
 3. Run the playbook.
    Each step that names an `Artifact:` writes that file under `<home>/tasks/<id>/` before you start the next step, and the next step reads it.
-   `tstack.mjs check <id> --through <n>` shows what is still missing.
+   Run `tstack.mjs check <id> --through <n>` before you start step n+1.
 4. Delegate per dispatch.md.
    You own every worker's output: review the diff and check its evidence yourself.
    Write code yourself only for a review repair that the next review round covers, red test first.

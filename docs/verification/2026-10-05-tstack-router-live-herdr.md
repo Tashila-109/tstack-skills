@@ -63,4 +63,7 @@ Elapsed from brief to merge: 32 minutes.
 
 1. `runtime-herdr.md` says to run `gh pr checks --watch` as a background command with no timeout of the lead's own, and never to poll with a sleep loop.
    `babysit.md` defers to the runtime references for the wait, and `runtime-t3.md` now owns T3's wake list.
-2. Open: the late artifacts and the standing merge grant need the human's call.
+2. On the human's call, a standing merge grant is now tstack's: Rule 2 honors a grant in `<home>/grants.md`, written by main in the human's words, and main quotes it each time it merges under it.
+   tstack-router's grant moved there from Claude's project memory, and a lead may not write under `<home>` outside its task folder.
+3. On the human's call, the router tells a lead to run `tstack.mjs check <id> --through <n>` before starting step n+1.
+4. tstack-router now deletes a PR's branch when it merges.
