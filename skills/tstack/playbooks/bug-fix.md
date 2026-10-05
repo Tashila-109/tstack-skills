@@ -9,7 +9,7 @@ Be scientific. Every shipped line traces to runtime evidence. Belt-and-suspender
    Artifact: `evidence/repro.md`
 2. Binary-search the cause. Form the candidate hypotheses, then rule them out until one survives. Seed them with `how` over the affected subsystem and the **why** skill for regression history. Each pass, take the split that cuts the most remaining problem space, get runtime evidence, eliminate. When program state is unclear, add instrumentation or logging and read it as the code runs. Don't guess. Drive a long or stubborn hunt with Cursor's `/loop` command. Confirm the surviving *mechanism* with runtime evidence before the step-3 architect/interrogate fan-out.
    Write `evidence/mechanism.md`: a How section and a Why section with what each found, the hypotheses in the order you ruled them out, and the surviving mechanism with its runtime evidence.
-   Artifact: `evidence/mechanism.md`
+   Artifact: `results/how.md`, `results/why.md`, `evidence/mechanism.md`
 3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured bug-fix model (default `grok-4.7-xhigh-fast`) with a specific scope.
    The worker's brief lists the **tdd** skill under SKILLS and points at `evidence/mechanism.md`.
    Review the worker's diff yourself, then write `evidence/fix.md`: the brief and result paths, and your review of the diff with anything you sent back.
@@ -22,6 +22,6 @@ Be scientific. Every shipped line traces to runtime evidence. Belt-and-suspender
    Copy the red-then-green output from the worker's result into `evidence/red-green.md`, or write why no cheap test path existed and which check stood in for it.
    Artifact: `evidence/red-green.md`
 6. Run **Opening a PR**.
-   Artifact: `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
 
 **Reply:** what was broken, root cause, fix, how you verified. Paste failing-then-passing repro output verbatim.

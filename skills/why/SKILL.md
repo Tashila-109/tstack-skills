@@ -139,6 +139,8 @@ The synthesizer gets:
 
 Take the synthesizer's output and present it to the user. You may lightly edit for clarity or add context from the conversation, but **do not rewrite the confidence language**.
 
+In a tstack task, a lead delegates the synthesizer as a worker whose result path is `<task>/results/why.md`, so the step that runs `why` can show the synthesizer ran. A worker that runs `why` uses its own harness's subagents instead.
+
 ## Output Format
 
 The output structure is the one in `references/synthesizer-prompt.md`: The Question, The Code in Question, What We Found, What We Can Reasonably Infer, Competing Hypotheses, What We Don't Know, Sources Consulted, Confidence Summary. Adapt as needed, but keep the confidence separation intact, and keep Sources Consulted as one line per investigator, including the ones that returned nothing or were skipped, with the reason.

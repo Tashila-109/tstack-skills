@@ -33,6 +33,8 @@ Each step that runs a skill writes a file in the task's `evidence/` folder, and 
 | Feature | `grounding.md`, `design.md`, `throughput.md`, `dispatch.md`, `verify.md`, `interrogate.md`, `closing-pass.md` |
 | Refactoring | `pin.md`, `design.md`, `dispatch.md`, `equivalence.md`, `reader-load.md`, `closing-pass.md` |
 
+Each also keeps the results of the workers the steps delegate in `results/`: `how.md` and `why.md` from the understanding skills, the fix or feature worker's result, and `comment-sicko.md` from the closing pass.
+`check` requires those too, so a skill done inline instead of delegated shows up as a missing file.
 Read them when you want to know how the lead reached its answer, not only what it changed.
 
 ## The failing test comes first

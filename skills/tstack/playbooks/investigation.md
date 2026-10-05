@@ -6,7 +6,7 @@ Investigation requests are read-only. They produce a cited explanation or a reco
 
 1. Route through the **how** skill. For motivation questions, also route through the **why** skill.
    Write the how output to `evidence/how.md`, with the why output under a `## Why` heading when you ran it.
-   Artifact: `evidence/how.md`
+   Artifact: `results/how.md`, `evidence/how.md`
 2. Throughput checkpoint stays one line: `throughput checkpoint: n/a, read-only investigation`.
 3. Produce the `how`-shaped output (Overview / Key Concepts / How It Works / Where Things Live / Gotchas), or a recommendation with a tradeoffs table if the request is a decision between alternatives.
    Write it to `report.md`, built from `evidence/how.md`.

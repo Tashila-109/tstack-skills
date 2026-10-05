@@ -6,7 +6,7 @@ If the cleanup reveals a missing feature or a real bug, split it out and ship th
 
 1. Pin the behavior contract first. Run the **how** skill over the affected subsystem to learn the contract, then write a characterization test, snapshot, or equivalence harness that captures current behavior before any structure moves. If the area has no coverage, write the pin before touching structure. Type check and lint are not a pin.
    Write `evidence/pin.md`: the contract `how` found, the pin you wrote, and its passing output.
-   Artifact: `evidence/pin.md`
+   Artifact: `results/how.md`, `evidence/pin.md`
 2. Name the structure the code is missing per **principle-model-the-domain**. Boring code stays when the shape is already clear and local. The reshape must delete branches or invalid states, not add indirection.
 3. Name the target shape. State what the module layout, types, and call graph should be if built today (**principle-foundational-thinking**, **principle-redesign-from-first-principles**). If the target crosses a function boundary, run the **architect** skill for parallel design exploration of the shape before the move.
    Write `evidence/design.md`: the missing structure from step 2 and the target shape.
@@ -22,6 +22,6 @@ If the cleanup reveals a missing feature or a real bug, split it out and ship th
    Write `evidence/reader-load.md`: where reader load dropped, or what you reverted because it did not.
    Artifact: `evidence/reader-load.md`
 8. Rebase into small ordered commits. A subtraction commit, then the reshape, then any follow-on cleanup. Shape them with the **sequence-verifiable-units** principle skill, so each behavior-preserving slice stays green before the next. Run **Opening a PR**.
-   Artifact: `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
 
 **Reply:** the structure that changed, the pin you held it against, the equivalence proof, the reader-load delta, what shipped and what got reverted. No new behavior.

@@ -12,6 +12,6 @@
    Write what you ran and its real output to `evidence/verify.md`, ending with VERIFIED, NOT VERIFIED or INCONCLUSIVE.
    Artifact: `evidence/verify.md`
 5. Run **Opening a PR**.
-   Artifact: `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
 
 **Reply:** the playbook you designed, the rigor level and why, the decision-trail path, what's verified against the predicate, and what's still open.

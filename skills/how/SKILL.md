@@ -53,6 +53,8 @@ Build its prompt from `references/explainer-prompt.md` with every explorer's fin
 
 Present the explainer's output to the user. Light edits for clarity or context from the conversation are fine. Do not substantially rewrite it.
 
+In a tstack task, a lead delegates the explainer as a worker whose result path is `<task>/results/how.md`, so the step that runs `how` can show the explainer ran. A worker that runs `how` uses its own harness's subagents instead.
+
 ## Output Format
 
 The explanation uses the sections defined in `references/explainer-prompt.md`, dropping any that do not apply: Overview, Key Concepts, How It Works, Where Things Live, Gotchas.

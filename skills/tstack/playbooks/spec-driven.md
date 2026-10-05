@@ -101,7 +101,7 @@ Never edit `design.md`, `spec.md`, or the ticket index after its gate is granted
    Artifact: `evidence/e2e/baseline.md`, `evidence/e2e/final.md`
 9. **Deliver.** Run [Opening a PR](opening-a-pr.md) for the task's delivery mode, and load `technical-writing`.
 
-   Artifact: `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
 
 ## Per-ticket brief
 

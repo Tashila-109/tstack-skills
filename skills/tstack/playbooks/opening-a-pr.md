@@ -4,7 +4,8 @@ Invoked at the end of every other playbook.
 
 **In tstack.** The lead runs this in its task worktree, on branch `task/<id>`, and never merges.
 Every delivery mode runs the cleanup in **PRs** below: `/deslop`, `/no-comments`, `/technical-writing` and `/unslop` on the commit bodies.
-Record it in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
+`/no-comments` runs Comment Sicko as a worker, with its result at `results/comment-sicko.md`.
+Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
 The calling step names that artifact.
 - `local-only` delivery stops after **Commits** and the cleanup: no push and no PR. The clean branch is the deliverable, and main merges it on the human's word.
 - `pr` delivery pushes `task/<id>`, opens the PR against the default branch, and starts watch-pr. Report the PR's full URL to main. Main merges on the human's word.

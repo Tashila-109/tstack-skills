@@ -226,6 +226,12 @@ Write guide page 08 and add these skills to the reference.
 
 ### Phase 3: measure, then retire tstackv2
 
+Started on 2026-10-05.
+tstackv2's global installs are retired, and the migration guide is written.
+Both tutorial runs showed leads doing `how`, `why` and the comment pass inline, so those steps now require the delegated workers' result files, which `check` enforces.
+[Measuring a live task](docs/verification/README.md#measuring-a-live-task) is the method for steps 1 to 3, starting with tstack-router.
+The steps were:
+
 1. Run real tasks on both runtimes.
 2. Count dispatched workers and artifacts against paper loads, the way tstackv2's scouts did.
 3. Fix what didn't hold.
