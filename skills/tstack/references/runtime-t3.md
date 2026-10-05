@@ -98,6 +98,7 @@ Design sketches that only write files need no worktree: give each candidate its 
 ### watch-pr
 
 After opening the PR, call `watch_pull_request` with its `url`, handle the existing comments, then end your turn.
+It wakes you when a check fails, the required checks pass, someone else comments or reviews, or the branch conflicts.
 A wake is news, not a merge decision.
 
 ## Worker

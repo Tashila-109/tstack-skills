@@ -2,7 +2,7 @@
 
 **You own the merge frontier. Declare a mode, clear one PR at a time, stop where the human's call begins.** A request to land or ship is `playbooks/shipping.md`, which begins where this playbook ends. A lead whose task delivers a pull request babysits its own PR this way, in `drive` mode, before it reports done.
 
-Use the GitHub CLI, `gh`, for every PR operation. Wake on the runtime's watch-pr verb instead of polling or sleeping: on T3, `watch_pull_request`, which wakes you when a check fails, the required checks pass, someone else comments or reviews, or the branch conflicts; on Herdr, `gh pr checks <url> --watch --fail-fast` in your shell, then `gh pr view <url> --comments`.
+Use the GitHub CLI, `gh`, for every PR operation. Wake on the runtime's watch-pr verb, as the runtime reference maps it, instead of polling or sleeping.
 
 1. **Declare the mode before any poll.** `drive` runs the loop to merge-ready, for "babysit this", "get it green", "merge-ready". `background` triages without blocking, which is the mode for a plan still executing. `threads-only` answers review comments and touches nothing else, for "address the bugbot comments". `check` is one status pass and a report, for "check on X" and "is it green". Undeclared defaults to `drive`. Small or docs-only PRs get `check`, not `drive`.
 2. **Work the merge frontier and nothing above it.** The lowest unmerged PR is the only one that matters until it merges. Upstack threads get read and batched, never fixed at the cost of restarting the frontier's checks. If you catch yourself upstack while the frontier is red, stop and go back down.

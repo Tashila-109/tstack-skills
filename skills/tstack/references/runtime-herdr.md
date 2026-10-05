@@ -94,7 +94,10 @@ Design sketches that only write files need no worktree: give each candidate its 
 
 ### watch-pr
 
-`gh pr checks <url> --watch --fail-fast` in your shell, then read new review comments with `gh pr view <url> --comments`.
+Run `gh pr checks <url> --watch --fail-fast` as a background command, so your harness wakes you when it exits.
+Set no timeout of your own, because a review bot can take half an hour.
+When it exits, read new review comments with `gh pr view <url> --comments`.
+Never poll with a sleep loop.
 
 ## Worker
 
