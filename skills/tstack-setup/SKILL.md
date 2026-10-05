@@ -37,6 +37,15 @@ After the source changes, the human reruns the same command.
    - turn on **Run on worktree create**, and wait for it before the agent starts.
 
    On Herdr, main links each new worktree itself.
+4. Look for tstackv2 leftovers in the primary checkout:
+   - a section in `AGENTS.md` or `CLAUDE.md` that tells main to run `tstack session-start` or to invoke `/tstack:tstack`;
+   - tracked `.tstack/config.json` and `.tstack/matrix.json`.
+
+   Tell the human what you found.
+   The `AGENTS.md` section sends main to a CLI tstack-skills does not use, so offer to remove it.
+   Remove it only on their word, change nothing else in the file, and leave the commit to them.
+   The two JSON files are unused, so mention them and leave them.
+   [Migrating from tstackv2](https://github.com/Tashila-109/tstack-skills/blob/main/docs/migrating-from-tstackv2.md) covers the rest.
 
 ## 3. Find what can run
 
