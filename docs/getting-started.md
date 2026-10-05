@@ -136,7 +136,8 @@ The lead's workers open as panes beside it.
 If a new agent stops on a trust dialog, answer it yourself in that pane.
 tstack never answers one.
 
-The lead reports back after a few minutes; the tutorial's task took about 6 when this guide was checked.
+The lead reports back after a few minutes.
+The tutorial's task took about 6 when this guide was last checked.
 Main then asks whether to merge.
 Reply `merge it`, then check `node greet.mjs Ada` again.
 Main closes the lead's tab and removes its worktree after the merge.
