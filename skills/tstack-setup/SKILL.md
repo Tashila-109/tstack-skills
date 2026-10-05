@@ -107,6 +107,7 @@ interrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok
 swarm workers: grok/grok-4.7@high
 comment sicko: inherit
 review: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
+verify: claude/claude-opus-5-5@high
 t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thinking, grok=grok/reasoningEffort
 ```
 

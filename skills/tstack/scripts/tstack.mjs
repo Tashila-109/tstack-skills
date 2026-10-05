@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const SKILL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
+const GRANTED = /^##\s+Answer\s*\n+\s*granted\b/im;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
@@ -189,9 +190,16 @@ export function check(home, id, through) {
 	if (through === undefined) wanted.push({ step: "final report", path: "report.md" });
 	const missing = wanted.filter(({ path }) => {
 		const full = insideTask(taskDir, path);
-		return !existsSync(full) || !statSync(full).isFile() || !readFileSync(full, "utf8").trim();
+		if (!existsSync(full) || !statSync(full).isFile()) return true;
+		const text = readFileSync(full, "utf8");
+		return path.startsWith("decisions/") ? !GRANTED.test(text) : !text.trim();
 	});
-	if (missing.length) throw new Refusal(missing.map((m) => `missing ${m.step}: ${m.path}`).join("\n"));
+	if (missing.length)
+		throw new Refusal(
+			missing
+				.map((m) => `missing ${m.step}: ${m.path}${m.path.startsWith("decisions/") ? " with a granted answer" : ""}`)
+				.join("\n"),
+		);
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
 }
 

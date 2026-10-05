@@ -39,7 +39,8 @@ Every skill carries `agents/openai.yaml` with `allow_implicit_invocation: false`
 | `<project>/.tstack/tasks/<id>/evidence/` | lead | One file per `Artifact:` line, plus any other proof the lead keeps. |
 | `<project>/.tstack/tasks/<id>/briefs/<name>.md` | lead | Each worker's brief. |
 | `<project>/.tstack/tasks/<id>/results/<name>.md` | worker | Each worker's result. |
-| `<project>/.tstack/tasks/<id>/decisions/<n>.md` | lead, then main | A question for the human, and their answer under `## Answer`. |
+| `<project>/.tstack/tasks/<id>/decisions/<name>.md` | lead, then main | A question for the human, and their answer under `## Answer`, whose first line is `granted`, `denied` or `answered`. |
+| `<project>/.tstack/handoff/main-<n>.md` | main | A handoff for the next main session. |
 | `<project>/.tstack/tasks/<id>/report.md` | lead | The final report, with `## Remember` and `## Follow-ups`. |
 
 `<project>` is always the primary checkout, even when an agent runs in a worktree.
@@ -54,7 +55,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 | --- | --- |
 | `home` | Prints `<primary checkout>/.tstack`, from any checkout of the project. |
 | `brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship\|scout] [--delivery local-only\|pr]` | Creates the task directory with `task.json` and `brief.md`. Refuses an existing task ID. |
-| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. Without `--through`, it also requires `report.md`. |
+| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer. Without `--through`, it also requires `report.md`. |
 | `seat <role> --runtime t3\|herdr` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag each per-project skill path, to `.git/info/exclude`. |
 | `link-skills <worktree>` | Links a per-project install into a linked worktree. |
@@ -89,7 +90,8 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | `swarm workers` | the swarm skill |
 | `reflect tooling`, `reflect judgment`, `reflect divergent`, `reflect synthesizer` | the reflect skill |
 | `comment sicko` | the no-comments skill |
-| `review` | review steps that ask for two independent reviewers |
+| `review` | the two-axis-review skill: the first seat reviews standards, the second spec |
+| `verify` | the spec-driven playbook's end-to-end lanes |
 
 ## Verbs
 
@@ -110,7 +112,7 @@ Main picks one per task from the [router's intake table](../skills/tstack/SKILL.
 
 | Status | Playbooks |
 | --- | --- |
-| Adapted, so `check` enforces each step's artifact | investigation, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
+| Adapted, so `check` enforces each step's artifact | investigation, gardener, spec-driven, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
 | As written, so `check` enforces only `report.md` | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run, session-pickup, pause-safely, worktree-cleanup |
 | Not yet available | multi-phase-plan, orchestrate, babysit, shipping, autopilot-full, autopilot-stack |
 
@@ -119,9 +121,10 @@ Main picks one per task from the [router's intake table](../skills/tstack/SKILL.
 | Group | Skills |
 | --- | --- |
 | Router and setup | `tstack`, `tstack-setup` |
-| Understand | `how`, `why`, `explain`, `recall` |
+| Understand | `how`, `why`, `explain`, `recall`, `teach` |
+| Plan | `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets` |
 | Design | `architect`, `arena`, `swarm`, `interrogate`, `figure-it-out` |
 | Build and clean | `tdd`, `no-comments`, `unslop`, `technical-writing`, `typescript-best-practices`, `blast-radius`, `benchmark-checklist` |
-| Verify | `create-verification-skill`, `maintain-verification-skill` |
-| Record and improve | `show-me-your-work`, `reflect`, `correct`, `bro` |
+| Review and verify | `two-axis-review`, `create-verification-skill`, `maintain-verification-skill` |
+| Record and improve | `show-me-your-work`, `handoff`, `reflect`, `correct`, `bro`, `writing-for-agents` |
 | Principles | 24 `principle-*` skills, indexed in the router |

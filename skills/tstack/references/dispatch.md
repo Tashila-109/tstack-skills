@@ -115,7 +115,7 @@ A one-command unit may collapse the template to a paragraph that still names goa
 
 ## Results
 
-A worker writes its result once, to `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`.
+A worker writes its result once, to the result path its preamble names, normally `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`.
 You own every worker's work.
 Review the diff yourself and write your own summary.
 Do not pass on what the worker said.

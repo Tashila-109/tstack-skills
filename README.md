@@ -64,4 +64,4 @@ $tstack users see "Hello, undefined" when they pass a name. Repro first, then fi
 
 ## License
 
-The skills under `skills/` include third-party text under the MIT license in [LICENSES/THIRD-PARTY-MIT.txt](LICENSES/THIRD-PARTY-MIT.txt).
+The skills under `skills/` include third-party text under the MIT license; the notices are in [LICENSES/](LICENSES/).

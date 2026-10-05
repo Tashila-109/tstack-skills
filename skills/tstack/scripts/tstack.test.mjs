@@ -152,3 +152,17 @@ test("the CLI runs when invoked through a symlink, as Claude's skills directory 
 	execFileSync("ln", ["-s", join(import.meta.dirname, "tstack.mjs"), link]);
 	assert.equal(execFileSync("node", [link, "home"], { cwd: dir, encoding: "utf8" }).trim(), join(dir, ".tstack"));
 });
+
+test("a gate artifact counts only with a granted answer", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "gated.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n");
+	brief(home, "gated", { playbook: "gated", goal: "g", finish: "f", playbooksDir: playbooks });
+	const file = join(home, "tasks", "gated", "decisions", "design.md");
+	mkdirSync(join(home, "tasks", "gated", "decisions"));
+	writeFileSync(file, "# Approve the design?\n\nKind: design-approval\n");
+	assert.throws(() => check(home, "gated", 1), /decisions\/design\.md with a granted answer/);
+	writeFileSync(file, "# Approve the design?\n\n## Answer\n\ndenied\nNot yet, 2026-10-05\n");
+	assert.throws(() => check(home, "gated", 1), /granted answer/);
+	writeFileSync(file, "# Approve the design?\n\n## Answer\n\ngranted\nShip it, 2026-10-05\n");
+	assert.equal(check(home, "gated", 1), "ok gated: 1 required file present");
+});

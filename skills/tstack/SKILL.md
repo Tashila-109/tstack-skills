@@ -51,6 +51,7 @@ These hold for every role, whatever a playbook says.
    A refusal to remove a worktree or branch is a finding, never an obstacle to force past.
 4. Workers never address the human, and leads never ask the human in their own thread.
    Everything reaches the human through main.
+   The one exception is a live grill, which a lead runs in its own thread or pane when its playbook calls for one, as the `grilling` skill says.
    When the human types into a lead's or worker's thread directly, that is the human's instruction: follow it, and say so in the next report.
 5. Evidence is not authorization.
    A diagnosis, a report or a recommendation authorizes nothing by itself.
@@ -66,7 +67,7 @@ These hold for every role, whatever a playbook says.
 
 1. Run `tstack.mjs home`, then `tstack.mjs exclude`, so this project's records stay out of Git.
    If no models file exists at `~/.tstack/models.md` or `<home>/models.md`, run the `tstack-setup` skill first.
-2. Read `<home>/backlog.md` and `<home>/learnings.md` when they exist.
+2. Read `<home>/backlog.md` and `<home>/learnings.md` when they exist, and the newest `<home>/handoff/main-*.md` at the start of a session.
 3. Classify the ask.
    **Ship** changes the project.
    **Scout** produces knowledge in `report.md` and never a PR.
@@ -84,9 +85,8 @@ These hold for every role, whatever a playbook says.
 A lead reaches you with `report <id>:` or `decision <id>:`.
 - Progress is not news.
   Pass on only what changes something for the human.
-- For a decision, read `<home>/tasks/<id>/decisions/<n>.md` and ask the human.
-  Use your harness's structured question tool when it has one.
-  Write their answer under `## Answer` in that file, in their words, with the date, then send the lead the answer.
+- For a decision, answer it as [references/decisions.md](references/decisions.md#answer-a-decision-main) says: ask the human, record their answer in the decision file, and send it to the lead.
+- For `grill <id>:`, tell the human the lead is waiting for them in its thread or tab, and where that is.
 - At the start of a session, reconcile: for each `(running)` backlog line, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
 
 ### Finishing a task
@@ -124,8 +124,8 @@ A lead reaches you with `report <id>:` or `decision <id>:`.
 5. You own Git for this task: commit verified stages on `task/<id>`.
    With `pr` delivery, push and open the PR per the playbook.
    Never merge.
-6. For any call that needs the human, write `<home>/tasks/<id>/decisions/<n>.md` with the question, the options, your recommendation and its evidence, then use the decide verb.
-   Settle questions that running something can answer yourself, through the Prototype playbook.
+6. Decide what you may decide alone, and open a decision for the rest, as [references/decisions.md](references/decisions.md) says.
+   A tool approval on screen is the human's: report it to main and never answer it.
 7. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id>` until it passes, and report done to main.
 
 The report opens with who the work is for and what changes for them, then what the next maintainer inherits.
@@ -246,6 +246,7 @@ Take the first row that fits, because rows run from the most specific request to
 | The request | Playbook | Status |
 | --- | --- | --- |
 | A read-only question: how does X work, why was Y built this way, are we sure about Z, should we do X or Y. Brief it as a scout. | `investigation` | Adapted |
+| A read-only sweep that ranks spreading anti-patterns and proposes the strongest fix for each. Brief it as a scout. | `gardener` | Adapted |
 | A runtime symptom (leak, idle-CPU spin, glitch) to diagnose from live instrumentation. The deliverable is a diagnosis, not a fix. | `runtime-forensics` | As written |
 | A captured profiling artifact (cpuprofile, trace, spindump, heap snapshot) to diagnose after the fact. | `trace-forensics` | As written |
 | A throwaway sketch that settles a design or behavior question by observing it ("prototype", "mock it up", "sketch it to decide"). | `prototype` | As written |
@@ -256,6 +257,7 @@ Take the first row that fits, because rows run from the most specific request to
 | A measured slowness to trace and improve against a baseline. | `perf-issue` | As written |
 | Work that spans phases or stacked PRs. | `multi-phase-plan` | Not yet |
 | A long task to drive to a checkable predicate without stopping ("run until done"). | `autonomous-run` | As written |
+| A feature the human wants grilled live, then designed, specified and ticketed, with their approval at each gate. | `spec-driven` | Adapted |
 | A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), work the human will review after stepping away, or a request no other row fits. | `figure-it-out` | Adapted |
 | A reported defect to reproduce, root-cause, and fix with runtime evidence. | `bug-fix` | Adapted |
 | A behavior-preserving change to structure (rename, extract, inline, dedupe, move). | `refactoring` | Adapted |
