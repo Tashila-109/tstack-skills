@@ -230,6 +230,7 @@ Started on 2026-10-05.
 tstackv2's global installs are retired, and the migration guide is written.
 Both tutorial runs showed leads doing `how`, `why` and the comment pass inline, so those steps now require the delegated workers' result files, which `check` enforces.
 [Measuring a live task](docs/verification/README.md#measuring-a-live-task) is the method for steps 1 to 3, starting with tstack-router.
+The first tstack-router run, on T3, is [recorded here](docs/verification/2026-10-05-tstack-router-live-t3.md).
 The steps were:
 
 1. Run real tasks on both runtimes.
