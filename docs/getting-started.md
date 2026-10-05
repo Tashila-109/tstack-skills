@@ -118,7 +118,9 @@ git reset --hard "$(git rev-list --max-parents=0 HEAD)"
 ### Start main
 
 1. Open a Herdr pane at `~/tstack-scratch`.
-2. Start Claude Code in it: `claude`.
+2. Start Claude Code in it: `claude --permission-mode auto`.
+   Main runs many small shell commands, and auto mode spares you approving each one.
+   Plain `claude` works too, if you approve them as they come.
 3. If you skipped Part 1, run `/tstack-setup` and answer its questions.
 
 ### Run the task
@@ -134,7 +136,8 @@ The lead's workers open as panes beside it.
 If a new agent stops on a trust dialog, answer it yourself in that pane.
 tstack never answers one.
 
-When the lead reports back, main asks whether to merge.
+The lead reports back after a few minutes; the tutorial's task took about 6 when this guide was checked.
+Main then asks whether to merge.
 Reply `merge it`, then check `node greet.mjs Ada` again.
 Main closes the lead's tab and removes its worktree after the merge.
 
