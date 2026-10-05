@@ -98,10 +98,10 @@ A lead reaches you with `report <id>:` or `decision <id>:`.
    For `pr` delivery, give the PR's full URL.
 3. Ask whether to merge.
    Never merge without that word.
-4. On the human's word:
-   - for `local-only`, run `git merge --ff-only task/<id>` in the primary checkout;
-     if it cannot fast-forward, ask the lead to bring its branch up to date, and ask again;
-   - for `pr`, merge the PR with `gh pr merge`, using the merge method the human or the project uses.
+4. On the human's word, merge only the head SHA the lead reported, so a commit made after the report never lands:
+   - for `local-only`, run `git merge --ff-only <head SHA>` in the primary checkout;
+     if `task/<id>` has moved past that SHA, or it cannot fast-forward, ask the lead to bring its branch up to date and report again, then ask the human again;
+   - for `pr`, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
 5. Clean up per the runtime reference, and move the backlog line to `## done`.
 6. Read the report's `## Remember` and `## Follow-ups`.
    Add a one-line summary of each lesson worth keeping to `<home>/learnings.md`, in your own words.
@@ -126,7 +126,7 @@ A lead reaches you with `report <id>:` or `decision <id>:`.
    Never merge.
 6. Decide what you may decide alone, and open a decision for the rest, as [references/decisions.md](references/decisions.md) says.
    A tool approval on screen is the human's: report it to main and never answer it.
-7. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id>` until it passes, and report done to main.
+7. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id>` until it passes, and report done to main with the head SHA of `task/<id>`.
 
 The report opens with who the work is for and what changes for them, then what the next maintainer inherits.
 It names each principle you applied and the decision it changed, citing only principles whose `SKILL.md` you read during this task.

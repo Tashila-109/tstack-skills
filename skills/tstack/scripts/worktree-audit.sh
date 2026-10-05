@@ -22,9 +22,17 @@ prs=$(mktemp)
 gh pr list --author "@me" --state all --limit 1000 \
 	--json number,state,headRefName 2>/dev/null > "$prs" || echo "[]" > "$prs"
 
-# Transcripts dir: ~/.cursor/projects/<slugified-repo-path>/agent-transcripts.
-slug=$(printf '%s' "$main_wt" | sed 's#^/##; s#/#-#g')
-transcripts="$HOME/.cursor/projects/$slug/agent-transcripts"
+# Newest session any harness ran in a worktree. Claude Code and Pi keep one
+# folder per checkout; Codex records the checkout as the session's cwd.
+# ponytail: Grok sessions are not scanned; add them if a Grok chat is ever the only one.
+last_chat_ts() {
+	{
+		ls -t "$HOME/.claude/projects/$(printf '%s' "$1" | sed 's#[/.]#-#g')"/*.jsonl 2>/dev/null | head -1
+		ls -t "$HOME/.pi/agent/sessions/--$(printf '%s' "${1#/}" | sed 's#/#-#g')--"/*.jsonl 2>/dev/null | head -1
+		[ -d "$HOME/.codex/sessions" ] &&
+			find "$HOME/.codex/sessions" -name '*.jsonl' -mtime -30 -exec grep -lF "\"cwd\":\"$1\"" {} + 2>/dev/null
+	} | xargs stat -f '%m' 2>/dev/null | sort -rn | head -1
+}
 now=$(date +%s)
 
 printf "SIZE\tAGE\tMERGED\tDIRTY\tREMOTE\tPR\tLAST_CHAT\tBUCKET\tWORKTREE\n"
@@ -60,15 +68,8 @@ git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt;
 		'.[] | select(.headRefName==$b) | "#\(.number)/\(.state)"' "$prs" 2>/dev/null | head -1)
 	[ -z "$pr" ] && pr="-"
 
-	# Most recent chat whose transcript operated in this worktree. Match path
-	# followed by "/" or a quote so glint-482 does not match glint-482-r37.
-	last="-"; last_ts=0
-	if [ -d "$transcripts" ]; then
-		f=$(rg -l -e "${wt}/" -e "${wt}\"" "$transcripts" 2>/dev/null \
-			| xargs stat -f '%m %N' 2>/dev/null | sort -rn | head -1)
-		if [ -n "$f" ]; then last_ts=$(echo "$f" | awk '{print $1}')
-			last=$(date -r "$last_ts" '+%Y-%m-%d' 2>/dev/null); fi
-	fi
+	last_ts=$(last_chat_ts "$wt"); last_ts=${last_ts:-0}
+	last=$([ "$last_ts" -gt 0 ] && date -r "$last_ts" '+%Y-%m-%d' || echo "-")
 	recent=$([ "$last_ts" -gt 0 ] 2>/dev/null && [ $(( (now - last_ts) / 86400 )) -le 4 ] && echo yes || echo no)
 
 	case "$dirty" in wip:*) bucket=hold-wip ;; *)

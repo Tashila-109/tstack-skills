@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, exclude, linkSkills, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
 
 const PLAYBOOK = `### Sample
 
@@ -176,4 +176,19 @@ test("a pr-delivery task is done only with babysit evidence", () => {
 	assert.throws(() => check(home, "pr"), /missing pr delivery: evidence\/babysit\.md/);
 	writeFileSync(join(task, "evidence/babysit.md"), "drive: PR #1 merge-ready at abc123\n");
 	assert.equal(check(home, "pr"), "ok pr: 2 required files present");
+});
+
+test("check-seats names each seat T3 does not advertise, and the ID it goes by", () => {
+	const caps = {
+		providers: [
+			{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [{ id: "claude-opus-5-5", options: [{ id: "effort", options: [{ id: "medium" }, { id: "high" }] }] }] },
+			{ providerInstanceId: "pi", canRunChildTask: true, models: [{ id: "openai/gpt-6.1-sol", options: [{ id: "thinking", options: [{ id: "xhigh" }] }] }] },
+			{ providerInstanceId: "opencode", canRunChildTask: false, models: [] },
+		],
+	};
+	const instances = "t3 instances: claude=claudeAgent/effort, pi=pi/thinking, open=opencode/x";
+	assert.equal(checkSeats(parseModels(`lead: claude/claude-opus-5-5@high\nbug-fix: pi/openai/gpt-6.1-sol@xhigh\ncomment sicko: inherit\n${instances}`), caps), "ok: 2 seats advertised");
+	assert.throws(() => checkSeats(parseModels(`bug-fix: pi/gpt-6.1-sol@xhigh\n${instances}`), caps), /bug-fix: pi gpt-6\.1-sol: model not advertised; advertised as openai\/gpt-6\.1-sol/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5@max\n${instances}`), caps), /effort max not offered \(medium, high\)/);
+	assert.throws(() => checkSeats(parseModels(`review: open/some-model\n${instances}`), caps), /instance opencode cannot run child tasks/);
 });

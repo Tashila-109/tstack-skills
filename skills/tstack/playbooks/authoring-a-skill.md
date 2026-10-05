@@ -2,8 +2,7 @@
 
 **You own the skill's voice.**
 
-1. Use the **create-skill** skill (Cursor's built-in for authoring SKILL.md files).
-   In tstack, follow the **writing-for-agents** skill instead of create-skill.
+1. Use the **writing-for-agents** skill.
 2. Validate the skill: frontmatter has `name` and `description`, referenced files exist, cross-skill links resolve.
    Write what you checked and its result to `evidence/validation.md`.
    Artifact: `evidence/validation.md`

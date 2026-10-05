@@ -55,6 +55,7 @@ Stop and tell main, which asks the human to run `tstack-setup`.
 
 When a seat fails to launch, because the provider is down, logged out, or lacks the model:
 - a single-seat role stops, and the lead reports to main, which asks the human;
+  on T3, `tstack.mjs check-seats` on a saved `orchestrator_capabilities` result names each failing seat, and the ID its model goes by when only the provider prefix differs;
 - a panel continues with the seats that launched, and the result names each dropout.
 
 Never run a seat on a different model than the one configured without the human's word.
@@ -89,7 +90,7 @@ Read their Cursor terms this way:
 | `AskQuestion` | main asks the human. A lead uses decide. A worker writes `BLOCKED` in its result. |
 | The agent store, or `agent-transcripts/` | `<home>/tasks/<id>/` for task records, and the harness's own session files for transcripts. |
 | `/deslop` from `cursor-team-kit` | `ponytail-review` when the ponytail plugin is installed. Otherwise remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits yourself. |
-| `create-skill` | The [authoring-a-skill playbook](../playbooks/authoring-a-skill.md). |
+| `create-skill` | The [writing-for-agents skill](../../writing-for-agents/SKILL.md). |
 | `control-cli`, `control-ui` | The project's `verify-*` skill, or [create-verification-skill](../../create-verification-skill/SKILL.md) if it has none. |
 | A worktree "off main" for a subagent | Workers share the lead's worktree. A candidate that needs its own checkout gets one through the runtime reference. |
 | A subagent opens a PR or merges | Only the lead opens PRs, and only main merges, on the human's word. |

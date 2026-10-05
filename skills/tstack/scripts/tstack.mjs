@@ -5,6 +5,7 @@
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>]
 //   node tstack.mjs seat <role> --runtime t3|herdr
+//   node tstack.mjs check-seats <saved orchestrator_capabilities result>
 //   node tstack.mjs exclude [--project-skills]
 //   node tstack.mjs link-skills <worktree>
 //
@@ -277,6 +278,33 @@ export function seat(models, role, runtime) {
 	});
 }
 
+export function checkSeats(models, caps) {
+	const providers = new Map((caps.providers ?? []).filter((p) => p.canRunChildTask).map((p) => [p.providerInstanceId, p]));
+	const problems = new Set();
+	const checked = new Set();
+	for (const role of models.keys()) {
+		if (role === "t3 instances" || role.startsWith("herdr args")) continue;
+		for (const s of seat(models, role, "t3")) {
+			if (s.inherit) continue;
+			checked.add(JSON.stringify(s));
+			const where = `${role}: ${s.providerInstanceId} ${s.model}`;
+			const provider = providers.get(s.providerInstanceId);
+			const model = provider?.models?.find((m) => m.id === s.model);
+			if (!provider) problems.add(`${where}: instance ${s.providerInstanceId} cannot run child tasks here`);
+			else if (!model) {
+				const near = provider.models.filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
+				problems.add(`${where}: model not advertised${near.length ? `; advertised as ${near.join(" or ")}` : ""}`);
+			} else
+				for (const o of s.options ?? []) {
+					const values = model.options?.find((x) => x.id === o.id)?.options?.map((v) => v.id) ?? [];
+					if (!values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
+				}
+		}
+	}
+	if (problems.size) throw new Refusal([...problems].join("\n"));
+	return `ok: ${checked.size} seat${checked.size === 1 ? "" : "s"} advertised`;
+}
+
 export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? join(homedir(), ".tstack")) {
 	const merged = new Map();
 	const read = (path) => (existsSync(path) ? parseModels(readFileSync(path, "utf8")) : new Map());
@@ -321,13 +349,18 @@ export function main(argv) {
 			return seat(loadModels(taskHome()), f._.join(" "), f.runtime)
 				.map((s) => JSON.stringify(s))
 				.join("\n");
+		case "check-seats": {
+			if (f._.length !== 1) throw new Usage("check-seats takes the path of a saved orchestrator_capabilities result");
+			const caps = JSON.parse(readFileSync(f._[0], "utf8"));
+			return checkSeats(loadModels(taskHome()), Array.isArray(caps) ? JSON.parse(caps[0].text) : caps);
+		}
 		case "exclude":
 			return exclude(process.cwd(), f["project-skills"] === true);
 		case "link-skills":
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, seat, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, seat, check-seats, exclude, link-skills");
 	}
 }
 

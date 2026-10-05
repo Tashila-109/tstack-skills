@@ -67,5 +67,9 @@ Elapsed from brief to merge: 28 minutes.
 1. `9ef20bc`: Opening a PR now defers to the `pr` delivery line, which says the lead babysits to merge-ready before it reports done.
    `check` requires `evidence/babysit.md` for a `pr` task.
 2. tstack-router's `.tstack/models.md` now names `pi/openai/gpt-6.1-sol@xhigh`, which resolves on T3 and on Herdr, since Pi's `--model` accepts `provider/id`.
-3. No change for the late artifacts or the test edit.
+3. `tstack.mjs check-seats` checks every seat in both models files against a saved `orchestrator_capabilities` result, and names the advertised ID when only a provider prefix differs.
+   `tstack-setup` runs it after writing either file.
+4. Main merged with `--match-head-commit` on its own, and the router now requires it: main merges only the head SHA the lead reported, for `pr` and `local-only` delivery.
+5. The upstream lines that froze Cursor terms and a `grok-4.7-xhigh-fast` default into this brief now name the runtime's wakes and the role's seat.
+6. No change for the late artifacts or the test edit.
    Watch them on the next runs before adding a rule.

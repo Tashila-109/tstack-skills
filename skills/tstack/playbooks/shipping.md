@@ -16,7 +16,7 @@ Land one PR at a time, bottom first:
 
 - **Re-check the verdict still describes the patch.** Fetch, then compare the PR's current `git diff <base>...<head> | git patch-id --stable` with the recorded one. When they differ, stop: the verdict no longer covers the patch, so brief a new Shipping task for the rest.
 - **Prepare only the bottom PR.** If it targets its parent branch and the parent has merged, retarget it with `gh pr edit <pr> --base <default>`. If GitHub says it is behind, bring the default branch in with `gh pr update-branch <pr>`, which merges and never force-pushes, then re-check the patch and wait for its checks.
-- **Merge it.** When `gh pr view <pr> --json mergeable,mergeStateStatus,statusCheckRollup` shows it mergeable with every required check passed, run `gh pr merge <pr> --squash`.
+- **Merge it.** When `gh pr view <pr> --json mergeable,mergeStateStatus,statusCheckRollup` shows it mergeable with every required check passed, run `gh pr merge <pr> --match-head-commit <head>`, where `<head>` is the head you just re-checked, using the project's merge method.
    Wait until `gh pr view <pr> --json state,mergedAt` shows it merged before touching the next PR.
 - **Recompute after every merge.** Fetch, confirm the merged commit is on the default branch, drop the PR from the list, and repeat from the first check for the new bottom PR.
 - **Stop at the ceiling.** Tell the human what landed, with each PR's full URL, the next unverified PR, and what verifying it would take.

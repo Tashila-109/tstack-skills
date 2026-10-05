@@ -37,7 +37,9 @@ After the source changes, the human reruns the same command.
    - turn on **Run on worktree create**, and wait for it before the agent starts.
 
    On Herdr, main links each new worktree itself.
-4. Look for tstackv2 leftovers in the primary checkout:
+4. On T3, read `storageCleanup.worktreeOnMerge` in `~/.t3/userdata/settings.json`.
+   If it is not `true`, tell the human that each merged task's worktree stays on disk until they remove it, and suggest turning on worktree removal on merge in T3's storage settings.
+5. Look for tstackv2 leftovers in the primary checkout:
    - a section in `AGENTS.md` or `CLAUDE.md` that tells main to run `tstack session-start` or to invoke `/tstack:tstack`;
    - tracked `.tstack/config.json` and `.tstack/matrix.json`.
 
@@ -119,6 +121,8 @@ t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thin
 Write `~/.tstack/models.md` by default, replacing the whole file so a rerun gives the same result.
 Write `<home>/models.md` only when the human wants this project to differ, and put only the differing lines in it.
 Then run `tstack.mjs seat lead --runtime t3` or `--runtime herdr`, for the runtime in use, and confirm it prints a seat.
+On T3, also run `tstack.mjs check-seats <file>` on the saved `orchestrator_capabilities` result, and fix every line it names.
+It checks the global and the project file together, so run it again whenever either file changes, including a project file written by hand.
 
 ## 7. Offer a verification skill
 

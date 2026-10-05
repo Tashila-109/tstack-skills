@@ -52,7 +52,7 @@ Then it asks whether to merge.
 | Delivery | What the lead produces | What main does on your word |
 | --- | --- | --- |
 | `local-only`, the default | A clean branch, `task/<task id>`, with small ordered commits | Fast-forwards your branch to it, then cleans up the worktree |
-| `pr` | A pushed branch and an open PR, watched for checks and reviews | Merges the PR with `gh pr merge`, using your project's merge method |
+| `pr` | A pushed branch and an open PR, watched for checks and reviews | Merges the PR with `gh pr merge`, pinned to the commit the lead reported, using your project's merge method |
 
 Ask for PR delivery in your request, such as "open a PR for it".
 Nothing merges without your explicit word, whatever else you said.

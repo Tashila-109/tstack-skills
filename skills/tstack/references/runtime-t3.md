@@ -52,7 +52,7 @@ Never steer or restart a lead to check on it.
 ### After the merge
 
 Archive the lead's thread with `t3_thread_organize`.
-T3's storage settings remove merged worktrees when the human enables that.
+T3's storage settings remove merged worktrees when the human enables that (`storageCleanup.worktreeOnMerge` in `~/.t3/userdata/settings.json`).
 Otherwise leave the worktree for the human.
 Never delete a T3 worktree yourself.
 
