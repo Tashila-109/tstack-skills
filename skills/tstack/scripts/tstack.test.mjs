@@ -145,3 +145,10 @@ test("a model ID may contain @ when the last segment is not an effort", () => {
 	assert.deepEqual(seat(models, "lead", "herdr")[0].args.slice(0, 4), ["--model", "cursor/claude-opus-5-5@300k", "--thinking", "high"]);
 	assert.deepEqual(seat(models, "feature", "herdr")[0].args, ["--model", "cursor/claude-opus-5-5@300k"]);
 });
+
+test("the CLI runs when invoked through a symlink, as Claude's skills directory does", () => {
+	const { dir } = scratch();
+	const link = join(dir, "..", `${dir.split("/").at(-1)}-tstack.mjs`);
+	execFileSync("ln", ["-s", join(import.meta.dirname, "tstack.mjs"), link]);
+	assert.equal(execFileSync("node", [link, "home"], { cwd: dir, encoding: "utf8" }).trim(), join(dir, ".tstack"));
+});
