@@ -211,6 +211,11 @@ The steps were:
 
 ### Phase 2: your skills that tstackv2 added
 
+Done on 2026-10-05, not yet run on a live task.
+The decision and ask-user-authority rules became `skills/tstack/references/decisions.md`, and `check` now needs a granted answer for each gate.
+tstackv2's self-pass for small tasks is gone with its size test, so every gate goes to the human.
+The steps were:
+
 Rewrite these from tstackv2 without CLI calls:
 - grilling, grill-with-docs, domain-modeling, codebase-design, writing-for-agents, to-spec, to-tickets, handoff and teach
 - two-axis-review
