@@ -189,6 +189,11 @@ A launch prompt loads the router by reading its `SKILL.md` path, which worked on
 
 ### Phase 1: the core loop
 
+Done on 2026-10-05.
+Getting started ran end to end on [Herdr](docs/verification/2026-10-05-herdr-e2e.md) and on [T3](docs/verification/2026-10-05-t3-e2e.md).
+Both runs found and fixed real bugs, and both showed leads running `how` and `why` inline instead of delegating them, which Phase 3 measures on larger tasks.
+The steps were:
+
 1. Vendor the upstream skills with only names and Cursor-only model rules changed.
    Rename the router to `tstack` and `teach` to `explain`, matching tstackv2's naming.
    Defer the playbooks whose tooling is not ported: multi-phase-plan, orchestrate, babysit, shipping, autopilot-full and autopilot-stack.
