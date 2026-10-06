@@ -110,11 +110,11 @@ For watch-pr, call `watch_pull_request` with its `url`, handle the existing comm
 It wakes you when a check fails, the required checks pass, someone else comments or reviews, or the branch conflicts.
 A wake is news, not a merge decision.
 
-### heartbeat
+## Heartbeat
 
-When a long run has no event to wake you, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names your task and its predicate.
+When a lead's long run has no event to wake it, or main runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
 Each run posts that prompt into your own thread.
-Delete it with `delete_scheduled_task` before you report done.
+Delete it with `delete_scheduled_task` when the lead reports done or the program's queue ends.
 
 ## Proving on the real surface
 

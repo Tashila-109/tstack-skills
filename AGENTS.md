@@ -27,7 +27,8 @@ LICENSES/                   third-party notices
 - One owner per rule.
   State it once, in the file that owns it, and link to it from everywhere else.
 - Skills that came from upstream keep their wording, so a later upstream change ports with a small diff.
-  Change a vendored sentence only to remove a name, retarget a Cursor-only rule, or add an `Artifact:` line.
+  Change a vendored sentence only to remove a name, retarget a Cursor-only rule, or add an `Artifact:` line or an "In a tstack task" note.
+  The playbooks the router marks Adapted or Main's program are tstack rewrites, so port upstream changes into them by hand.
   New text follows the `unslop` and `technical-writing` skills, one sentence per line.
 - Simplest thing that works.
   No abstraction with one implementation and no config for a value that never changes.

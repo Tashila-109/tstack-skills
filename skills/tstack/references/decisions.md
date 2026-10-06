@@ -60,7 +60,7 @@ Do your other independent work first if you have any, but nothing the decision g
 
 Gates come in order: `design-approval` before `spec-approval`, and both before `implement-authorization`.
 A gate covers its subject as it was when you opened it.
-After a grant, a changed design, spec or ticket index is a new decision under a new name, such as `design-2`, and the gates after it follow again.
+After a grant, a changed design or spec is a new decision under a new name, such as `design-2`, and the gates after it follow again.
 
 ## Answer a decision (main)
 

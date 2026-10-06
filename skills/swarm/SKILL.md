@@ -27,9 +27,9 @@ Open a todolist with one entry per phase before launching anything.
 
 ## Phase B: Fan out
 
-Spawn all N workers in one message with `subagent_type: generalPurpose`, `environment: "cloud"`, `run_in_background: true`, and the step 4 model, left unset for `auto` or `inherit-parent`. Use `environment: "local"` only when the worker needs access to something on the user's computer.
+Delegate all N workers at once on the step 4 seats, as the dispatch reference's delegate verb says.
 
-When a worker must start from a non-default pushed branch, pass `cloud_base_branch`.
+When a worker must start from another branch, give it its own checkout, as the tstack runtime reference's "A candidate that needs its own checkout" says.
 
 Every brief stands alone. Include the goal, scope, exact slice or race arm, how to verify, and what to report. Reports use `PASS`, `ISSUES`, or `BLOCKED` with evidence. A worker that can prove a defect reports `ISSUES` and lists every issue it can prove, not only the first.
 

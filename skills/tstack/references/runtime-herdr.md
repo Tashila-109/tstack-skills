@@ -56,9 +56,13 @@ To release it, wait for it to be idle, then prompt `release <id>:`.
 ### After the merge
 
 1. `herdr tab close <tab>`.
-2. `git worktree remove <worktree>`, then `git branch -d task/<id>`.
-   Both refuse when work has not landed.
-   A refusal means stop and look, never force.
+2. `git worktree remove <worktree>`.
+   It refuses when the worktree has uncommitted changes.
+3. Delete the branch only once its work has landed:
+   - for `local-only`, `git branch -d task/<id>`, which refuses unless the merge reached the default branch;
+   - for `pr`, once `gh pr view <pr> --json state` shows `MERGED`, `git branch -D task/<id>`, because a squash or rebase merge leaves the branch's own commits looking unmerged to Git.
+
+A refusal means stop and look, never force.
 
 ## Lead
 

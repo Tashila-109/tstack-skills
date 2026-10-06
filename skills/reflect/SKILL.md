@@ -16,13 +16,7 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
 
 ### 1. Locate the active transcript
 
-The parent finds its own transcript file before fanning out. The system prompt names the active workspace's `agent-transcripts/` directory. Use that path. Do not glob across `~/.cursor/projects/*/`. That crosses workspace boundaries and reads private chats from unrelated projects.
-
-```bash
-ls -t <agent-transcripts>/*.jsonl <agent-transcripts>/*/*.jsonl <agent-transcripts>/*/subagents/*.jsonl 2>/dev/null | head -10
-```
-
-Three transcript layouts: legacy flat (`<id>.jsonl`), current nested (`<id>/<id>.jsonl`), and subagent (`<parent>/subagents/<child>.jsonl`).
+The parent finds its own transcript before fanning out, where the History section of the tstack runtime reference says: [T3](../tstack/references/runtime-t3.md#history) or [Herdr](../tstack/references/runtime-herdr.md#history). Read only the active project's history. Reading every project's history crosses workspace boundaries and reads private chats from unrelated projects.
 
 For each candidate, read the first JSONL line and check that `message.content[0].text` contains the conversation's opening user prompt. Take the matching path. If no path resolves, write a tight digest of the session and pass that instead.
 
@@ -57,7 +51,7 @@ Backlog items file to whatever devex / backlog tracker your team uses automatica
 For each approved Accepted item, follow the Routing field exactly:
 
 - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.
-- Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to Cursor's built-in `create-skill` skill and run its draft / test / iterate loop.
+- Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to `create-skill` and run its draft / test / iterate loop.
 - `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to `create-skill` and run its description-optimization loop.
 - `new skill via create-skill: <kebab-name>`: hand creation to `create-skill`. Do not invent the shape ad hoc.
 

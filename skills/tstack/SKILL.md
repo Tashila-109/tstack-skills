@@ -30,7 +30,7 @@ A skill named in bold, such as **how** or **principle-model-the-domain**, is `..
 Read that file in full when a step names it.
 These skills are marked for explicit use, so your harness's skill tool may refuse to load them for you.
 `tstack.mjs` means `node <this skill's directory>/scripts/tstack.mjs`.
-It owns the facts on disk: `home`, `brief`, `check` and `seat`.
+It owns the facts on disk, and its header lists its commands.
 
 ## Roles
 
@@ -45,7 +45,7 @@ It owns the facts on disk: `home`, `brief`, `check` and `seat`.
 These hold for every role, whatever a playbook says.
 
 1. Main never writes project files.
-   It writes only under `<home>`, plus the Git operations this skill names: creating a lead's worktree on Herdr, and merging or cleaning up on the human's word.
+   It writes only under `<home>`, plus what `tstack.mjs exclude` and `tstack.mjs link-skills` write and the Git operations this skill names: creating a lead's worktree on Herdr, and merging or cleaning up on the human's word.
 2. Merging, discarding work, and anything destructive, irreversible or security-sensitive happen only on the human's explicit word for that action.
    A standing merge grant in `<home>/grants.md` is that word for the merges it covers.
    Only main writes that file, from the human's own message: their words, the date, and what the grant covers and does not.
@@ -73,6 +73,7 @@ These hold for every role, whatever a playbook says.
    **Ship** changes the project.
    **Scout** produces knowledge in `report.md` and never a PR.
    If established evidence already answers a question, answer it instead of briefing a scout.
+   A question about tstack itself, such as which skill or playbook fits, goes to the **tstack-help** skill.
 4. Pick the playbook from [Playbooks](#playbooks).
    Take the first row that fits.
 5. Derive a checkable finish if the human gave none, such as a command that passes, an output that matches, or an artifact that exists.
@@ -83,10 +84,11 @@ These hold for every role, whatever a playbook says.
 
 ### While leads work
 
-A lead reaches you with `report <id>:` or `decision <id>:`.
+A lead reaches you with `report <id>:`, `decision <id>:` or `handoff <id>:`.
 - Progress is not news.
   Pass on only what changes something for the human.
 - For a decision, answer it as [references/decisions.md](references/decisions.md#answer-a-decision-main) says: ask the human, record their answer in the decision file, and send it to the lead.
+- For a handoff, start a fresh lead from the handoff file, as the **handoff** skill's "For main: relaunching a lead" says.
 - On the human's stop for a task, hold its lead, as dispatch.md's hold verb says, until the human releases it.
 - At the start of a session, reconcile: for each `(running)` backlog line, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
 
@@ -137,7 +139,6 @@ It ends with `## Remember`, short lessons a later task in this project should kn
 ## Worker
 
 Follow the preamble your lead sent, which is [references/worker-preamble.md](references/worker-preamble.md).
-Read this file's Principles and Writing the reply sections.
 Your brief is your whole job.
 
 ## Non-negotiables
@@ -259,7 +260,8 @@ Take the first row that fits, because rows run from the most specific request to
 | A measured slowness to trace and improve against a baseline. | `perf-issue` | As written |
 | A plan for work that spans phases or stacked PRs, with no build yet. | `multi-phase-plan` | Adapted |
 | A long task to drive to a checkable predicate without stopping ("run until done"). | `autonomous-run` | As written |
-| A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), work the human will review after stepping away, or a request no other row fits. | `figure-it-out` | Adapted |
+| Work that spans phases, authorized to be planned and built. | `orchestrate` | Adapted |
+| A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), or work the human will review after stepping away, even when a narrower row below fits. | `figure-it-out` | Adapted |
 | A reported defect to reproduce, root-cause, and fix with runtime evidence. | `bug-fix` | Adapted |
 | A behavior-preserving change to structure (rename, extract, inline, dedupe, move). | `refactoring` | Adapted |
 | New or changed behavior, built from a named data shape. | `feature` | Adapted |
@@ -267,10 +269,10 @@ Take the first row that fits, because rows run from the most specific request to
 | Suspending in-flight work so it can resume. | `pause-safely` | As written |
 | Reclaiming disk from merged or abandoned worktrees. | `worktree-cleanup` | As written |
 | The delivery checkpoint at the end of another playbook. | `opening-a-pr` | Adapted |
-| Work that spans phases, authorized to be planned and built. | `orchestrate` | Adapted |
 | Driving a PR or a stack to merge-ready: conflicts, review threads, CI. | `babysit` | Adapted |
 | Verifying a green stack and landing the verified run. | `shipping` | Adapted |
 | A queue of independent PRs to build, verify and merge under one grant from the human. | `autopilot-full` | Main's program |
 | A queue of changes to build and verify as one stack the human lands. | `autopilot-stack` | Main's program |
+| A request no row above fits. | `figure-it-out` | Adapted |
 
 Each playbook is `playbooks/<name>.md` beside this file.

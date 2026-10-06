@@ -3,7 +3,7 @@
 Invoked at the end of every other playbook.
 
 **In tstack.** The lead runs this in its task worktree, on branch `task/<id>`, and never merges.
-Every delivery mode runs the cleanup in **PRs** below: `/deslop`, `/no-comments`, `/technical-writing` and `/unslop` on the commit bodies.
+Every delivery mode runs the cleanup in **PRs** below: the router's before-commit cleanup, `/no-comments`, `/technical-writing` and `/unslop` on the commit bodies.
 `/no-comments` runs Comment Sicko as a worker, with its result at `results/comment-sicko.md`.
 Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
 The calling step names that artifact.
@@ -14,7 +14,7 @@ The calling step names that artifact.
 
 **Commits.** Commit liberally. Rebase into small, ordered commits before opening PRs. Each commit is a future PR: landable, ordered to tell the story. Amend when the fix belongs in a just-made commit. New commit when separable.
 
-**PRs.** Run `/deslop` from `cursor-team-kit` over the diff before commit. Run `/no-comments` before review. Write every PR title, PR description, and commit body with `/technical-writing`, then apply `/unslop`. Apply every technical-writing layer except Diátaxis. Use one word for each action, keep articles, and avoid `-ing` when a plain verb works.
+**PRs.** Run the router's before-commit cleanup over the diff. Run `/no-comments` before review. Write every PR title, PR description, and commit body with `/technical-writing`, then apply `/unslop`. Apply every technical-writing layer except Diátaxis. Use one word for each action, keep articles, and avoid `-ing` when a plain verb works.
 
 **Titles.** Use Conventional Commits in the form `type(scope): subject`. Use `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `perf` as the type. Use the changed area, such as `tstack` or `how`, as the scope. Keep the subject short and imperative. Name a real symbol when one carries the change. For example, `fix(tstack): retarget the opening-a-pr babysit trigger`. Do not add a trailing period.
 
@@ -41,4 +41,4 @@ After these sections, attach videos or screenshots when they prove a claim. Do n
 
 **Babysit.** In tstack a task delivers one PR, and the `pr` delivery line above says when its lead babysits it. Push back when feedback drifts from intent.
 
-Only the lead opens a PR. It runs `interrogate` when the design is contested, `/deslop`, and `/no-comments` first, then babysits it as the `pr` delivery line says.
+Only the lead opens a PR. It runs `interrogate` when the design is contested, the before-commit cleanup, and `/no-comments` first, then babysits it as the `pr` delivery line says.
