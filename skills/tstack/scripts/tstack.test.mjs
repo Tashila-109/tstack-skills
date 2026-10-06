@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
 import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
 
 const PLAYBOOK = `### Sample
@@ -123,6 +123,8 @@ test("exclude and link-skills keep a per-project install out of Git and inside w
 	assert.equal(existsSync(join(wt, ".pi/skills/how")), false);
 	assert.equal(linkSkills(wt, wt), "linked 0 skill paths into " + wt);
 	assert.throws(() => linkSkills(dir, dir), /not the primary checkout/);
+	assert.throws(() => linkSkills(wt, join(wt, "typo")), /not a worktree of/);
+	assert.equal(existsSync(join(wt, "typo")), false);
 	writeFileSync(join(dir, "skills-lock.json"), JSON.stringify({ skills: { "../../escape": {} } }));
 	assert.throws(() => linkSkills(wt, wt), /not skill names/);
 });
@@ -137,7 +139,7 @@ test("check keeps the playbook's artifacts even when task.json loses them", () =
 	task.steps = [];
 	writeFileSync(taskPath, JSON.stringify(task));
 	writeFileSync(join(home, "tasks", "tamper", "report.md"), "done\n");
-	assert.throws(() => check(home, "tamper"), /missing step 1: evidence\/grounding\.md/);
+	assert.throws(() => check(home, "tamper"), /missing step 1 \(added to the playbook after the brief\): evidence\/grounding\.md/);
 });
 
 test("a model ID may contain @ when the last segment is not an effort", () => {
@@ -191,4 +193,22 @@ test("check-seats names each seat T3 does not advertise, and the ID it goes by",
 	assert.throws(() => checkSeats(parseModels(`bug-fix: pi/gpt-6.1-sol@xhigh\n${instances}`), caps), /bug-fix: pi gpt-6\.1-sol: model not advertised; advertised as openai\/gpt-6\.1-sol/);
 	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5@max\n${instances}`), caps), /effort max not offered \(medium, high\)/);
 	assert.throws(() => checkSeats(parseModels(`review: open/some-model\n${instances}`), caps), /instance opencode cannot run child tasks/);
+	const bare = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true }] };
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\n${instances}`), bare), /model not advertised/);
+});
+
+test("steps inside a code fence are not playbook steps, and steps must run from 1", () => {
+	assert.deepEqual(parseSteps("1. Real.\n```text\n1. Example only.\n   Artifact: `evidence/x.md`\n```\n2. Next.\n").map((s) => s.n), [1, 2]);
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "gappy.md"), "1. One.\n3. Three.\n");
+	assert.throws(() => brief(home, "gappy", { playbook: "gappy", goal: "g", finish: "f", playbooksDir: playbooks }), /numbers its steps 1, 3/);
+	assert.throws(() => brief(home, "scout", { playbook: "sample", goal: "g", finish: "f", kind: "scout", delivery: "pr", playbooksDir: playbooks }), /never opens a PR/);
+});
+
+test("every shipped playbook numbers its steps from 1 without gaps", () => {
+	const dir = join(import.meta.dirname, "..", "playbooks");
+	for (const name of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
+		const steps = parseSteps(readFileSync(join(dir, name), "utf8"));
+		assert.deepEqual(steps.map((s) => s.n), steps.map((_, i) => i + 1), name);
+	}
 });

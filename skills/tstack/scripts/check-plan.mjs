@@ -141,11 +141,8 @@ if (program) {
 		else cursor = at + 1;
 	}
 	for (const marker of PROGRAM_MARKERS) {
-		const ok =
-			marker instanceof RegExp
-				? marker.test(bodyText(program))
-				: bodyText(program).includes(marker);
-		if (!ok) fail(program.n, `Program checklist lacks "${marker}"`);
+		if (!bodyText(program).includes(marker))
+			fail(program.n, `Program checklist lacks "${marker}"`);
 	}
 } else fail(1, 'no "## Program checklist" section');
 

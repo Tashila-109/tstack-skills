@@ -77,6 +77,7 @@ export function linkSkills(cwd, worktree) {
 	const primary = dirname(gitCommonDir(cwd));
 	const target = resolve(worktree);
 	if (target === primary) throw new Refusal("link-skills takes a linked worktree, not the primary checkout");
+	if (!existsSync(target) || dirname(gitCommonDir(target)) !== primary) throw new Refusal(`not a worktree of ${primary}: ${target}`);
 	let linked = 0;
 	for (const name of projectSkills(primary)) {
 		for (const dir of SKILL_DIRS) {
@@ -101,7 +102,10 @@ function isLink(path) {
 
 export function parseSteps(markdown) {
 	const steps = [];
+	let fenced = false;
 	for (const line of markdown.split("\n")) {
+		if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+		if (fenced) continue;
 		const step = line.match(/^(\d+)\.\s+(.*)$/);
 		if (step) {
 			steps.push({ n: Number(step[1]), text: step[2].trim(), artifacts: [] });
@@ -131,12 +135,14 @@ export function brief(home, id, opts) {
 	const delivery = opts.delivery ?? "local-only";
 	if (!["ship", "scout"].includes(kind)) throw new Usage(`--kind must be ship or scout: ${kind}`);
 	if (!["local-only", "pr"].includes(delivery)) throw new Usage(`--delivery must be local-only or pr: ${delivery}`);
+	if (kind === "scout" && delivery === "pr") throw new Usage("a scout writes report.md and never opens a PR");
 	const playbookPath = join(opts.playbooksDir ?? join(SKILL_DIR, "playbooks"), `${opts.playbook}.md`);
 	if (!existsSync(playbookPath)) throw new Refusal(`no playbook named ${opts.playbook} at ${playbookPath}`);
 	const taskDir = join(home, "tasks", id);
 	if (existsSync(taskDir)) throw new Refusal(`task ${id} already exists at ${taskDir}`);
 
 	const steps = parseSteps(readFileSync(playbookPath, "utf8"));
+	if (steps.some((s, i) => s.n !== i + 1)) throw new Refusal(`playbook ${opts.playbook} numbers its steps ${steps.map((s) => s.n).join(", ")}; they must run from 1 without gaps`);
 	for (const step of steps) for (const path of step.artifacts) insideTask(taskDir, path);
 	const task = { id, playbook: opts.playbook, kind, delivery, goal: opts.goal, finish: opts.finish, created: new Date().toISOString(), steps };
 
@@ -181,13 +187,13 @@ export function check(home, id, through) {
 	if (playbookPath && existsSync(playbookPath)) {
 		for (const fresh of parseSteps(readFileSync(playbookPath, "utf8"))) {
 			const frozen = task.steps.find((s) => s.n === fresh.n);
-			if (!frozen) task.steps.push(fresh);
+			if (!frozen) task.steps.push({ ...fresh, added: true });
 			else frozen.artifacts = [...new Set([...frozen.artifacts, ...fresh.artifacts])];
 		}
 	}
 	const wanted = task.steps
 		.filter((s) => through === undefined || s.n <= through)
-		.flatMap((s) => s.artifacts.map((path) => ({ step: `step ${s.n}`, path })));
+		.flatMap((s) => s.artifacts.map((path) => ({ step: `step ${s.n}${s.added ? " (added to the playbook after the brief)" : ""}`, path })));
 	if (through === undefined) {
 		if (task.delivery === "pr") wanted.push({ step: "pr delivery", path: "evidence/babysit.md" });
 		wanted.push({ step: "final report", path: "report.md" });
@@ -292,7 +298,7 @@ export function checkSeats(models, caps) {
 			const model = provider?.models?.find((m) => m.id === s.model);
 			if (!provider) problems.add(`${where}: instance ${s.providerInstanceId} cannot run child tasks here`);
 			else if (!model) {
-				const near = provider.models.filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
+				const near = (provider.models ?? []).filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
 				problems.add(`${where}: model not advertised${near.length ? `; advertised as ${near.join(" or ")}` : ""}`);
 			} else
 				for (const o of s.options ?? []) {

@@ -36,3 +36,23 @@ test("a spec without a regression lane fails the checker", () => {
 	const r = check(filledSkeleton().replace("Regression lane against trunk", "Lane against trunk"));
 	assert.notEqual(r.status, 0);
 });
+
+test("each checklist rule fails a spec that breaks it", () => {
+	const spec = filledSkeleton();
+	const broken = [
+		["Read `design.md`", "Read `<design>`", /unfilled placeholder/],
+		["Return the verified artifact", "Return \u2014 the verified artifact", /long dash/],
+		["The body is a how-to.", "Note: the body is a how-to.", /mid-sentence colon/],
+		["- [ ] Metric.", "- [ ] Probe.", /perf boxes are \[Probe\., Probe\./],
+		["post their paths to the operator", "post their paths to the team", /Review gate lacks "operator"/],
+		["### Boot recipe", "### Boot steps", /lacks "### Boot recipe" in order/],
+		["**You see.**", "**You get.**", /sub-blocks are/],
+	];
+	for (const [from, to, problem] of broken) {
+		assert.ok(spec.includes(from), from);
+		const r = check(spec.replace(from, to));
+		assert.equal(r.status, 1, from);
+		assert.match(r.stderr, problem, from);
+	}
+	assert.equal(spawnSync("node", [CHECKER], { encoding: "utf8" }).status, 2);
+});

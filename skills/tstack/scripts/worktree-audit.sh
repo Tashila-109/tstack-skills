@@ -31,7 +31,7 @@ last_chat_ts() {
 		ls -t "$HOME/.pi/agent/sessions/--$(printf '%s' "${1#/}" | sed 's#/#-#g')--"/*.jsonl 2>/dev/null | head -1
 		[ -d "$HOME/.codex/sessions" ] &&
 			find "$HOME/.codex/sessions" -name '*.jsonl' -mtime -30 -exec grep -lF "\"cwd\":\"$1\"" {} + 2>/dev/null
-	} | xargs stat -f '%m' 2>/dev/null | sort -rn | head -1
+	} | while read -r f; do stat -c %Y "$f" 2>/dev/null || stat -f %m "$f"; done 2>/dev/null | sort -rn | head -1
 }
 now=$(date +%s)
 
@@ -69,7 +69,7 @@ git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt;
 	[ -z "$pr" ] && pr="-"
 
 	last_ts=$(last_chat_ts "$wt"); last_ts=${last_ts:-0}
-	last=$([ "$last_ts" -gt 0 ] && date -r "$last_ts" '+%Y-%m-%d' || echo "-")
+	last=$([ "$last_ts" -gt 0 ] && { date -r "$last_ts" '+%Y-%m-%d' 2>/dev/null || date -d "@$last_ts" '+%Y-%m-%d'; } || echo "-")
 	recent=$([ "$last_ts" -gt 0 ] 2>/dev/null && [ $(( (now - last_ts) / 86400 )) -le 4 ] && echo yes || echo no)
 
 	case "$dirty" in wip:*) bucket=hold-wip ;; *)
