@@ -1,7 +1,7 @@
 # Decisions
 
-Read this before a lead decides a worker's question or a review finding, before it opens a decision, and before main answers one.
-A lead opens a decision, and only main answers it, with the human's words.
+Read this before a lead decides a worker's question or a review finding, and before it opens a decision.
+A lead opens a decision, and only the human answers it.
 
 ## What a lead decides alone
 
@@ -55,19 +55,18 @@ What accepting and declining each cost.
 Your pick, and why it best serves the accepted intent.
 ```
 
-Then send main `decision <id>: <name>: <one-line question>` with the report verb, and end your turn.
-Do your other independent work first if you have any, but nothing the decision gates.
+Then ask the human, as [Ask the human](#ask-the-human) says.
 
 Gates come in order: `design-approval` before `spec-approval`, and both before `implement-authorization`.
 A gate covers its subject as it was when you opened it.
 After a grant, a changed design or spec is a new decision under a new name, such as `design-2`, and the gates after it follow again.
 
-## Answer a decision (main)
+## Ask the human
 
-1. Read the decision file and its evidence.
-2. Ask the human, in their words where you can, through your harness's structured question tool when it has one.
-   Keep the lead's options, and say which one the lead recommends.
-3. Append the answer to the file:
+1. Start the independent work the decision does not gate, such as workers that can run meanwhile.
+2. Ask the human in your thread, through your harness's structured question tool when it has one, and otherwise in plain text, ending your turn.
+   Give the one-line question, the options, and which one you recommend, with the decision file's path.
+3. When they answer, append it to the file:
 
    ```markdown
    ## Answer
@@ -78,13 +77,20 @@ After a grant, a changed design or spec is a new decision under a new name, such
 
    A gate's first answer line is `granted` or `denied`.
    A `question` is `answered`.
-4. Send the lead `answer <id>: <name>: <the decision and the human's words>` with the runtime's send, in `queue` mode on T3.
+4. Continue with the work the decision gated.
 
 Never answer for the human, and never turn a silence into a grant.
+Record the human's words as they wrote them.
 `tstack.mjs check` refuses a task while a gate its playbook names lacks a `granted` answer.
+
+## For a coordinator's lead
+
+A lead that a coordinator launched sends the coordinator `decision <id>: <name>: <one-line question>` with the report verb instead of asking the human, and ends its turn after starting its ungated work.
+The coordinator reads the decision file and its evidence, asks the human as [Ask the human](#ask-the-human) says, keeping the lead's options and naming the lead's recommendation, and appends the answer.
+It then sends the lead `answer <id>: <name>: <the decision and the human's words>` with the runtime's send, in `queue` mode on T3.
 
 ## Tool approvals
 
 A tool approval, such as a permission prompt in a lead's or worker's pane or thread, is the human's.
 Never send keys into one, and never approve one on the human's behalf.
-A lead that finds a worker stopped on one reports it to main, which tells the human where it is.
+A lead that finds a worker stopped on one tells the human where it is.

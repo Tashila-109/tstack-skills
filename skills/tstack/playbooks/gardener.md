@@ -6,7 +6,7 @@
 Agents copy the patterns they see, so one workaround or excuse comment spreads within days.
 This scout finds those patterns while they are still cheap to remove.
 It fixes nothing and writes only its report.
-Main briefs it as a scout on the human's word; nothing schedules it.
+A lead runs it as a scout on the human's word; nothing schedules it.
 
 1. **Frame.** Read the project's `AGENTS.md` or `CLAUDE.md`, its lint config, and its test layout.
    The stated conventions are what step 2 checks for bypasses.
@@ -37,13 +37,12 @@ Main briefs it as a scout on the human's word; nothing schedules it.
    Name the evidence that supports each rank.
 5. **Propose.** For each ranked pattern, name the strongest mechanism in [principle-encode-lessons-in-structure](../../principle-encode-lessons-in-structure/SKILL.md) that stops it.
    When that mechanism is large to build, propose a lint or test check first so the count stops growing until it lands.
-   Write each proposal as a backlog line main can copy: `- <slug>: <kind>: <pattern>, <count> in <files> files; <mechanism>`.
-   Main owns the backlog; the scout never edits it.
+   Write each proposal as one line the human can start a task from: `- <slug>: <kind>: <pattern>, <count> in <files> files; <mechanism>`.
 6. **Report.** Write the report at the task's report path in the project home.
    Throughput checkpoint stays one line: `throughput checkpoint: n/a, read-only sweep`.
    Apply the **unslop** skill.
 
 Fixing a pattern is a separate ship task.
-If the human wants one fixed, main briefs Refactoring or Feature from the backlog line.
+If the human wants one fixed, they open a new thread with its line, for a Refactoring or Feature task.
 
-**Reply:** the ranked table (pattern, kind, count, files, growth, risk, proposed mechanism), the `file:line` list per pattern, the skipped paths, and the proposed backlog lines.
+**Reply:** the ranked table (pattern, kind, count, files, growth, risk, proposed mechanism), the `file:line` list per pattern, the skipped paths, and the proposed task lines.

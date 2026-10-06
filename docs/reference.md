@@ -5,13 +5,14 @@ The router, [skills/tstack/SKILL.md](../skills/tstack/SKILL.md), owns how agents
 
 ## Invocations
 
-| Harness | Setup | Main |
+| Harness | Setup | Start a task |
 | --- | --- | --- |
 | Claude Code | `/tstack-setup` | `/tstack` |
 | Codex, or any T3 thread | `$tstack-setup` | `$tstack` |
 | Pi | `/skill:tstack-setup` | `/skill:tstack` |
 
-Leads and workers never need an invocation.
+You invoke tstack in the thread or pane you open for a task, and that agent becomes the task's lead.
+Workers, and leads that a coordinator or a move or handoff starts, never need an invocation.
 Their first message is a `tstack launch` block naming their role, and they read the router by its path.
 
 ## Install modes
@@ -32,18 +33,17 @@ Eight skills that agents may invoke on their own have no such file: `codebase-de
 | --- | --- | --- |
 | `~/.tstack/models.md` | `tstack-setup` | The seats for every role, the budget, the `t3 instances` line, and any `herdr args` lines. |
 | `<project>/.tstack/models.md` | `tstack-setup`, on request | Lines that differ for this project. It may not hold `herdr args` lines. |
-| `<project>/.tstack/backlog.md` | main | One line per task, `- <id>: <summary> (running)`, with finished tasks under `## done`. |
-| `<project>/.tstack/grants.md` | main | Standing merge grants, each in the human's words with its date and what it covers. |
-| `<project>/.tstack/learnings.md` | main | One-line lessons, which `tstack.mjs brief` copies into every new brief. |
-| `<project>/.tstack/autopilot-<name>.md` | main | An autopilot's queue, its order, and the human's merge grant in their words. |
+| `<project>/.tstack/grants.md` | lead or coordinator, from your words | Standing merge grants, each in the human's words with its date and what it covers. |
+| `<project>/.tstack/learnings.md` | lead or coordinator | One-line lessons, which `tstack.mjs brief` copies into every new brief. |
+| `<project>/.tstack/autopilot-<name>.md` | coordinator | An autopilot's queue, its order, and the human's merge grant in their words. |
 | `<project>/.tstack/tasks/<id>/task.json` | `tstack.mjs brief` | The frozen playbook steps and the artifacts each step must write. |
 | `<project>/.tstack/tasks/<id>/brief.md` | `tstack.mjs brief` | The goal, the finish, the steps, and the learnings. |
-| `<project>/.tstack/tasks/<id>/lead.txt` | main | The lead's T3 thread ID, or its Herdr tab and worktree. |
+| `<project>/.tstack/tasks/<id>/lead.txt` | coordinator | An autopilot lead's T3 thread ID, or its Herdr tab and worktree. |
 | `<project>/.tstack/tasks/<id>/evidence/` | lead | One file per `Artifact:` line, any other proof the lead keeps, and `handoff-N.md` when the lead hands off to a fresh session. |
 | `<project>/.tstack/tasks/<id>/briefs/<name>.md` | lead | Each worker's brief. |
 | `<project>/.tstack/tasks/<id>/results/<name>.md` | worker | Each worker's result. |
-| `<project>/.tstack/tasks/<id>/decisions/<name>.md` | lead, then main | A question for the human, and their answer under `## Answer`, whose first line is `granted`, `denied` or `answered`. |
-| `<project>/.tstack/handoff/main-<n>.md` | main | A handoff for the next main session. |
+| `<project>/.tstack/tasks/<id>/decisions/<name>.md` | lead | A question for the human, and their answer under `## Answer`, whose first line is `granted`, `denied` or `answered`. |
+| `<project>/.tstack/handoff/coordinator-<n>.md` | coordinator | A handoff for the next coordinator session. |
 | `<project>/.tstack/tasks/<id>/report.md` | lead | The final report, with `## Remember` and `## Follow-ups`. |
 
 `<project>` is always the primary checkout, even when an agent runs in a worktree.
@@ -88,7 +88,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 
 | Role | Used by |
 | --- | --- |
-| `lead` | main, for every lead |
+| `lead` | leads that launch-lead starts: a move out of the primary checkout, a handoff, or a coordinator's queue item |
 | `feature`, `refactoring`, `bug-fix`, `perf-issue`, `hillclimb` | the playbook of that name, for its code-writing workers |
 | `judgment and prose`, `hardest tasks` | any playbook, for judgment-heavy work or the hardest changes |
 | `how explorer`, `how explainer` | the how skill |
@@ -108,24 +108,24 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 
 | Verb | Who | Does |
 | --- | --- | --- |
-| launch-lead | main | Starts a lead in its own worktree on `task/<id>`. |
+| launch-lead | lead, to move or hand off its own task, or a coordinator | Starts a lead in a new worktree on `task/<id>`, or in the task's existing worktree for a handoff. |
 | delegate | lead | Starts a worker on a seat with a written brief. |
 | collect | lead | Reads a finished worker's result. |
-| report | lead | Messages main without interrupting it. |
-| decide | lead | Writes a decision file and waits for main's answer. |
+| report | a coordinator's lead | Messages the coordinator without interrupting it. |
+| decide | lead | Writes a decision file and asks you in its thread. A coordinator's lead sends it to the coordinator. |
 | watch-pr | lead | Gets woken by the PR's checks and reviews. |
-| hold | main | Stops a lead's turn at once on your stop, until you release it. |
+| hold | coordinator | Stops a lead's turn at once on your stop, until you release it. A lead you talk to is held by your own stop. |
 
 ## Playbooks
 
-Main picks one per task from the [router's intake table](../skills/tstack/SKILL.md#playbooks).
+The lead picks one per task from the [router's intake table](../skills/tstack/SKILL.md#playbooks).
 
 | Status | Playbooks |
 | --- | --- |
 | Adapted, so `check` enforces each step's artifact | investigation, gardener, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
 | As written with `Artifact:` lines, so `check` enforces the files they name | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run |
 | As written, so `check` enforces only `report.md` | session-pickup, pause-safely, worktree-cleanup |
-| Run by main across several tasks | autopilot-full, autopilot-stack |
+| Run by a coordinator across several tasks | autopilot-full, autopilot-stack |
 
 ## Skills
 

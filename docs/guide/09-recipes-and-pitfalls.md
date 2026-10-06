@@ -52,10 +52,10 @@ The plan is the deliverable.
 Repro a report with proof, and fix it only if it repros:
 
 ```text
-$tstack repro this with verify-<app>. If it repros on main, fix it and show me a recording as proof.
+$tstack repro this with verify-<app>. If it repros on the default branch, fix it and show me a recording as proof.
 ```
 
-"If it repros on main" lets the run stop early when the bug is already gone.
+"If it repros on the default branch" lets the run stop early when the bug is already gone.
 The recording lets you check the fix before you read the diff.
 
 Vet a number before you post it:
@@ -97,16 +97,16 @@ Deliver as a pull request instead of a local branch:
 $tstack add a --json flag. The text output stays byte-identical. Open a PR for it.
 ```
 
-Check on everything at once:
+Check on a task by asking its lead in its own thread:
 
 ```text
-where does every task stand?
+where does this stand?
 ```
 
 ## Pitfalls
 
 - **Reusing a project that already has tstack history.**
-  Main reads the backlog, and when it says a task is done, main checks Git and asks you before redoing it.
+  A lead reads `.tstack/learnings.md`, and lessons from older tasks can steer a new one.
   For a clean trial, use a fresh project.
 - **A provider that is installed but not signed in where the runtime runs it.**
   On T3, a Grok worker failed because T3's own Grok provider was signed out, though the Grok CLI worked in a terminal.
@@ -115,8 +115,8 @@ where does every task stand?
 - **Typing into a busy agent on Herdr.**
   A prompt sent to an agent mid-turn takes over that turn.
   tstack's own messages wait for the agent to be idle, and so should yours.
-- **Starting main without auto mode on Herdr.**
-  Main runs many small commands.
+- **Starting a lead without auto mode on Herdr.**
+  A lead runs many small commands.
   Start Claude Code with `--permission-mode auto`, or approve each one as it comes.
 - **Leading with your theory of the cause.**
   The agent searches wherever you pointed.
@@ -141,7 +141,7 @@ where does every task stand?
   Give a command, an output or an artifact that can pass or fail.
 - **Expecting a merge without saying so.**
   Nothing merges without your word, whatever else you asked for.
-  Main asks; answer it.
+  The lead asks; answer it.
 - **Reading only the report.**
   The task folder holds the evidence behind every claim: the repro, the mechanism, the red and green runs, and each reviewer's findings.
   [Measuring a live task](../verification/README.md#measuring-a-live-task) shows how to check a run.

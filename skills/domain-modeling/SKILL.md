@@ -45,4 +45,3 @@ If any one is missing, skip the ADR.
 `CONTEXT.md` and ADRs are project files.
 The lead writes them in its checkout and commits them as a docs stage.
 A worker writes them only when its brief assigns those paths.
-Main never edits project files, so main challenges terms and leaves the writes to a lead.

@@ -2,13 +2,13 @@
 
 Invoked at the end of every other playbook.
 
-**In tstack.** The lead runs this in its task worktree, on branch `task/<id>`, and never merges.
+**In tstack.** The lead runs this in its task worktree, on its task branch, and merges only at the router's Finish, on the human's word.
 Every delivery mode runs the cleanup in **PRs** below: the router's before-commit cleanup, `/no-comments`, `/technical-writing` and `/unslop` on the commit bodies.
 `/no-comments` runs Comment Sicko as a worker, with its result at `results/comment-sicko.md`.
 Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
 The calling step names that artifact.
-- `local-only` delivery stops after **Commits** and the cleanup: no push and no PR. The clean branch is the deliverable, and main merges it on the human's word.
-- `pr` delivery pushes `task/<id>`, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Report done to main, with the PR's full URL and its head SHA, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done. Main merges on the human's word.
+- `local-only` delivery stops after **Commits** and the cleanup: no push and no PR. The clean branch is the deliverable, and the lead merges it at the router's Finish, on the human's word.
+- `pr` delivery pushes the task branch, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Go on to the router's Finish, with the PR's full URL and its head SHA, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done.
 
 **Worktree.** Work from the task's worktree off main. Workers share it. Two writers on the same branch each get their own checkout through the runtime reference. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
 

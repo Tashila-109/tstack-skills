@@ -36,15 +36,15 @@ After the source changes, the human reruns the same command.
    - command: `node "$T3CODE_PROJECT_ROOT/.agents/skills/tstack/scripts/tstack.mjs" link-skills "$T3CODE_WORKTREE_PATH"`
    - turn on **Run on worktree create**, and wait for it before the agent starts.
 
-   On Herdr, main links each new worktree itself.
+   On Herdr, launch-lead links each new worktree itself.
 4. On T3, read `storageCleanup.worktreeOnMerge` in `~/.t3/userdata/settings.json`.
    If it is not `true`, tell the human that each merged task's worktree stays on disk until they remove it, and suggest turning on worktree removal on merge in T3's storage settings.
 5. Look for tstackv2 leftovers in the primary checkout:
-   - a section in `AGENTS.md` or `CLAUDE.md` that tells main to run `tstack session-start` or to invoke `/tstack:tstack`;
+   - a section in `AGENTS.md` or `CLAUDE.md` that tells the agent to run `tstack session-start` or to invoke `/tstack:tstack`;
    - tracked `.tstack/config.json` and `.tstack/matrix.json`.
 
    Tell the human what you found.
-   The `AGENTS.md` section sends main to a CLI tstack-skills does not use, so offer to remove it.
+   The `AGENTS.md` section sends every agent to a CLI tstack-skills does not use, so offer to remove it.
    Remove it only on their word, change nothing else in the file, and leave the commit to them.
    The two JSON files are unused, so mention them and leave them.
    [Migrating from tstackv2](https://github.com/Tashila-109/tstack-skills/blob/main/docs/migrating-from-tstackv2.md) covers the rest.

@@ -7,13 +7,13 @@ This guide shows how tstack maps onto Herdr, and how to check on running work.
 
 | Role | In Herdr | Checkout |
 | --- | --- | --- |
-| Main | The agent in the pane where you started it, named `main-<project>` | The project folder |
-| Lead | An agent named `<task id>-lead` in a new tab labelled with the task ID | Its own worktree under `~/.tstack/worktrees/<project>/<task id>`, on branch `task/<task id>` |
+| Lead | An agent in the pane where you started it. When the task moves, an agent named `<task id>-lead` in a new tab labelled with the task ID | Its own worktree under `~/.tstack/worktrees/<project>/<task id>`, on branch `task/<task id>` |
 | Worker | An agent named `<task id>-<name>` in a pane beside the lead | The lead's worktree |
+| Coordinator | Only for an autopilot: the agent in the pane where you asked for it, named `coordinator-<project>` | The project folder |
 
-## Start main
+## Start a task
 
-Open a Herdr pane in the project's primary checkout, start Claude Code, Codex or Pi there, and invoke tstack:
+Open a Herdr pane, start Claude Code, Codex or Pi there, and invoke tstack with your goal and how you will know it is done:
 
 | Harness | Command |
 | --- | --- |
@@ -21,11 +21,16 @@ Open a Herdr pane in the project's primary checkout, start Claude Code, Codex or
 | Codex | `$tstack` |
 | Pi | `/skill:tstack` |
 
-Main names its own pane, so leads can reach it.
+Your Herdr tabs are your task list, one per task.
 
-## How leads launch and report
+A pane at the project root is the primary checkout, and a ship task does not run there.
+The lead cuts a worktree on `task/<task id>`, opens a new tab labelled with the task ID, and starts a new lead on the `lead` seat in your models file.
+It tells you which tab to continue in, and stops.
+A read-only question can run in any checkout.
 
-Main starts each lead with the model, effort and autonomy flags its seat names:
+## How leads launch
+
+A lead that moves its task, and a coordinator that starts leads, launch each with the model, effort and autonomy flags its seat names:
 
 | Harness | Autonomy flags |
 | --- | --- |
@@ -37,8 +42,8 @@ Main starts each lead with the model, effort and autonomy flags its seat names:
 To change them, add a `herdr args <harness>: <flags>` line to `~/.tstack/models.md`.
 Only that file may hold such a line.
 
-A lead reports by typing into main's pane, but only once main is idle.
-A message typed into a busy agent takes over its turn, so leads wait for main first.
+A lead that an autopilot's coordinator launched reports by typing into the coordinator's pane, but only once the coordinator is idle.
+A message typed into a busy agent takes over its turn, so leads wait first.
 
 If a new agent stops at startup on a trust dialog, the launch reports which tab it is in.
 Answer it yourself.
@@ -46,20 +51,21 @@ tstack never answers a trust dialog.
 
 ## Check on a lead
 
-Ask main where a task stands, or look at the lead's tab yourself.
-From a shell, `herdr agent get <task id>-lead` shows its state.
+Open the lead's tab and ask it where the task stands.
+From a shell, `herdr agent get <task id>-lead` shows the state of a lead that moved to its own tab.
 A `blocked` state means an approval or a question is on its screen.
 Answer approvals yourself in that pane.
 
 ## Stop running work
 
-Tell main to stop, for example "stop the greet task".
-Main prompts the lead at once, which takes over its turn, and sends it a hold.
-The lead closes its workers' panes and makes no more commits or pushes until you tell main to release it.
+Stop the lead's turn in its pane, then tell it what to change.
+The lead stops its workers and makes no commits, pushes or new workers until you tell it to go on.
+To stop an autopilot, tell its coordinator, which holds every lead.
 A prompt that takes over a working agent's turn is [measured](../verification/2026-10-05-phase0-probes.md), and a worker pane closed after its result is [recorded](../verification/2026-10-05-herdr-e2e.md).
 A hold itself has not yet run in a live task.
 
 ## After the merge
 
-Main closes the lead's tab, removes its worktree, and deletes `task/<task id>`.
-Git refuses to remove a worktree with work that has not landed, and main stops there instead of forcing it.
+The lead removes its own worktree and `task/<task id>`, and tells you the tab can be closed.
+Git refuses to remove a worktree with work that has not landed, and the lead stops there instead of forcing it.
+For follow-ups, the lead lists them in its final reply, and you open a new pane for any you want.

@@ -15,7 +15,7 @@ Before you leave one running, check that it has earned it:
 Make the loop autonomous only after all four hold.
 Until then, run it while you watch.
 
-To stop a run on purpose, tell main to pause, or that you are about to go offline.
+To stop a run on purpose, tell the lead to pause, or that you are about to go offline.
 The [Pause safely playbook](../../skills/tstack/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note.
 A fresh lead picks the work up from that note through the Session pickup playbook.
 Saying "keep going" never triggers a pause.
@@ -46,29 +46,31 @@ It wakes on checks and reviews rather than polling:
 It fixes conflicts first, then review threads, then CI.
 It reruns a failed check once, and a second identical failure counts as a real failure.
 It verifies each bot comment against the code before it changes anything, and never rewrites published history.
-When the PR is merge-ready, main asks you whether to merge.
+When the PR is merge-ready, the lead asks you whether to merge, unless a grant of yours covers it.
 
 ## A queue of changes
 
-Hand main a list and pick the autopilot that matches who lands it.
+An autopilot runs several tasks from one thread, so it has a coordinator.
+Open a thread in the primary checkout, which on T3 means **Current checkout** mode with Full access, pin it so T3 never settles it, and ask for the autopilot.
+Pick the one that matches who lands the work.
 
 ```text
 $tstack autopilot these three fixes. Merge each one when its verification is clean.
 ```
 
 Autopilot-full asks you once which items, if any, stay for you to merge, and records your answer as its grant.
-Each item gets its own lead and PR.
-Main audits each lead's evidence, and merges the PRs the grant covers one at a time.
+Each item gets its own lead and PR, and those leads report to the coordinator instead of to you.
+The coordinator asks you their decisions, audits each lead's evidence, and merges the PRs the grant covers one at a time.
 
 ```text
 $tstack build these four changes as a stack. I will land it.
 ```
 
 Autopilot-stack builds the same leads into one chain of PRs, each on top of the last, and merges nothing.
-You review the chain bottom up and land it, or ask main to land it with Shipping.
+You review the chain bottom up and land it, or ask the coordinator to land it with Shipping.
 
-Say "stop" to main at any time.
-Every lead holds: no more commits, pushes or workers until you release it.
+Tell the coordinator to stop at any time.
+It holds every lead: no more commits, pushes or workers until you release it.
 
 ## Read what happened
 

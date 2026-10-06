@@ -26,11 +26,20 @@ The surface tools, history, PR linking, hold, worker cancellation and the heartb
   A delegation takes `target: { providerInstanceId, model, options }`.
   The seat output uses `providerInstanceId`, so rename it to `instanceId` for a launch.
 
-## Main
+## Lead
 
-Start with Full access, and ask the human to pin this thread so T3 never auto-settles it.
+### Your thread
+
+The human opens a thread for each task and talks to you there.
+A thread opened in New worktree mode already runs in its own worktree, on a branch T3 named, so intake's checkout check passes.
+The worktree belongs to T3.
+Never delete it yourself.
 
 ### launch-lead
+
+A lead uses this to move a ship task out of the primary checkout, and a coordinator uses it to start each lead.
+It needs Full access.
+Without it, ask the human to open a thread in New worktree mode and send the launch block as its first message, then stop.
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime t3`.
 2. Read the base branch: the primary checkout's current branch, which must be the default branch with no uncommitted changes.
@@ -39,36 +48,15 @@ Start with Full access, and ask the human to pin this thread so T3 never auto-se
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": false }`
    - `modelSelection`: the seat, with `providerInstanceId` renamed to `instanceId`; leave it out for `inherit`
-   - `message`: the launch block from dispatch.md, with `main:` set to your `currentThreadId`
-4. Write the returned `threadId` to `<home>/tasks/<id>/lead.txt`.
-5. End your turn.
-   The lead's reports arrive as new turns.
+   - `message`: the launch block from dispatch.md; a coordinator sets `coordinator:` to its `currentThreadId`, and a lead moving its own task leaves that line out
+4. A coordinator writes the returned `threadId` to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead's reports arrive as new turns.
+   A lead moving its own task tells the human to continue in the thread titled `<id> lead`, and stops.
 
-### Talking to a lead
+### report and decide (a coordinator's lead)
 
-Send with `t3_thread_send`: `{ "threadId": "<lead>", "message": "...", "mode": "queue", "clientRequestId": "<id>-main-<n>" }`.
-To see where a quiet lead is, read it with `t3_thread_read` or check its run status in `t3_thread_list`.
-Never steer or restart a lead to check on it.
-
-### hold
-
-Call `t3_thread_interrupt` with the lead's `threadId`, then send `hold <id>: <the human's words>` with mode `queue`, which starts the now idle lead at once.
-To release it, send `release <id>:` with mode `queue`.
-
-### After the merge
-
-Archive the lead's thread with `t3_thread_organize`.
-T3's storage settings remove merged worktrees when the human enables that (`storageCleanup.worktreeOnMerge` in `~/.t3/userdata/settings.json`).
-Otherwise leave the worktree for the human.
-Never delete a T3 worktree yourself.
-
-## Lead
-
-### report and decide
-
-Send with `t3_thread_send`: `{ "threadId": "<main from the launch block>", "message": "...", "mode": "queue", "clientRequestId": "<id>-lead-<n>" }`.
-Start the message with `report <id>:` or `decision <id>:`.
-For a decision, end your turn after sending, and wait for main's answer.
+Send with `t3_thread_send`: `{ "threadId": "<coordinator from the launch block>", "message": "...", "mode": "queue", "clientRequestId": "<id>-lead-<n>" }`.
+Start the message with `report <id>:`, `decision <id>:` or `handoff <id>:`.
+For a decision, end your turn after sending, and wait for the coordinator's answer.
 
 ### delegate
 
@@ -95,7 +83,7 @@ To stop a running worker, call `task_cancel` with its `taskId`.
 
 Arena and swarm candidates that must build or run code need their own worktree.
 Launch each with `t3_thread_launch`:
-- `workspaceStrategy`: `{ "type": "worktree", "baseRef": "task/<id>", "branch": "task/<id>-<name>", "startFromOrigin": false }`
+- `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<your task branch>", "branch": "<your task branch>-<name>", "startFromOrigin": false }`
 - `modelSelection`: from the seat
 - `message`: the worker preamble
 
@@ -110,9 +98,37 @@ For watch-pr, call `watch_pull_request` with its `url`, handle the existing comm
 It wakes you when a check fails, the required checks pass, someone else comments or reviews, or the branch conflicts.
 A wake is news, not a merge decision.
 
+### After the merge
+
+Leave your thread for the human to archive.
+With `pr` delivery, the PR link settles it when the PR merges.
+T3's storage settings remove merged worktrees when the human enables that (`storageCleanup.worktreeOnMerge` in `~/.t3/userdata/settings.json`).
+Otherwise the worktree stays for the human.
+
+## Coordinator
+
+Start with Full access, and ask the human to pin this thread so T3 never auto-settles it.
+
+### Talking to a lead
+
+Send with `t3_thread_send`: `{ "threadId": "<lead>", "message": "...", "mode": "queue", "clientRequestId": "<id>-coordinator-<n>" }`.
+To see where a quiet lead is, read it with `t3_thread_read` or check its run status in `t3_thread_list`.
+Never steer or restart a lead to check on it.
+
+### hold
+
+Call `t3_thread_interrupt` with the lead's `threadId`, then send `hold <id>: <the human's words>` with mode `queue`, which starts the now idle lead at once.
+To release it, send `release <id>:` with mode `queue`.
+
+### After the merge
+
+Archive the lead's thread with `t3_thread_organize`.
+The worktree follows the lead's rule above.
+Never delete a T3 worktree yourself.
+
 ## Heartbeat
 
-When a lead's long run has no event to wake it, or main runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
+When a lead's long run has no event to wake it, or a coordinator runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
 Each run posts that prompt into your own thread.
 Delete it with `delete_scheduled_task` when the lead reports done or the program's queue ends.
 

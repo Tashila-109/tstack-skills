@@ -30,7 +30,7 @@ const PROGRAM_MARKERS = [
 	"granted decision records",
 	"execution authorization",
 	"lead",
-	"main",
+	"human",
 	"no Git writes",
 ];
 const HOW_TO_READ_MARKERS = [

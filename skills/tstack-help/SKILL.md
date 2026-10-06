@@ -16,7 +16,7 @@ Hand it to the [tstack router](../tstack/SKILL.md) and say so in one line.
 Read the file you route to before you quote it, and trust it over this map.
 Give the human the public copy of a guide page, as an absolute link.
 The guide is at `https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/<page>.md`, and its pages are:
-- [01-route-work](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/01-route-work.md): what goes in a prompt, and "new task";
+- [01-route-work](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/01-route-work.md): one thread per task, and what goes in the prompt;
 - [02-understand](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/02-understand.md): `how`, `why`, `explain`, `recall`;
 - [03-design](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/03-design.md): `architect`, `arena`, `swarm`, `interrogate`, prototypes, plans;
 - [04-build-and-clean](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/04-build-and-clean.md): the build playbooks and the cleanup;
@@ -105,25 +105,26 @@ The `principle-*` skills are indexed in the router, and the human steers with th
 
 | Symptom | Fix |
 | --- | --- |
-| Main picked the wrong playbook | A brief freezes its playbook's steps. Ask main for a new task on the right one, from the [intake table](../tstack/SKILL.md#playbooks), and name that playbook in the prompt. |
-| A seat would not launch | A single-seat role stops and main asks the human. Check the seat against what the runtime offers, then rerun [tstack-setup](../tstack-setup/SKILL.md). The rules are in [dispatch.md](../tstack/references/dispatch.md#seats), and on T3 `check-seats` names each failing seat. |
-| A lead went quiet | Ask main where the task stands. A blocked agent has an approval or question on screen, which only the human answers. Main checks as [T3](../tstack/references/runtime-t3.md#talking-to-a-lead) or [Herdr](../tstack/references/runtime-herdr.md#talking-to-a-lead) says. |
-| A lead needs your answer | It wrote a decision file and main asks you. [decisions.md](../tstack/references/decisions.md) says what goes to the human. |
-| A lead is doing the wrong thing | Tell main to stop. Main holds the lead, as [T3](../tstack/references/runtime-t3.md#hold) or [Herdr](../tstack/references/runtime-herdr.md#hold) says, until you release it. |
+| The lead picked the wrong playbook | A brief freezes its playbook's steps. Open a new thread for the task and name the right playbook from the [intake table](../tstack/SKILL.md#playbooks) in the prompt. |
+| A seat would not launch | A single-seat role stops and the lead asks you. Check the seat against what the runtime offers, then rerun [tstack-setup](../tstack-setup/SKILL.md). The rules are in [dispatch.md](../tstack/references/dispatch.md#seats), and on T3 `check-seats` names each failing seat. |
+| A lead went quiet | Open its thread or tab. A blocked agent has an approval or question on screen, which only you answer. A lead waiting on a worker shows the worker's thread or pane. |
+| A lead needs your answer | It wrote a decision file and asks you in its thread. [decisions.md](../tstack/references/decisions.md) says what goes to the human. |
+| A lead is doing the wrong thing | Stop it in its thread or pane, then tell it what to change. It stops its workers and makes no commits or pushes until you say go on. Under an autopilot, tell the coordinator to stop, and it holds the lead as [T3](../tstack/references/runtime-t3.md#hold) or [Herdr](../tstack/references/runtime-herdr.md#hold) says. |
 | The report claims success with no proof | Ask for the real command, output, or artifact. Steer with `apply prove it works`. |
 
 For prompts to copy and the mistakes the first runs made, point to [09-recipes-and-pitfalls](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/09-recipes-and-pitfalls.md).
 
 ## Invocations
 
-| Harness | Setup | Start main | Help |
+| Harness | Setup | Start a task | Help |
 | --- | --- | --- | --- |
 | Claude Code | `/tstack-setup` | `/tstack` | `/tstack-help` |
 | Codex, or any T3 thread | `$tstack-setup` | `$tstack` | `$tstack-help` |
 | Pi | `/skill:tstack-setup` | `/skill:tstack` | `/skill:tstack-help` |
 
-Leads and workers need no invocation.
-Their first message names their role, and they read the router by its path.
+Open one thread or pane per task, and start it with the router's invocation and the task.
+On T3, open the thread in New worktree mode.
+A launched lead or worker needs no invocation: its first message names its role, and it reads the router by its path.
 
 ## Reply
 
