@@ -71,12 +71,13 @@ A model the human will not confirm stays out of the file.
 ## 4. Choose the budget
 
 Ask the human for one:
-- `unlimited`: keep each seat's effort from the template;
+- `unlimited`: `max`;
 - `large`: `xhigh`;
 - `medium`: `high`;
 - `small`: `medium`.
 
 The budget sets every seat's effort.
+With no budget, the template's efforts stay, which sit between `medium` and `large`.
 When a model does not allow that value, use the highest value it allows at or below it.
 
 ## 5. Confirm the roles
@@ -90,7 +91,7 @@ Never write a seat you could not confirm.
 
 ```text
 # tstack models. One line per role. A seat is harness/model@effort, a list is a panel, and inherit means the caller's own harness and model.
-# budget: unlimited
+# budget: none, the template's efforts
 lead: claude/claude-opus-5-5@high
 feature, refactoring: grok/grok-4.7@xhigh
 bug-fix: grok/grok-4.7@xhigh
