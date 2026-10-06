@@ -56,6 +56,8 @@ Answer approvals yourself in that pane.
 Tell main to stop, for example "stop the greet task".
 Main prompts the lead at once, which takes over its turn, and sends it a hold.
 The lead closes its workers' panes and makes no more commits or pushes until you tell main to release it.
+A prompt that takes over a working agent's turn is [measured](../verification/2026-10-05-phase0-probes.md), and a worker pane closed after its result is [recorded](../verification/2026-10-05-herdr-e2e.md).
+A hold itself has not yet run in a live task.
 
 ## After the merge
 

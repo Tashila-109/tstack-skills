@@ -173,6 +173,21 @@ A new worktree does not contain ignored files, so leads need the skills linked i
 - on Herdr, main runs `tstack.mjs link-skills <worktree>` for each lead;
 - on T3, setup asks you to add a project action under Settings, then Project, then Actions, which runs on every new worktree.
 
+## Keep the cost in check
+
+tstack spends extra tokens on workers and review panels, which is the price of the rigor.
+To spend fewer:
+- Rerun `tstack-setup` and pick a smaller budget.
+  `unlimited` runs every seat at `max`, `large` at `xhigh`, `medium` at `high`, and `small` at `medium`.
+  With no budget, the template's efforts stay, which sit between `medium` and `large`.
+- Set a role to `inherit`, so it runs on the caller's own harness and model.
+- Shorten a panel list in `~/.tstack/models.md`, because each seat runs one agent.
+- Save tstack for work that needs rigor.
+  A small, obvious edit does not.
+
 ## Next
 
+- [The guide](guide/01-route-work.md) starts with how to word a request, and the rest of its pages follow the work from understanding to shipping.
 - [T3 Code](runtimes/t3.md) and [Herdr](runtimes/herdr.md) explain what each runtime shows and how to check on a quiet lead.
+- [Concepts](concepts.md) explains why the workflow is built this way, and the [reference](reference.md) lists its files, commands and skills.
+- Not sure which skill or playbook fits? Run `tstack-help`.

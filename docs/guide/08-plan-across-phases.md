@@ -15,6 +15,27 @@ $tstack plan moving the notes API from REST to tRPC, in phases. I want to approv
 $tstack move the notes API from REST to tRPC, in phases. I want to approve the design, the spec and the build before any code.
 ```
 
+## Settle it before you build
+
+You can run three of the planning skills yourself, before or without a playbook:
+- `grilling` stress-tests a plan, one round of questions at a time, until you and the agent share one understanding.
+  `grill-with-docs` does the same and writes the glossary and decision records as they settle.
+- `to-spec` writes a spec from what a grill and an approved design already settled, with no interview.
+- `to-tickets` splits an approved spec or plan into tracer-bullet tickets, one file each, with an index.
+
+```text
+$tstack grill me on this plan before anyone builds. The plan: move the notes API to tRPC.
+```
+
+Only main runs a grill, because only main talks to you.
+A lead that needs your answer opens a `question` decision instead, and main asks you in your words.
+A worker puts its open questions in its result file.
+[decisions.md](../../skills/tstack/references/decisions.md) says what goes to you.
+
+`domain-modeling` and `codebase-design` give the grill and the design a shared vocabulary, and `handoff` and `two-axis-review` serve the lead's own steps.
+`handoff` writes the file a fresh session starts from, and `two-axis-review` reviews a frozen diff or document on standards and on spec.
+You rarely call these yourself.
+
 ## The gates
 
 | Gate | What you approve | Where it is |

@@ -23,6 +23,21 @@ A refactor pins behavior before structure moves:
 $tstack move the parsing into one module, with zero behavior change. Record the current output first and prove it is unchanged after.
 ```
 
+Both perf playbooks run `benchmark-checklist` on their numbers.
+Perf issue vets its baseline and every number after it, and Hillclimb vets its harness before it freezes it.
+[Verify and ship](05-verify-and-ship.md#vet-a-measured-number-with-benchmark-checklist) shows when to run it yourself.
+
+## Get the cause before any fix
+
+Sometimes you want the cause and no fix.
+For a live symptom, such as a leak, an idle CPU spin or a visual glitch, the [Runtime forensics playbook](../../skills/tstack/playbooks/runtime-forensics.md) instruments the running process.
+For a profile you already captured, the [Trace forensics playbook](../../skills/tstack/playbooks/trace-forensics.md) reads the artifact and maps the hot frame to source.
+Both return a diagnosis, not a fix:
+
+```text
+$tstack here is a cpuprofile from the slow startup. Tell me where the time goes and which source lines own it. No fix yet.
+```
+
 ## What each playbook leaves behind
 
 Each step that runs a skill writes a file in the task's `evidence/` folder, and `tstack.mjs check` refuses to let the lead report done while one is missing.

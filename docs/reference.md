@@ -23,7 +23,8 @@ Their first message is a `tstack launch` block naming their role, and they read 
 
 Installs are copies.
 Rerun the command after the source changes.
-Every skill carries `agents/openai.yaml` with `allow_implicit_invocation: false`, so Codex loads a skill only when asked.
+Every skill marked `disable-model-invocation: true` carries `agents/openai.yaml` with `allow_implicit_invocation: false`, so Codex loads it only when asked.
+Eight skills that agents may invoke on their own have no such file: `codebase-design`, `domain-modeling`, `grilling`, `handoff`, `to-spec`, `to-tickets`, `two-axis-review` and `writing-for-agents`.
 
 ## Files
 
@@ -38,7 +39,7 @@ Every skill carries `agents/openai.yaml` with `allow_implicit_invocation: false`
 | `<project>/.tstack/tasks/<id>/task.json` | `tstack.mjs brief` | The frozen playbook steps and the artifacts each step must write. |
 | `<project>/.tstack/tasks/<id>/brief.md` | `tstack.mjs brief` | The goal, the finish, the steps, and the learnings. |
 | `<project>/.tstack/tasks/<id>/lead.txt` | main | The lead's T3 thread ID, or its Herdr tab and worktree. |
-| `<project>/.tstack/tasks/<id>/evidence/` | lead | One file per `Artifact:` line, plus any other proof the lead keeps. |
+| `<project>/.tstack/tasks/<id>/evidence/` | lead | One file per `Artifact:` line, any other proof the lead keeps, and `handoff-N.md` when the lead hands off to a fresh session. |
 | `<project>/.tstack/tasks/<id>/briefs/<name>.md` | lead | Each worker's brief. |
 | `<project>/.tstack/tasks/<id>/results/<name>.md` | worker | Each worker's result. |
 | `<project>/.tstack/tasks/<id>/decisions/<name>.md` | lead, then main | A question for the human, and their answer under `## Answer`, whose first line is `granted`, `denied` or `answered`. |
@@ -76,6 +77,8 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
   The model ID is the harness's own, so a Pi model is `provider/model`.
   The `@effort` part is optional.
   It counts as an effort only when it names one: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`, `ultracode` or `ultrathink`.
+- The harness is `claude`, `codex`, `pi` or `grok`.
+  `grok` is Grok Build, for worker seats, and the `t3 instances` line maps it to T3's Grok provider.
 - `inherit` runs the role on the caller's own harness and model.
 - A list of seats is a panel, with one agent per seat.
 - A combined role a skill names, such as `reflect judgment, divergent, synthesizer`, resolves by its first role.
@@ -128,7 +131,7 @@ Main picks one per task from the [router's intake table](../skills/tstack/SKILL.
 
 | Group | Skills |
 | --- | --- |
-| Router and setup | `tstack`, `tstack-setup` |
+| Router and setup | `tstack`, `tstack-setup`, `tstack-help` |
 | Understand | `how`, `why`, `explain`, `recall`, `teach` |
 | Plan | `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets` |
 | Design | `architect`, `arena`, `swarm`, `interrogate`, `figure-it-out` |
@@ -136,3 +139,10 @@ Main picks one per task from the [router's intake table](../skills/tstack/SKILL.
 | Review and verify | `two-axis-review`, `create-verification-skill`, `maintain-verification-skill` |
 | Record and improve | `show-me-your-work`, `handoff`, `reflect`, `correct`, `bro`, `writing-for-agents` |
 | Principles | 24 `principle-*` skills, indexed in the router |
+
+Two close calls:
+- `explain` is a quick explanation in this session, of code in front of you, built from `how` and `why`.
+- `teach` runs a learning workspace over several sessions, with a mission, lessons and learning records.
+
+`tstack-help` answers "which skill do I use" with one prompt to send, and never starts work.
+Ask it with `/tstack-help`, `$tstack-help` or `/skill:tstack-help`.

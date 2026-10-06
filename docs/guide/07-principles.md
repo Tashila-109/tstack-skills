@@ -42,6 +42,8 @@ The core principles decide how much to build and when to rethink:
 - **Experience First**: choose the user's result over implementation convenience.
 - **Exhaust the Design Space**: build two or three competing prototypes when there is no precedent.
 - **Build the Lever**: build the script that does or proves the work.
+  When an agent keeps doing the same thing by hand, have it write the tool or skill it wishes it had.
+  If a script can do a step the same way every time, use the script, and save agents for the judgment calls.
 
 The architecture principles decide where state, validation and compatibility live:
 - **Model the Domain**: encode repeated rules in one structure, not scattered conditionals.
@@ -57,6 +59,7 @@ The verification principles define what counts as proof:
 - **Sequence Work into Verifiable Units**: end each small unit in a check before starting the next.
 - **Test Behavior, Not Implementation**: call the code the way its users do and assert a literal expected value.
 - **Explain the Number**: find what limits a measured number before trusting it.
+  `benchmark-checklist` turns it into seven questions you answer from real runs.
 
 The delegation principles keep parallel work sane:
 - **Guard the Context Window**: route bulk reading to subagents and keep summaries.
@@ -64,5 +67,6 @@ The delegation principles keep parallel work sane:
 
 And one meta principle:
 - **Encode Lessons in Structure**: turn advice repeated twice into a check or a script.
+  `correct` applies it to a whole repo, as [Recipes and pitfalls](09-recipes-and-pitfalls.md) shows.
 
 Skim the list now, and come back when an agent does something one of these names would have prevented.

@@ -3,6 +3,23 @@
 Some work runs for hours: a loop toward a target, a PR waiting on CI, a queue of changes.
 This page covers handing that work off, the one grant autopilot needs, and reading what happened when you come back.
 
+## Earn the trust before the loop
+
+A loop you do not trust only produces unchecked work faster, and the mess compounds with every iteration.
+Before you leave one running, check that it has earned it:
+- You have done the task once by hand, or watched an agent do it, so you know what good looks like.
+- The agent has the tools and signals you would use yourself: the verification skill, the profiler, the logs.
+- Every stage proves its work and can stop the line when the work misses the bar.
+- You have read a few transcripts and turned the repeated failures into tools, skills or checks.
+
+Make the loop autonomous only after all four hold.
+Until then, run it while you watch.
+
+To stop a run on purpose, tell main to pause, or that you are about to go offline.
+The [Pause safely playbook](../../skills/tstack/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note.
+A fresh lead picks the work up from that note through the Session pickup playbook.
+Saying "keep going" never triggers a pause.
+
 ## A loop toward a checkable target
 
 Autonomous run iterates until a predicate holds.

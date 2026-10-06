@@ -12,6 +12,20 @@ $tstack how do we dedupe notifications? Is there an N+1 when we look up subscrib
 The lead runs the skill, writes its output to `evidence/how.md`, and turns it into `report.md`.
 Main relays the findings, not just a notice that the work is done.
 
+## Start with a read-only investigation
+
+When the cause is unclear, ask for findings, not a fix:
+
+```text
+$tstack investigate why background jobs time out every few hours. Give me what we know, what data you used, and your best hypotheses. Don't change any code yet.
+```
+
+"Don't change any code yet" routes this to the [Investigation playbook](../../skills/tstack/playbooks/investigation.md).
+It runs `how`, adds `why` for questions about motivation, and returns a cited explanation.
+For a choice between options, it returns a recommendation with a trade-offs table.
+Asking "what data you used" makes the agent separate its evidence from its guesses.
+When the findings point at a fix, start the fix as a new task.
+
 ## Trace behavior with how
 
 `how` answers at the level of a senior engineer onboarding you onto the subsystem: the runtime flow, the key types, and the non-obvious parts.
@@ -40,6 +54,17 @@ $tstack explain how this change affects retries. Convince me it fixes the cause 
 `explain` runs `how` and `why`, then weaves what they find into one plain explanation.
 "Convince me" turns the explanation into an argument you can poke at.
 
+It works on the agent's own choices too:
+
+```text
+$tstack explain why you implemented it this way and not with a queue. What did you trade off, and why?
+```
+
+An agent that has to explain its work must read the code and back each claim with evidence, instead of stating it confidently and moving on.
+
+`explain` is one explanation in this session.
+To learn a topic over several sessions, with a workspace that keeps your lessons, use `teach`.
+
 ## Rebuild your context with recall
 
 ```text
@@ -47,6 +72,11 @@ $tstack recall the export work from last week.
 ```
 
 `recall` reads your recent agent sessions and the shared record, such as issues and fixes, and hands back a short brief on where things stand.
+Your old sessions hold context that a fresh agent lacks, so load it first, then hand over the new input:
+
+```text
+$tstack recall my work on the virtualized list from yesterday, then read this bug report.
+```
 
 ## Why this comes first
 

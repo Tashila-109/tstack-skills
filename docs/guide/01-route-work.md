@@ -3,6 +3,7 @@
 You give main a goal and a way to check it.
 Main picks a playbook, writes the brief, and starts a lead.
 This page shows what a good request looks like, and how little of one you need.
+Not sure which skill or playbook fits? Run `tstack-help`.
 
 ## Say the goal and the check
 
@@ -18,6 +19,29 @@ If you give no finish, main proposes one.
 You do not name a playbook or list skills.
 The playbook holds the order of the steps, and a hand-written list of skills usually drops or reorders steps the playbook would have kept.
 Name a skill only when you want to override one choice.
+
+## What goes in a prompt
+
+A useful prompt carries up to five things, and each fits in a sentence:
+- **The goal.** Say what is wrong, or what you want.
+- **The done check.** It must be able to pass or fail. "Make it better" and "work on it for an hour" are not checks.
+- **The proof to show.** Ask for the real command output, the stored value, a recording of the flow, or a before and after number.
+- **What you already know.** A symptom, a repro step, a log line or a link saves the agent a search.
+- **The real constraints.** "Repro first", "don't change any code yet", "zero behavior change" and "let me review before proceeding" each change what the lead does.
+
+Two things are worth leaving out:
+- **The how.** Say what to achieve, and leave room for a better path than the one you would pick.
+- **Your theory of the cause, at first.** A stated guess narrows the search to wherever you pointed.
+  Let the agent restate the problem before you share your hunch.
+
+For a noisy report, such as a long thread or a vague bug, make the restatement the first step:
+
+```text
+$tstack read this thread. restate the underlying issue in your own words, in plain english. Don't change any code yet.
+```
+
+A misreading shows up in the restatement, before any code exists.
+Correct it there, and it costs one message instead of one wrong fix.
 
 ## What main does with it
 

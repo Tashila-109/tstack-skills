@@ -47,26 +47,7 @@ This repo replaces each one:
 
 ## Layout
 
-```text
-tstack-skills/
-  PLAN.md  README.md  AGENTS.md
-  LICENSES/                     third-party MIT notice
-  docs/                         see Documentation below
-  skills/
-    tstack/                     the router
-      SKILL.md                  roles, rules, intake table, non-negotiables, principles index, reply rules
-      playbooks/*.md            Artifact: lines and verb calls added where adapted
-      references/
-        dispatch.md             verbs, seats, depth, and how to read text written for Cursor
-        runtime-t3.md           verbs mapped to t3-code MCP tools
-        runtime-herdr.md        verbs mapped to the herdr CLI
-        worker-preamble.md      the first message every worker gets
-        bugbot-triage.md
-      scripts/tstack.mjs        home, brief, check and seat; Node, no dependencies
-    tstack-setup/               models file, .tstack/ exclude rule, and the per-project install option's worktree links
-    how/ why/ architect/ arena/ swarm/ interrogate/ no-comments/ tdd/ ...
-    principle-*/                24 principles
-```
+[AGENTS.md](AGENTS.md#layout) owns the repository layout.
 
 ## The verbs
 
@@ -172,6 +153,7 @@ A doc is done only after someone follows it on a scratch project and gets the re
 | `docs/guide/07-principles.md` | How-to | Steering by principle name. |
 | `docs/guide/08-plan-across-phases.md` | How-to | Multi-phase plan and orchestrate, and the design, spec and implement gates. |
 | `docs/guide/09-recipes-and-pitfalls.md` | How-to | Prompts to copy and mistakes measured on real runs. |
+| `skills/tstack-help/SKILL.md` | Skill | Answers "which skill do I use" with one prompt to send, and never starts work. |
 | `docs/runtimes/t3.md` | How-to | One provider instance per role, pinning main, permission modes, which threads appear, and where questions and decisions show up. |
 | `docs/runtimes/herdr.md` | How-to | Starting main in a pane, the tabs and panes each lead and worker gets, how leads report, and checking on a quiet lead. |
 | `docs/reference.md` | Reference | The verbs, the models file and its role names, the `.tstack/` layout, `tstack.mjs` commands and exit codes, the playbook intake table, the skill list, and both install modes. |
@@ -212,7 +194,8 @@ The steps were:
 
 ### Phase 2: your skills that tstackv2 added
 
-Done on 2026-10-05, not yet run on a live task.
+Done on 2026-10-05.
+No record under `docs/verification/` shows these skills running in a live task.
 The decision and ask-user-authority rules became `skills/tstack/references/decisions.md`, and `check` now needs a granted answer for each gate.
 tstackv2's self-pass for small tasks is gone with its size test, so every gate goes to the human.
 The steps were:
@@ -220,14 +203,16 @@ The steps were:
 Rewrite these from tstackv2 without CLI calls:
 - grilling, grill-with-docs, domain-modeling, codebase-design, writing-for-agents, to-spec, to-tickets, handoff and teach
 - two-axis-review
-- the spec-driven and gardener playbooks
+- the gardener playbook
 - the decision and ask-user-authority rules
 
 Write guide page 08 and add these skills to the reference.
 
 ### Phase 3: measure, then retire tstackv2
 
-Started on 2026-10-05.
+In progress since 2026-10-05.
+Steps 4 and 5 are done.
+Steps 1 to 3 have one run per runtime recorded, and both runs were a Bug fix task with PR delivery, so the larger playbooks are not measured yet.
 tstackv2's global installs are retired, and the migration guide is written.
 Both tutorial runs showed leads doing `how`, `why` and the comment pass inline, so those steps now require the delegated workers' result files, which `check` enforces.
 [Measuring a live task](docs/verification/README.md#measuring-a-live-task) is the method for steps 1 to 3, starting with tstack-router.
@@ -248,7 +233,8 @@ Multi-phase plan and orchestrate came from tstackv2's adaptations, with `check-p
 Babysit, shipping and the two autopilots came from upstream, with `gh` for every PR operation and merges only through main.
 Autopilot-full merges under one recorded grant from the human, and both autopilots are main's programs, not a lead's playbook.
 The as-written playbooks gained `Artifact:` lines where a step leaves evidence.
-None of these has run live yet; the first PR-delivery task in tstack-router is the first test of babysit.
+Babysit has run live on both runtimes, on [T3](docs/verification/2026-10-05-tstack-router-live-t3.md) and on [Herdr](docs/verification/2026-10-05-tstack-router-live-herdr.md).
+Shipping and the two autopilots have not yet run in a live task.
 The plan was:
 
 These need real adaptation, and come back from upstream when they do:
