@@ -3,14 +3,14 @@
 Editing code you don't understand is how subtle regressions ship.
 Four skills help: `how` explains what the code does now, `why` digs up the reasons it is shaped that way, `explain` blends both into one explanation, and `recall` rebuilds your own recent context on a topic.
 
-Ask main for any of them, and it briefs a scout task on the Investigation playbook:
+Ask for any of them in a new thread, and the lead briefs a scout task on the Investigation playbook:
 
 ```text
 $tstack how do we dedupe notifications? Is there an N+1 when we look up subscribers?
 ```
 
 The lead runs the skill, writes its output to `evidence/how.md`, and turns it into `report.md`.
-Main relays the findings, not just a notice that the work is done.
+The lead tells you the findings, not just a notice that the work is done.
 
 ## Start with a read-only investigation
 
@@ -24,7 +24,7 @@ $tstack investigate why background jobs time out every few hours. Give me what w
 It runs `how`, adds `why` for questions about motivation, and returns a cited explanation.
 For a choice between options, it returns a recommendation with a trade-offs table.
 Asking "what data you used" makes the agent separate its evidence from its guesses.
-When the findings point at a fix, start the fix as a new task.
+When the findings point at a fix, start the fix in a new thread.
 
 ## Trace behavior with how
 

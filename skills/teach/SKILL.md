@@ -101,5 +101,5 @@ If the human has said they do not want to join one, `RESOURCES.md` records that,
 
 Teach writes its own files, so it runs in a session started in the workspace directory, outside any tstack task.
 Keep the workspace out of project checkouts and `.tstack/`: lessons and learning records are not project files.
-Main writes only under `.tstack/`, and a lead or worker writes only its task's scope, so none of them runs teach.
+A lead or worker writes only its task's scope, and a coordinator writes only under `.tstack/`, so none of them runs teach.
 To learn a codebase, keep the workspace elsewhere and use `explain` for the code in front of you.

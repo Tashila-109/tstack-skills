@@ -2,7 +2,7 @@
 
 tstack-skills packages the tstack workflow so it runs in any harness or ADE: engineering playbooks, skills and principles, plus the rules for who may do what.
 The first two targets are T3 Code and Herdr.
-Main, leads and workers run on Claude Code, Codex or Pi.
+Leads, workers and coordinators run on Claude Code, Codex or Pi.
 
 Written 2026-10-05 after a deep dive into tstackv2, the upstream skill set it adapts, and t3code.
 
@@ -16,10 +16,11 @@ Written 2026-10-05 after a deep dive into tstackv2, the upstream skill set it ad
 | 4 | Install globally by default, with a per-project, gitignored install as an option. | `npx skills add -g` writes `~/.agents/skills`, which Codex and Pi read, and `~/.claude/skills` links, which Claude reads. Every project and every worktree sees the same skills, with no hook needed. The per-project option excludes its folders through `.git/info/exclude`, and `tstack-setup` links them into each new worktree. Either way, a project's task state lives in its own gitignored `.tstack/`. |
 | 5 | Drive Herdr directly through the `herdr` CLI. | There is no dependency on the tstack CLI. There is also no watcher, stall detector or approval-menu answerer on Herdr in v1. |
 | 6 | Keep the upstream skill names. | `/how`, `architect` and `principle-*` keep their names, so you can steer by name. tstackv2's Pi links and plugins shadow these names until they are retired. |
-| 7 | Invoke the router explicitly. | Main starts with `/tstack` (`$tstack` in T3 and Codex, `/skill:tstack` in Pi). Every lead and worker gets its role and the router in its launch prompt. |
-| 8 | When a seat can't launch, stop and ask. | A single-seat role stops, and the lead reports to main, which asks the human. A panel runs with the seats that launched and names the dropout. A seat is never swapped for another model without the human's word. |
+| 7 | Invoke the router explicitly. | Each task thread starts with `/tstack` (`$tstack` in T3 and Codex, `/skill:tstack` in Pi). Every launched lead and worker gets its role and the router in its launch prompt. |
+| 8 | When a seat can't launch, stop and ask. | A single-seat role stops, and the lead asks the human. A panel runs with the seats that launched and names the dropout. A seat is never swapped for another model without the human's word. |
 | 9 | One effort per seat. | Each seat names one effort, and the setup budget scales them all. tstackv2's small and big effort tiers and its size test are left out. |
 | 10 | Upstream projects are not named in this repository. | Skill text, docs and commit messages name only tstack and the tools it runs on. The upstream MIT copyright notice stays in `LICENSES/`, as its license requires. |
+| 11 | The human talks to one lead per task, decided 2026-10-07. | Each task is a thread the human opens in its own worktree, and its lead does intake, asks the human for decisions, and merges on their word. Main is gone, with its backlog, relays and session reconcile. A coordinator runs only the autopilot programs. |
 
 ## Why this shape
 
@@ -38,7 +39,7 @@ This repo replaces each one:
 
 | In Cursor | tstack-skills |
 | --- | --- |
-| A sticky router mode with a per-turn reminder | The `tstack` router, invoked once by main and loaded from every launch prompt |
+| A sticky router mode with a per-turn reminder | The `tstack` router, invoked at the start of each task thread and loaded from every launch prompt |
 | The `Task` tool with a model per role | The `delegate` verb: T3 `delegate_task` with a target model, or a Herdr agent pane |
 | A subagent wrapper that reads the router before any work | `references/worker-preamble.md`, pasted into every delegated prompt |
 | An always-applied rule mapping roles to models | A role → harness and model file that `tstack-setup` writes |
@@ -56,15 +57,15 @@ Each runtime reference maps a verb to concrete calls, so the skill text stays po
 
 | Verb | Who | T3 | Herdr |
 | --- | --- | --- | --- |
-| launch-lead | main | `t3_thread_launch` with `workspaceStrategy: worktree`, then a prompt naming the role, task, brief and absolute state path | `git worktree add`, `herdr tab create`, `herdr agent start <id>-lead --kind <k>`, `herdr agent prompt` |
+| launch-lead | a lead moving or handing off its task, or a coordinator | `t3_thread_launch` with `workspaceStrategy: worktree`, then a prompt naming the role, task, brief and absolute state path | `git worktree add`, `herdr tab create`, `herdr agent start <id>-lead --kind <k>`, `herdr agent prompt` |
 | delegate | lead; a skill run by the lead | `delegate_task` (async) with a `target` from the models file; the completion wakes the lead | `herdr pane split`, `herdr agent start <id>-<name>`, `herdr agent prompt` |
 | collect | lead | `task_status`, plus the worker's result file | `herdr agent wait`, then the worker's result file |
-| report | lead to main | `t3_thread_send` to main's thread with mode `queue`, which waits for a busy main and starts an idle one (measured) | `herdr agent wait main --until idle --until done`, then `herdr agent prompt main "<text>"`, because a prompt to a busy agent takes over its turn (measured) |
-| decide | lead to main to human | The lead writes a decision file, reports, and ends its turn. Main asks the human and sends the answer back. | Same |
+| report | a coordinator's lead to its coordinator | `t3_thread_send` to the coordinator's thread with mode `queue`, which waits for a busy target and starts an idle one (measured) | `herdr agent wait <coordinator> --until idle --until done`, then `herdr agent prompt <coordinator> "<text>"`, because a prompt to a busy agent takes over its turn (measured) |
+| decide | lead to human | The lead writes a decision file, asks the human in its thread, and records their words. A coordinator's lead asks through the coordinator. | Same |
 | watch-pr | lead | `link_pull_request` when the PR opens, then `watch_pull_request` | `gh pr checks --watch` |
-| hold | main | `t3_thread_interrupt`, then a `queue` message; the lead stops workers with `task_cancel` | `herdr agent prompt` without waiting, which takes over the turn; the lead closes worker panes |
+| hold | coordinator; the human's own stop for a lead they talk to | `t3_thread_interrupt`, then a `queue` message; the lead stops workers with `task_cancel` | `herdr agent prompt` without waiting, which takes over the turn; the lead closes worker panes |
 
-The depth stays main → lead → worker.
+The depth is lead → worker, and coordinator → lead → worker in an autopilot program.
 A worker that runs a dispatching skill, such as `how` with explorers, uses its harness's native subagents instead of `delegate`.
 
 ## Model and harness selection
@@ -79,8 +80,8 @@ The roles keep the upstream role names, plus tstack's own:
 - `judgment and prose`
 
 An optional `lead <playbook>` line overrides `lead` for one playbook.
-Main is not a role.
-It is whatever the human starts: the T3 thread they open, or the CLI they launch in a Herdr pane.
+A lead the human starts runs on the model they picked for the thread or pane.
+The `lead` seat applies to leads that launch-lead starts: a task moved out of the primary checkout, a handoff, or a coordinator's lead.
 
 The models file maps each role to seats, one line per role.
 A seat is `harness/model@effort`, and the model ID is the harness's own ID, so no separate model catalog is needed.
@@ -126,10 +127,10 @@ Left out from tstackv2's matrix: slot names, the `maxLive` per-role cap, effort 
 
 ## Rules that carry over from tstackv2
 
-- Main coordinates and never edits project files.
+- Project files change only in a task's own worktree.
 - Merging, discarding work, and anything destructive happen only on the human's explicit word.
 - Unlanded work is never torn down.
-- Workers never address the human. Leads report to main.
+- Workers never address the human. Leads talk to the human directly.
 - Evidence is not authorization.
 - Report outcomes, not mechanics, and label every claim as measured, inferred or a guess.
 - Cite a principle only after reading its leaf skill, and name the decision it changed.
@@ -144,7 +145,7 @@ A doc is done only after someone follows it on a scratch project and gets the re
 | --- | --- | --- |
 | `README.md` | Landing page | What tstack is, who it is for, requirements, the install command, and links into the docs. |
 | `docs/getting-started.md` | Tutorial | Install globally, set up a scratch project with `tstack-setup`, then run one small task end to end on T3 and the same task on Herdr. It ends at a merged commit and the task's evidence folder. |
-| `docs/guide/01-route-work.md` | How-to | Start main with `/tstack`. Prompt with a goal plus a check. Say "new task" to switch subjects. What main does and what the lead does. |
+| `docs/guide/01-route-work.md` | How-to | Open one thread per task and start it with `/tstack`. Prompt with a goal plus a check. What the lead does. |
 | `docs/guide/02-understand.md` | How-to | `how`, `why`, `explain`, `recall`. |
 | `docs/guide/03-design.md` | How-to | `architect`, `arena`, `swarm`, `interrogate`, and how much design a task deserves. |
 | `docs/guide/04-build-and-clean.md` | How-to | Feature, Bug fix and Refactoring prompts, plus `tdd`, `no-comments` and `unslop`. |
@@ -154,8 +155,8 @@ A doc is done only after someone follows it on a scratch project and gets the re
 | `docs/guide/08-plan-across-phases.md` | How-to | Multi-phase plan and orchestrate, and the design, spec and implement gates. |
 | `docs/guide/09-recipes-and-pitfalls.md` | How-to | Prompts to copy and mistakes measured on real runs. |
 | `skills/tstack-help/SKILL.md` | Skill | Answers "which skill do I use" with one prompt to send, and never starts work. |
-| `docs/runtimes/t3.md` | How-to | One provider instance per role, pinning main, permission modes, which threads appear, and where questions and decisions show up. |
-| `docs/runtimes/herdr.md` | How-to | Starting main in a pane, the tabs and panes each lead and worker gets, how leads report, and checking on a quiet lead. |
+| `docs/runtimes/t3.md` | How-to | New worktree threads, one provider instance per role, permission modes, which threads appear, and where questions and decisions show up. |
+| `docs/runtimes/herdr.md` | How-to | Starting a lead in a pane, the tab it moves to, the panes its workers get, and checking on a quiet worker. |
 | `docs/reference.md` | Reference | The verbs, the models file and its role names, the `.tstack/` layout, `tstack.mjs` commands and exit codes, the playbook intake table, the skill list, and both install modes. |
 | `docs/concepts.md` | Explanation | Roles and rules, why skill steps produce artifacts (with the scout evidence), and how tstack-skills differs from tstackv2. |
 | `docs/migrating-from-tstackv2.md` | How-to | Removing tstackv2's Pi links and plugins, and finishing or moving work still in flight. |
@@ -250,6 +251,18 @@ These run as written today, and gain verb calls and `Artifact:` lines:
 - runtime-forensics and trace-forensics
 
 Write guide page 06, and extend pages 04 and 05 for these playbooks.
+
+### Phase 5: one lead per task
+
+Started 2026-10-07.
+The human found a main thread with several tasks crowded, and paying twice for every report and decision.
+T3 and Herdr already list each task as a thread or tab, so the lead now does main's intake, decisions, merge and cleanup itself.
+A coordinator keeps main's relay only for the two autopilots.
+The steps are:
+
+1. Rewrite the router, dispatch, decisions, both runtime references, the playbooks and the skills that named main.
+2. Rewrite the docs for one thread per task.
+3. Run one task end to end on each runtime, and record each run under `docs/verification/`.
 
 ## Left out of v1
 

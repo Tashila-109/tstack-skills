@@ -17,7 +17,7 @@ Separate reviewers in separate contexts keep one axis from masking the other.
 
 The lead runs this skill.
 Each axis runs as a read-only worker delegated on a `review` seat, never as the lead's own subagent, so its report is a result file the lead keeps.
-Main asks a lead for a review instead of running one, and a worker never delegates reviewers.
+A coordinator asks a lead for a review instead of running one, and a worker never delegates reviewers.
 
 ## 1. Freeze the scope
 
@@ -109,5 +109,5 @@ When a finding recurs, encode the fix as a check instead of more text, as [princ
 A round collects both axes on one frozen head for one deliverable.
 A repair series follows that deliverable across heads under its one label.
 After three complete rounds with an accepted Must still open, open a `question` decision named `review-<label>` under [decisions](../tstack/references/decisions.md#open-a-decision-lead), with the rounds and the open findings, and the last round's frozen head as its subject.
-Wait for main's answer before another repair or round 4.
+Wait for the human's answer before another repair or round 4.
 Record the repair series, round number, each earlier round's head and accepted Musts, and any checkpoint decision in the aggregate.

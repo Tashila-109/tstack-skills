@@ -1,9 +1,22 @@
-# Route work through main
+# Start a task
 
-You give main a goal and a way to check it.
-Main picks a playbook, writes the brief, and starts a lead.
-This page shows what a good request looks like, and how little of one you need.
+You open one thread or pane per task and give its lead a goal and a way to check it.
+The lead picks a playbook and runs the task.
+This page shows how to open the thread, what a good request looks like, and how little of one you need.
 Not sure which skill or playbook fits? Run `tstack-help`.
+
+## One thread per task
+
+Open a new thread for each task, and talk to that task's lead there.
+Your threads or tabs are your task list.
+When you change subject, open a new thread instead of steering the last one.
+
+- **On T3**, open the thread in **New worktree** mode, pick the default branch as its base, and send `$tstack` with your request.
+  T3 names the branch, and the thread runs on the model you picked in the composer.
+- **On Herdr**, open a pane, start your harness, and invoke tstack with your request.
+  A ship task started at the project root moves into its own tab, and the lead tells you which one to continue in.
+
+[T3 Code](../runtimes/t3.md) and [Herdr](../runtimes/herdr.md) cover each runtime.
 
 ## Say the goal and the check
 
@@ -14,7 +27,7 @@ $tstack users get two notifications after a retry. Repro first, then fix it. Don
 That is a Bug fix request.
 "Repro first" is a real constraint, and the Bug fix playbook keeps it.
 "Done means ..." is the finish the lead must prove before it reports done.
-If you give no finish, main proposes one.
+If you give no finish, the lead proposes one.
 
 You do not name a playbook or list skills.
 The playbook holds the order of the steps, and a hand-written list of skills usually drops or reorders steps the playbook would have kept.
@@ -43,15 +56,15 @@ $tstack read this thread. restate the underlying issue in your own words, in pla
 A misreading shows up in the restatement, before any code exists.
 Correct it there, and it costs one message instead of one wrong fix.
 
-## What main does with it
+## What the lead does with it
 
-1. Main classifies the request.
+1. The lead classifies the request.
    A change to the project is a ship task.
    A question is a scout task, whose deliverable is a report and never a PR.
-2. Main picks the playbook from the intake table in the router, taking the first row that fits.
-3. Main writes the brief with `tstack.mjs brief`, which freezes the playbook's steps and the files each step must leave.
-4. Main starts the lead in its own worktree, on branch `task/<task id>`.
-5. Main tells you what started and goes quiet until the lead needs you or finishes.
+2. It picks the playbook from the intake table in the router, taking the first row that fits.
+3. It derives a checkable finish if you gave none, and picks the delivery: `local-only` unless you asked for a PR.
+4. It writes the brief with `tstack.mjs brief`, which freezes the playbook's steps and the files each step must leave.
+5. It tells you in one line which playbook, finish and delivery it chose, then runs the playbook.
 
 ## Prompts that route well
 
@@ -78,22 +91,3 @@ A big or vague effort goes to the figure-it-out playbook, which designs the run'
 ```text
 $tstack migrate every caller from the sync store to the async one, with identical behavior. I want to review it tomorrow.
 ```
-
-## Switch tasks with "new task"
-
-Main can run several leads at once.
-When you change subject, say so:
-
-```text
-$tstack new task. Find out why the cache entry survives logout. Don't change any code yet.
-```
-
-"New task" starts a separate lead instead of steering the last one.
-
-## Ask where things stand
-
-```text
-where is the notifications task?
-```
-
-Main checks the lead's state and its task folder, and answers in outcomes.

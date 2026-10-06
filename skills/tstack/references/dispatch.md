@@ -11,17 +11,17 @@ If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
 
 | Verb | Who | What it does |
 | --- | --- | --- |
-| launch-lead | main | Start a lead in its own worktree on branch `task/<id>`, with the launch block below as its first message. |
+| launch-lead | a lead moving or handing off its own task, or a coordinator | Start a lead with the launch block below as its first message, in a new worktree, or in the task's existing worktree for a handoff. |
 | delegate | lead, or a skill the lead runs | Start a worker on a seat with a written brief. Launch every independent worker before you wait on any. |
 | collect | lead | Read a finished worker's result file and verdict. |
-| report | lead | Send main a message without interrupting it. |
-| decide | lead | Write a decision file, report it, and end your turn until main answers. |
+| report | a coordinator's lead | Send the coordinator a message without interrupting it. |
+| decide | lead | Write a decision file and put it to the human, as [decisions.md](decisions.md) says. |
 | watch-pr | lead | Get woken when the PR's checks finish, someone comments, or it conflicts. |
-| hold | main | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for main's release. |
+| hold | coordinator | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for the coordinator's release. A lead the human talks to is held by the human's own stop. |
 
 ### The launch block
 
-Main sends this as the lead's first message, with every path absolute:
+launch-lead sends this as the lead's first message, with every path absolute:
 
 ```text
 tstack launch
@@ -29,7 +29,7 @@ role: lead
 task: <id>
 home: <primary checkout>/.tstack
 brief: <home>/tasks/<id>/brief.md
-main: <main's T3 thread id, or main's Herdr agent name>
+coordinator: <the coordinator's T3 thread id or Herdr agent name; leave the line out for a lead the human talks to>
 runtime: t3 | herdr
 router: <path to the tstack skill's SKILL.md>
 
@@ -52,10 +52,10 @@ It prints one JSON line per seat, in the shape the runtime reference passes on.
 Never hand-assemble a model ID, an effort option, or launch flags.
 
 When a role has no line, the script refuses.
-Stop and tell main, which asks the human to run `tstack-setup`.
+Stop and ask the human to run `tstack-setup`.
 
 When a seat fails to launch, because the provider is down, logged out, or lacks the model:
-- a single-seat role stops, and the lead reports to main, which asks the human;
+- a single-seat role stops, and the lead asks the human;
   on T3, `tstack.mjs check-seats` on a saved `orchestrator_capabilities` result names each failing seat, and the ID its model goes by when only the provider prefix differs;
 - a panel continues with the seats that launched, and the result names each dropout.
 
@@ -63,13 +63,13 @@ Never run a seat on a different model than the one configured without the human'
 
 ## Depth
 
-tstack depth is main → lead → worker.
+tstack depth is lead → worker, or coordinator → lead → worker in an autopilot program.
 
 | Role | May | Never |
 | --- | --- | --- |
-| main | launch-lead | delegate, write project files, run a playbook |
-| lead | delegate; use its harness's own subagents for its own scoped reading | launch another lead |
-| worker | use its harness's own subagents, on `inherit`, for its own scope | delegate, launch-lead, report to main, write Git |
+| coordinator | launch-lead | delegate, write project files, run a task's playbook |
+| lead | delegate; use its harness's own subagents for its own scoped reading; launch-lead to move or hand off its own task | launch a lead for another task |
+| worker | use its harness's own subagents, on `inherit`, for its own scope | delegate, launch-lead, address the human or a coordinator, write Git |
 
 A worker that runs a skill which spawns subagents, such as `how` with explorers, uses its harness's own subagent tool instead of delegate.
 Its own subagents never write Git and never write tstack records.
@@ -87,8 +87,8 @@ Read their Cursor terms this way:
 | `run_in_background: true`, `environment: "cloud"`, `cloud_base_branch` | Ignore. Workers run on this machine, and delegate never blocks. |
 | A role default such as `claude-opus-5-5-max`, used when the rule line is missing | Ignore. A missing line is a refusal, per Seats. |
 | "If the Task tool rejects a slug, use the default" | Ignore. A seat that fails follows Seats. |
-| Cursor's `/loop` | The runtime's wakes: a worker's completion, a lead's report, or watch-pr. |
-| `AskQuestion` | main asks the human. A lead uses decide. A worker writes `BLOCKED` in its result. |
+| Cursor's `/loop` | The runtime's wakes: a worker's completion, the human's message, a lead's report to its coordinator, or watch-pr. |
+| `AskQuestion` | A lead uses decide, which asks the human. A worker writes `BLOCKED` in its result. |
 | The agent store | `<home>/tasks/<id>/` for task records. |
 | `agent-transcripts/`, or a transcript path under `~/.cursor/` | The runtime reference's History section. |
 | `.cursor/skills/` in a project, `~/.cursor/skills/`, or `~/.cursor/plugins/` | `.agents/skills/` in the project, `~/.agents/skills/`, or the harness's own plugin folder. |
@@ -96,7 +96,7 @@ Read their Cursor terms this way:
 | `create-skill` | The [writing-for-agents skill](../../writing-for-agents/SKILL.md). |
 | `control-cli`, `control-ui` | The project's `verify-*` skill, or [create-verification-skill](../../create-verification-skill/SKILL.md) if it has none. On T3, the tools in [Proving on the real surface](runtime-t3.md#proving-on-the-real-surface) drive a web UI or a simulator. |
 | A worktree "off main" for a subagent | Workers share the lead's worktree. A candidate that needs its own checkout gets one through the runtime reference. |
-| A subagent opens a PR or merges | Only the lead opens PRs, and only main merges, on the human's word. |
+| A subagent opens a PR or merges | Only the lead opens PRs, and only the lead or a coordinator merges, on the human's word. |
 
 ## Briefs
 

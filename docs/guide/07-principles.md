@@ -24,7 +24,7 @@ When two attempts are about to write to the same branch:
 separate before serializing shared state. Give each attempt its own worktree.
 ```
 
-Send these to main, which relays them to the lead, or type them into the lead's thread yourself.
+Send these to the lead in its thread.
 
 A principle the report names with no decision behind it was name-dropped, not applied.
 Leads may cite only principles whose `SKILL.md` they read during the task.

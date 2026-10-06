@@ -12,6 +12,6 @@ Investigation requests are read-only. They produce a cited explanation or a reco
    Write it to `report.md`, built from `evidence/how.md`.
 4. Apply the **unslop** skill to the reply.
 
-No PR, no babysit, no `architect` unless the investigation precedes a code change. If it does, say so in the report, and main asks the human whether to brief a Bug fix or Feature task.
+No PR, no babysit, no `architect` unless the investigation precedes a code change. If it does, say so in the report, and ask the human whether to start a Bug fix or Feature task in a new thread.
 
 **Reply:** the investigation output. For "are we sure?" answers, include your real judgment with reasons. Push back if the premise is wrong (see Autonomy).

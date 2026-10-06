@@ -58,5 +58,5 @@ Act on the result only after the human confirms you share one understanding.
 
 ## In a tstack task
 
-Only main talks to the human, so only main runs a grill.
-A lead opens a `question` decision for what it cannot settle, as [decisions](../tstack/references/decisions.md) says, and a worker puts its open questions in its result.
+The lead runs a grill with the human in its own thread, and records each answer that settles a gate or a scope question as a decision, as [decisions](../tstack/references/decisions.md) says.
+A lead that a coordinator launched opens a `question` decision instead, and a worker puts its open questions in its result.

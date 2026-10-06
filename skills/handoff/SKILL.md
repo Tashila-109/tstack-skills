@@ -62,40 +62,41 @@ Workers never hand off: each gets a fresh context per brief, and unfinished work
    Commit a verified stage first if one is ready.
 2. Write `tasks/<id>/evidence/handoff-N.md` under the task home, where N is one more than the highest existing handoff number, starting at 1.
    The brief and the evidence files already hold the task's identity and progress, so point at them instead of restating them.
-3. Send main `handoff <id>: at <boundary>, <path to the handoff file>`, naming the phase that ended and the one that starts, such as `at implement → review`.
-   Then end the turn.
+3. Start the fresh lead as [Relaunching a lead](#relaunching-a-lead) says, then end the turn.
+   A lead that a coordinator launched sends the coordinator `handoff <id>: at <boundary>, <path to the handoff file>` instead, naming the phase that ended and the one that starts, such as `at implement → review`, and the coordinator relaunches it.
 
-## For main: relaunching a lead
+## Relaunching a lead
 
-When a lead sends `handoff <id>:`, wait until its turn has ended, then start a fresh lead on the same worktree and branch:
-- on T3, call `t3_thread_launch` with `workspaceStrategy: { "type": "existing_worktree", "worktreePath": "<the lead's worktree>", "branch": "task/<id>" }`, the lead's seat, and the launch block, then archive the old thread;
-- on Herdr, close the old lead's tab, then open a new tab on the same worktree and start `<id>-lead` there, as the Herdr runtime's launch-lead says from step 3.
+Start a fresh lead on the same worktree and branch, once the old lead's turn has ended or, for your own handoff, as your last action:
+- on T3, call `t3_thread_launch` with `workspaceStrategy: { "type": "existing_worktree", "worktreePath": "<the lead's worktree>", "branch": "<its task branch>" }`, the lead's seat, and the launch block;
+- on Herdr, open a new tab on the same worktree and start the lead there, as the Herdr runtime's launch-lead says from step 3, under a new agent name such as `<id>-lead-2`.
 
-`git worktree list` shows the worktree for `task/<id>`.
+`git worktree list` shows the worktree and its branch.
 Add one line under the launch block: `Pick up from <path to the handoff file>, following the session-pickup playbook.`
-Update `<home>/tasks/<id>/lead.txt` with the new thread or tab.
+For your own handoff, leave the launch block's `coordinator:` line out, and tell the human which thread or tab to continue in.
+A coordinator archives the old thread on T3 or closes the old tab on Herdr, and updates `<home>/tasks/<id>/lead.txt` with the new thread or tab.
 
-## For main: handing off main
+## For a coordinator: handing off the coordinator
 
-Hand off main itself when its own window runs short, or when the human says handoff.
-The phase-boundary tree above does not apply to main.
+Hand off the coordinator itself when its own window runs short, or when the human says handoff.
+The phase-boundary tree above does not apply to it.
 
 1. Wait for a safe point:
    - no merge is half done;
-   - no question to the human is half answered, and no decision is waiting on main to relay it;
+   - no question to the human is half answered, and no decision is waiting on the coordinator to relay it;
    - every finished lead's `## Remember` and `## Follow-ups` are curated.
 
    Leave running leads alone.
-2. Write `<home>/handoff/main-N.md`, where N is one more than the highest existing number, starting at 1.
+2. Write `<home>/handoff/coordinator-N.md`, where N is one more than the highest existing number, starting at 1.
    Point at existing state instead of copying it, and include:
    - the next action;
-   - each running task's ID, its `lead.txt`, and what main is waiting for from it;
+   - the program file, each running task's ID, its `lead.txt`, and what the coordinator is waiting for from it;
    - open decisions, and replies owed to the human;
    - the human's standing instructions from this session, with their scope;
-   - anything else only this session knows: dead ends, and the skills the next main should load.
+   - anything else only this session knows: dead ends, and the skills the next coordinator should load.
 
    Redact secrets and personal data as [Write the file](#write-the-file) says.
-3. Tell the human the path, and to start a new main session in the same project with the tstack skill.
+3. Tell the human the path, and to start a new thread in the primary checkout with the tstack skill and the same program.
    Then stop working in this session.
 
-A new main reads the newest `<home>/handoff/main-*.md` first, as the tstack router's intake says.
+A new coordinator reads the newest `<home>/handoff/coordinator-*.md` first, as the tstack router's Coordinator section says.

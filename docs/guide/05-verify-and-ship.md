@@ -26,7 +26,7 @@ Match the check to the change:
 - a storage change reads back the written value.
 
 Ask for the proof as an artifact you can inspect yourself: the failing test and then the passing one, a before and after recording, the trace, the screenshot.
-If the fix already merged, ask for the same check again on main.
+If the fix already merged, ask for the same check again on the default branch.
 An artifact beats a plausible explanation, because you can challenge it without replaying the run.
 
 ## Vet a measured number with benchmark-checklist
@@ -56,7 +56,7 @@ It is the working form of the Explain the Number principle.
 ## Give agents a way to drive your app
 
 The UI check above needs a scripted way to run your app.
-If your project has none, ask main:
+If your project has none, ask:
 
 ```text
 $tstack create a verification skill for this project.
@@ -73,7 +73,7 @@ $tstack build the bulk-archive action. Use verify-<app> to verify your changes, 
 ```
 
 ```text
-$tstack repro this with verify-<app>. If it repros on main, fix it and show me a recording as proof.
+$tstack repro this with verify-<app>. If it repros on the default branch, fix it and show me a recording as proof.
 ```
 
 Treat the verification skill as infrastructure.
@@ -96,27 +96,28 @@ It audits the skill against the app, and ships at most one PR of proven correcti
 
 ## Answer decisions
 
-A lead never asks you directly.
-When it needs your call, it writes the question, the options and its recommendation to the task's `decisions/` folder, and main asks you.
-Answer main in your own words.
-Main records your answer in the same file and sends it to the lead.
+When a lead needs your call, it writes the question, the options and its recommendation to the task's `decisions/` folder, and asks you in its own thread.
+It uses the harness's question tool when it has one.
+Answer in your own words, and the lead records them in the same file.
+A lead that an autopilot's coordinator launched asks the coordinator instead, and the coordinator asks you.
 
 ## Merge on your word
 
-When a lead finishes, main runs `tstack.mjs check`, reads the report, and tells you what changed, who it is for, how it was proved, and what the next maintainer inherits.
+When a lead finishes, it runs `tstack.mjs check`, and tells you what changed, who it is for, how it was proved, and what the next maintainer inherits.
+For `pr` delivery it gives you the PR's URL.
 Then it asks whether to merge.
 
-| Delivery | What the lead produces | What main does on your word |
+| Delivery | What the lead produces | What the lead does on your word |
 | --- | --- | --- |
-| `local-only`, the default | A clean branch, `task/<task id>`, with small ordered commits | Fast-forwards your branch to it, then cleans up the worktree |
-| `pr` | A pushed branch and an open PR, watched for checks and reviews | Merges the PR with `gh pr merge`, pinned to the commit the lead reported, using your project's merge method |
+| `local-only`, the default | A clean task branch with small ordered commits | Fast-forwards the default branch to the head commit you saw, which needs the primary checkout on that branch with no uncommitted changes, then cleans up |
+| `pr` | A pushed branch and an open PR, watched for checks and reviews | Merges the PR with `gh pr merge`, pinned to the head commit you saw, using your project's merge method |
 
 Ask for PR delivery in your request, such as "open a PR for it".
 Nothing merges without your explicit word, whatever else you said.
 
-To stop being asked, give main a standing grant, such as "merge PRs once the verification and the reviews pass".
-Main writes it to `.tstack/grants.md` in your words, checks its conditions on the exact commit before each merge, and quotes it whenever it uses it.
-Delete the file, or tell main, to withdraw it.
+To stop being asked, give the lead a standing grant, such as "merge PRs once the verification and the reviews pass".
+The lead writes it to `.tstack/grants.md` in your words, checks its conditions on the exact commit before each merge, and quotes it whenever it uses it.
+Delete the file, or tell the lead, to withdraw it.
 
 ## Land a stack of PRs
 
@@ -129,5 +130,5 @@ $tstack ship the open stack from #41 up.
 
 The lead has a worker who did not write the code verify each PR on the real surface, then finds the run of verified PRs from the bottom.
 It records each verdict with the patch it covered in `evidence/verdicts.md`.
-On your word, main lands that run one PR at a time, bottom first.
+On your word, the lead lands that run one PR at a time, bottom first.
 Before each merge it checks the PR's patch still matches its verdict, and it stops at the first PR that changed or was never verified.

@@ -27,8 +27,8 @@ You can run three of the planning skills yourself, before or without a playbook:
 $tstack grill me on this plan before anyone builds. The plan: move the notes API to tRPC.
 ```
 
-Only main runs a grill, because only main talks to you.
-A lead that needs your answer opens a `question` decision instead, and main asks you in your words.
+A lead grills you in its own thread, because it is the agent you talk to.
+A lead that an autopilot's coordinator launched opens a `question` decision instead, and the coordinator asks you.
 A worker puts its open questions in its result file.
 [decisions.md](../../skills/tstack/references/decisions.md) says what goes to you.
 
@@ -44,7 +44,7 @@ You rarely call these yourself.
 | Spec | The phases in order, who owns which paths, and how each phase is verified | `docs/<branch>/spec.md` |
 | Implement | Starting the build, on the approved spec | Orchestrate only |
 
-Main brings each gate to you with the lead's summary.
+The lead brings each gate to you in its thread, with its summary.
 Approve it, or say what to change.
 A change makes a new gate, and the gates after it come round again.
 
@@ -64,4 +64,4 @@ Each later phase goes to workers, one writer per checkout, and the lead reviews 
 ## What you get
 
 A multi-phase plan ends with both documents, the phase order and owners, and the open questions.
-An orchestrated build ends like any other task: main asks whether to merge, and the report lists each gate and your answer, each phase's evidence, and the final review.
+An orchestrated build ends like any other task: the lead asks whether to merge, and the report lists each gate and your answer, each phase's evidence, and the final review.

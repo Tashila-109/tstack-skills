@@ -19,7 +19,7 @@ To see the design before any code is written, say so when you start the task:
 $tstack design the import pipeline before writing code, and show me the design first. I care most about how callers use it.
 ```
 
-The lead then sends main a decision with the design, and waits for your answer.
+The lead then opens a decision with the design, asks you in its own thread, and waits for your answer.
 
 The design is not sacred once code starts.
 If the same workaround shows up in unrelated places, or types only compile with `any` or forced casts, `architect` treats that as proof the design is wrong.

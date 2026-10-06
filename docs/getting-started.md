@@ -51,16 +51,14 @@ That is the bug tstack will fix.
 ### Set up the project
 
 1. Open the project in T3: run `t3 app ~/tstack-scratch`, or add the folder in the T3 sidebar.
-2. In the new thread, choose Claude as the provider, and set the permission mode to **Full access**.
-   Main needs full access to start leads in their own worktrees.
-3. Pin the thread, so T3 never settles it while tasks run.
-4. Send:
+2. In the new thread, choose Claude as the provider.
+3. Send:
 
    ```text
    $tstack-setup
    ```
 
-5. Answer setup's questions.
+4. Answer setup's questions.
    It asks for a budget, then shows every role with its harness, model and effort.
    Accept the roles, or change any you lack access to.
 
@@ -69,23 +67,26 @@ It never changes a tracked file.
 
 ### Run the task
 
-Send:
+1. Open a new thread for the task.
+   In the composer, switch from **Current checkout** to **New worktree**, and pick `main` as the base branch.
+   T3 names the branch and makes the worktree.
+2. Choose the model you want the lead to run on, and set the permission mode to **Full access**.
+   The lead runs many small shell commands, and Full access spares you approving each one.
+3. Send:
 
-```text
-$tstack `node greet.mjs Ada` prints "Hello, undefined". Repro first, then fix it. Done means `node greet.mjs Ada` prints "Hello, Ada" and a test covers it.
-```
+   ```text
+   $tstack `node greet.mjs Ada` prints "Hello, undefined". Repro first, then fix it. Done means `node greet.mjs Ada` prints "Hello, Ada" and a test covers it.
+   ```
 
-Main picks the Bug fix playbook, writes the brief, and starts a lead.
-A new thread named `<task id> lead` appears in the sidebar.
-It runs in its own worktree on branch `task/<task id>`.
+This thread is the task's lead.
+It does the intake itself, then tells you in one line which playbook it chose, the finish it will prove, and how it will deliver.
+Here that is the Bug fix playbook, `local-only` delivery, and your finish.
 
-Watch the lead thread if you like.
-It copies the playbook's steps into its todo list, reproduces the bug, and traces the cause.
+The lead copies the playbook's steps into its todo list, reproduces the bug, and traces the cause.
 It then delegates the fix to a worker.
 The worker shows up as a child of the lead, on the model your `bug-fix` role names.
 
-When the lead finishes, it messages main.
-Main tells you what was broken, how it was fixed and proved, and asks whether to merge.
+When the lead finishes, it tells you in its own thread what was broken, how it was fixed and proved, and asks whether to merge.
 
 ### Merge
 
@@ -95,7 +96,7 @@ Reply:
 merge it
 ```
 
-Main fast-forwards `main` to the task branch.
+The lead fast-forwards `main` to the task's head commit.
 Check:
 
 ```sh
@@ -104,6 +105,8 @@ git log --oneline
 ```
 
 It prints `Hello, Ada`, and the log shows the lead's commits on top of yours.
+The thread stays in the sidebar for you to archive.
+The worktree stays too, unless you turned on T3's removal of merged worktrees.
 
 ## Part 2: on Herdr
 
@@ -114,11 +117,11 @@ cd ~/tstack-scratch
 git reset --hard "$(git rev-list --max-parents=0 HEAD)"
 ```
 
-### Start main
+### Start the task
 
 1. Open a Herdr pane at `~/tstack-scratch`.
 2. Start Claude Code in it: `claude --permission-mode auto`.
-   Main runs many small shell commands, and auto mode spares you approving each one.
+   The lead runs many small shell commands, and auto mode spares you approving each one.
    Plain `claude` works too, if you approve them as they come.
 3. If you skipped Part 1, run `/tstack-setup` and answer its questions.
 
@@ -130,16 +133,18 @@ Type:
 /tstack `node greet.mjs Ada` prints "Hello, undefined". Repro first, then fix it. Done means `node greet.mjs Ada` prints "Hello, Ada" and a test covers it.
 ```
 
-Main names its pane `main-tstack-scratch`, cuts a worktree under `~/.tstack/worktrees/tstack-scratch/`, and opens a new Herdr tab for the lead.
+The pane is at the project root, which is the primary checkout, so the lead moves the task before it works.
+It cuts a worktree under `~/.tstack/worktrees/tstack-scratch/` on branch `task/<task id>`, opens a new tab labelled with the task ID, and starts a new lead there.
+It tells you which tab to continue in, and stops.
+Switch to that tab.
 The lead's workers open as panes beside it.
 If a new agent stops on a trust dialog, answer it yourself in that pane.
 tstack never answers one.
 
-The lead reports back after a few minutes.
-The tutorial's task took about 6 when this guide was last checked.
-Main then asks whether to merge.
+The new lead tells you which playbook, finish and delivery it chose, then runs the task.
+When it finishes, it tells you the outcome and asks whether to merge.
 Reply `merge it`, then check `node greet.mjs Ada` again.
-Main closes the lead's tab and removes its worktree after the merge.
+The lead removes its own worktree and branch after the merge, and tells you the tab can be closed.
 
 ## See what the lead left behind
 
@@ -170,7 +175,7 @@ The skills land in the project's `.agents/skills`, `.claude/skills` and `.pi/ski
 `tstack-setup` excludes those paths through `.git/info/exclude`, so Git ignores them without a tracked change.
 
 A new worktree does not contain ignored files, so leads need the skills linked in:
-- on Herdr, main runs `tstack.mjs link-skills <worktree>` for each lead;
+- on Herdr, the lead that moves a task runs `tstack.mjs link-skills <worktree>` for its worktree;
 - on T3, setup asks you to add a project action under Settings, then Project, then Actions, which runs on every new worktree.
 
 ## Keep the cost in check
@@ -187,7 +192,7 @@ To spend fewer:
 
 ## Next
 
-- [The guide](guide/01-route-work.md) starts with how to word a request, and the rest of its pages follow the work from understanding to shipping.
+- [The guide](guide/01-route-work.md) starts with how to start a task and word the request, and the rest of its pages follow the work from understanding to shipping.
 - [T3 Code](runtimes/t3.md) and [Herdr](runtimes/herdr.md) explain what each runtime shows and how to check on a quiet lead.
 - [Concepts](concepts.md) explains why the workflow is built this way, and the [reference](reference.md) lists its files, commands and skills.
 - Not sure which skill or playbook fits? Run `tstack-help`.

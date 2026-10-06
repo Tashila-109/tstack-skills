@@ -1,18 +1,17 @@
 # tstack-skills
 
 tstack runs coding work the way a small, careful team does.
-You talk to one agent, **main**.
-Main writes a brief for each task and hands it to a **lead** in its own Git worktree.
-The lead follows a playbook for that kind of work, such as a bug fix or a feature, and hands scoped jobs to **workers** on the models you chose.
+You open one thread or pane per task and talk to that task's **lead**.
+The lead works in its own Git worktree, follows a playbook for that kind of work, such as a bug fix or a feature, and hands scoped jobs to **workers** on the models you chose.
 Every skill-bearing step leaves a file the next step reads, so the rigor is checked, not assumed.
 Only you authorize a merge.
 
 tstack-skills is the whole workflow as plain agent skills.
 It runs on two runtimes:
-- **[T3 Code](https://t3.codes)**, where main is a thread, each lead is a thread in its own worktree, and workers are T3 child tasks;
-- **[Herdr](https://herdr.dev)**, where main is an agent in a pane, each lead gets its own tab, and workers get panes beside it.
+- **[T3 Code](https://t3.codes)**, where each task is a thread in its own worktree, and workers are T3 child tasks;
+- **[Herdr](https://herdr.dev)**, where each task is a tab, and workers get panes beside the lead.
 
-Main, leads and workers run on Claude Code, Codex or Pi, and workers can also run on Grok Build.
+Leads and workers run on Claude Code, Codex or Pi, and workers can also run on Grok Build.
 
 ## Requirements
 
@@ -43,13 +42,14 @@ To install into one project only, run the command from that project without `-g`
 
 In your project, start your agent and run the setup skill once:
 
-| Harness | Setup | Start main |
+| Harness | Setup | Start a task |
 | --- | --- | --- |
 | Claude Code | `/tstack-setup` | `/tstack` |
 | Codex, or any thread in T3 | `$tstack-setup` | `$tstack` |
 | Pi | `/skill:tstack-setup` | `/skill:tstack` |
 
-Then tell main what you want and how you will know it is done:
+Then open a thread or pane for the task, and tell its lead what you want and how you will know it is done.
+On T3, open the thread in **New worktree** mode, then send:
 
 ```text
 $tstack users see "Hello, undefined" when they pass a name. Repro first, then fix it. Done means `node greet.mjs Ada` prints "Hello, Ada".
@@ -60,9 +60,9 @@ $tstack users see "Hello, undefined" when they pass a name. Repro first, then fi
 Not sure which skill or playbook fits? Run `tstack-help`.
 
 - [Getting started](docs/getting-started.md): install, set up a scratch project, and run one task end to end on T3 and on Herdr.
-- [The guide](docs/guide/01-route-work.md): how to prompt main, then understanding, design, building, verifying, running while away, and planning across phases.
+- [The guide](docs/guide/01-route-work.md): how to start a task, then understanding, design, building, verifying, running while away, and planning across phases.
 - [Concepts](docs/concepts.md) and [Reference](docs/reference.md): why the workflow works this way, and its files, commands, models file and skill list.
-- [T3 Code](docs/runtimes/t3.md) and [Herdr](docs/runtimes/herdr.md): what each runtime shows you and how to check on a lead.
+- [T3 Code](docs/runtimes/t3.md) and [Herdr](docs/runtimes/herdr.md): what each runtime shows you, where a task starts, and how to check on a lead.
 - [Migrating from tstackv2](docs/migrating-from-tstackv2.md): move a project tstackv2 set up onto tstack-skills.
 - [Plan](PLAN.md): the design decisions and the build phases.
 
