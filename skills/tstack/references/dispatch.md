@@ -17,6 +17,7 @@ If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
 | report | lead | Send main a message without interrupting it. |
 | decide | lead | Write a decision file, report it, and end your turn until main answers. |
 | watch-pr | lead | Get woken when the PR's checks finish, someone comments, or it conflicts. |
+| hold | main | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, makes no commits, pushes or new workers, and waits for main's release. |
 
 ### The launch block
 
@@ -88,10 +89,13 @@ Read their Cursor terms this way:
 | "If the Task tool rejects a slug, use the default" | Ignore. A seat that fails follows Seats. |
 | Cursor's `/loop` | The runtime's wakes: a worker's completion, a lead's report, or watch-pr. |
 | `AskQuestion` | main asks the human. A lead uses decide. A worker writes `BLOCKED` in its result. |
-| The agent store, or `agent-transcripts/` | `<home>/tasks/<id>/` for task records, and the harness's own session files for transcripts. |
+| The agent store | `<home>/tasks/<id>/` for task records. |
+| `agent-transcripts/`, or a transcript path under `~/.cursor/` | The runtime reference's History section. |
+| `.cursor/skills/` in a project, `~/.cursor/skills/`, or `~/.cursor/plugins/` | `.agents/skills/` in the project, `~/.agents/skills/`, or the harness's own plugin folder. |
+| The `mcps/` folder Cursor exposes | The MCP tools your harness lists. |
 | `/deslop` from `cursor-team-kit` | `ponytail-review` when the ponytail plugin is installed. Otherwise remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits yourself. |
 | `create-skill` | The [writing-for-agents skill](../../writing-for-agents/SKILL.md). |
-| `control-cli`, `control-ui` | The project's `verify-*` skill, or [create-verification-skill](../../create-verification-skill/SKILL.md) if it has none. |
+| `control-cli`, `control-ui` | The project's `verify-*` skill, or [create-verification-skill](../../create-verification-skill/SKILL.md) if it has none. On T3, the tools in [Proving on the real surface](runtime-t3.md#proving-on-the-real-surface) drive a web UI or a simulator. |
 | A worktree "off main" for a subagent | Workers share the lead's worktree. A candidate that needs its own checkout gets one through the runtime reference. |
 | A subagent opens a PR or merges | Only the lead opens PRs, and only main merges, on the human's word. |
 

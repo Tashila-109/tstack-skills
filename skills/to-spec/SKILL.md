@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: Write a spec from what a grill and an approved design already settled, by synthesis with no interview. Use at the spec-driven playbook's spec stage, or when the human asks for a spec of work already discussed.
+description: Write a spec from what a grill and an approved design already settled, by synthesis with no interview. Use when the human asks for a spec of work already discussed.
 ---
 
 # To spec
@@ -34,7 +34,7 @@ In a tstack task, open a `question` decision under [decisions](../tstack/referen
 ## 3. Write
 
 Write the spec with the [template](#template).
-In the spec-driven playbook it is `spec.md` beside the approved `design.md`; otherwise write it where the human says.
+Write it where the human says.
 
 Name modules, interfaces, contracts, and schemas, never file paths or code snippets, which go stale fast.
 One exception: a prototype snippet that says a decision more precisely than prose can, such as a state machine, a reducer, a schema, or a type shape.

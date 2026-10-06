@@ -2,7 +2,7 @@
 
 **Main runs this program; it is not a lead's playbook.** For "autopilot-stack", "stack them, don't ship", and "build the stack, I'll land it". The sibling of [Autopilot-full](autopilot-full.md): the same leads and the same audits, but nothing merges. The deliverable is one linear stack of verified PRs that the human reviews and lands.
 
-1. **Hold the human's gates.** State-then-wait, so a request to state the plan is not a go. Record the queue and its order in `<home>/autopilot-<name>.md`. On the human's stop, every lead takes an immediate hold.
+1. **Hold the human's gates.** State-then-wait, so a request to state the plan is not a go. Record the queue and its order in `<home>/autopilot-<name>.md`. On the human's stop, hold every running lead, as dispatch's hold verb says.
 2. **Build the chain in order.** Launch one lead per item, in the stack's order, each in its own task with `pr` delivery:
    - the first item's lead branches from the default branch, and its PR targets the default branch;
    - each later item's lead branches from the previous item's task branch at its verified head, and its PR targets that branch.

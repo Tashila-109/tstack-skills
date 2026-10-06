@@ -17,10 +17,10 @@ Ask a question without changing code:
 $tstack how does the cache decide an entry is stale? Don't change any code.
 ```
 
-Plan a feature you want to approve step by step:
+Plan a large change you want to approve before anyone builds:
 
 ```text
-$tstack I want offline sync. Grill me first, then design and spec it. I want to approve the design, the spec and the tickets.
+$tstack plan moving the notes API to tRPC, in phases. I want to approve the design and the spec. Don't build yet.
 ```
 
 Deliver as a pull request instead of a local branch:

@@ -97,7 +97,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | `reflect tooling`, `reflect judgment`, `reflect divergent`, `reflect synthesizer` | the reflect skill |
 | `comment sicko` | the no-comments skill |
 | `review` | the two-axis-review skill: the first seat reviews standards, the second spec |
-| `verify` | the spec-driven playbook's end-to-end lanes |
+| `verify` | the shipping playbook's per-PR verifiers, and the autopilots' live lanes |
 
 ## Verbs
 
@@ -111,6 +111,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | report | lead | Messages main without interrupting it. |
 | decide | lead | Writes a decision file and waits for main's answer. |
 | watch-pr | lead | Gets woken by the PR's checks and reviews. |
+| hold | main | Stops a lead's turn at once on your stop, until you release it. |
 
 ## Playbooks
 
@@ -118,7 +119,7 @@ Main picks one per task from the [router's intake table](../skills/tstack/SKILL.
 
 | Status | Playbooks |
 | --- | --- |
-| Adapted, so `check` enforces each step's artifact | investigation, gardener, spec-driven, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
+| Adapted, so `check` enforces each step's artifact | investigation, gardener, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
 | As written with `Artifact:` lines, so `check` enforces the files they name | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run |
 | As written, so `check` enforces only `report.md` | session-pickup, pause-safely, worktree-cleanup |
 | Run by main across several tasks | autopilot-full, autopilot-stack |

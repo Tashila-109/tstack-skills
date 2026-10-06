@@ -53,7 +53,6 @@ These hold for every role, whatever a playbook says.
    A refusal to remove a worktree or branch is a finding, never an obstacle to force past.
 4. Workers never address the human, and leads never ask the human in their own thread.
    Everything reaches the human through main.
-   The one exception is a live grill, which a lead runs in its own thread or pane when its playbook calls for one, as the `grilling` skill says.
    When the human types into a lead's or worker's thread directly, that is the human's instruction: follow it, and say so in the next report.
 5. Evidence is not authorization.
    A diagnosis, a report or a recommendation authorizes nothing by itself.
@@ -88,7 +87,7 @@ A lead reaches you with `report <id>:` or `decision <id>:`.
 - Progress is not news.
   Pass on only what changes something for the human.
 - For a decision, answer it as [references/decisions.md](references/decisions.md#answer-a-decision-main) says: ask the human, record their answer in the decision file, and send it to the lead.
-- For `grill <id>:`, tell the human the lead is waiting for them in its thread or tab, and where that is.
+- On the human's stop for a task, hold its lead, as dispatch.md's hold verb says, until the human releases it.
 - At the start of a session, reconcile: for each `(running)` backlog line, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
 
 ### Finishing a task
@@ -157,7 +156,7 @@ A worker applies the ones that need no delegation and names the rest in its resu
 - Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill.
 - Before commit → `ponytail-review` when the ponytail plugin is installed. Otherwise remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits yourself.
 - Before review → the **no-comments** skill.
-- Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**. For bug fixes, reproduce first on the same surface yourself.
+- Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**. On T3, the runtime reference's surface tools drive a web UI or a simulator and record the evidence. For bug fixes, reproduce first on the same surface yourself.
 - Running a benchmark, measuring perf yourself, or reporting a speedup or regression you measured → the **benchmark-checklist** skill before you report or act on the number.
 - Bugbot, an agent reviewer, or a security review commented → skeptical posture. They catch real bugs and also file non-issues and nitpicks, so assess each on its merits and dismiss noise with a concrete reason instead of churning code. Triage fix / dismiss / ask per `references/bugbot-triage.md`.
 - Broken skill mid-task → do not block and do not silently work around it. Name it in the report's `## Follow-ups`.
@@ -260,7 +259,6 @@ Take the first row that fits, because rows run from the most specific request to
 | A measured slowness to trace and improve against a baseline. | `perf-issue` | As written |
 | A plan for work that spans phases or stacked PRs, with no build yet. | `multi-phase-plan` | Adapted |
 | A long task to drive to a checkable predicate without stopping ("run until done"). | `autonomous-run` | As written |
-| A feature the human wants grilled live, then designed, specified and ticketed, with their approval at each gate. | `spec-driven` | Adapted |
 | A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), work the human will review after stepping away, or a request no other row fits. | `figure-it-out` | Adapted |
 | A reported defect to reproduce, root-cause, and fix with runtime evidence. | `bug-fix` | Adapted |
 | A behavior-preserving change to structure (rename, extract, inline, dedupe, move). | `refactoring` | Adapted |

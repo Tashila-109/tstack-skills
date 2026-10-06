@@ -4,6 +4,7 @@ Use this when the `t3-code` MCP tools are available, for example `orchestrator_c
 [dispatch.md](dispatch.md) owns the verbs, seats and depth.
 This file owns the calls.
 The calls were measured on T3 Code (Nightly), 2026-10-05.
+The surface tools, history, PR linking, hold, worker cancellation and the heartbeat were added on 2026-10-06 from T3's own tool definitions, and have not yet run in a live task.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
 
@@ -49,6 +50,11 @@ Send with `t3_thread_send`: `{ "threadId": "<lead>", "message": "...", "mode": "
 To see where a quiet lead is, read it with `t3_thread_read` or check its run status in `t3_thread_list`.
 Never steer or restart a lead to check on it.
 
+### hold
+
+Call `t3_thread_interrupt` with the lead's `threadId`, then send `hold <id>: <the human's words>` with mode `queue`, which starts the now idle lead at once.
+To release it, send `release <id>:` with mode `queue`.
+
 ### After the merge
 
 Archive the lead's thread with `t3_thread_organize`.
@@ -75,7 +81,7 @@ For a decision, end your turn after sending, and wait for main's answer.
    - `title`: `<id> <name>`
    - `role`: the closest of `implementation`, `research`, `review`, `design`, `test` or `general`
    - `mode`: `async`
-   - `clientRequestId`: `<id>-<name>`, stable across retries of that worker
+   - `clientRequestId`: `<id>-<name>-<round>`, where round 1 is the first brief and each fix round adds one; keep it stable across retries of that round, because T3 answers a repeated key with the earlier task
 4. When every independent worker is launched, end your turn.
 
 ### collect
@@ -83,6 +89,7 @@ For a decision, end your turn after sending, and wait for main's answer.
 Each completion wakes you with a task ID.
 Call `task_status` with that `taskId` to acknowledge it, then read the worker's result file.
 A fix round is a new `delegate_task` with consolidated scope, never a message to the finished worker.
+To stop a running worker, call `task_cancel` with its `taskId`.
 
 ### A candidate that needs its own checkout
 
@@ -95,11 +102,38 @@ Launch each with `t3_thread_launch`:
 Follow it with `t3_thread_wait`, because a launched thread does not wake you.
 Design sketches that only write files need no worktree: give each candidate its own directory under `<home>/tasks/<id>/evidence/`.
 
-### watch-pr
+### Opening and watching a PR
 
-After opening the PR, call `watch_pull_request` with its `url`, handle the existing comments, then end your turn.
+Right after `gh pr create`, call `link_pull_request` with the PR's `url`, so T3 shows the PR beside your thread and settles the thread when it merges.
+
+For watch-pr, call `watch_pull_request` with its `url`, handle the existing comments, then end your turn.
 It wakes you when a check fails, the required checks pass, someone else comments or reviews, or the branch conflicts.
 A wake is news, not a merge decision.
+
+### heartbeat
+
+When a long run has no event to wake you, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names your task and its predicate.
+Each run posts that prompt into your own thread.
+Delete it with `delete_scheduled_task` before you report done.
+
+## Proving on the real surface
+
+When the human has browser access on in T3, every session has T3's browser tools, a delegated worker's included.
+Device access gives the simulator tools the same way.
+Use them to drive a web UI or a simulator when the project's `verify-*` skill names no driver of its own.
+An error saying the capability is unavailable means that access is off, so use the verify skill's driver instead.
+
+- A web UI: call `preview_open`, then `preview_navigate` with `{ "target": { "kind": "environment-port", "port": <dev server port> } }`.
+  Drive it with `preview_click`, `preview_type`, `preview_press` and `preview_wait_for`, and read it with `preview_snapshot`.
+- A simulator: call `device_list`, then `device_open`, which returns the `agent-device` command for that device.
+  Drive it with that command, and call `device_close` when you are done.
+- Evidence: `preview_snapshot` with `save: true` returns a screenshot's path, `preview_recording_stop` returns the path of the recording `preview_recording_start` began, and `agent-device screenshot <path>` saves a simulator's screen.
+  Copy each file into the task's `evidence/` folder, or the path your brief names, and cite that copy.
+
+## History
+
+T3 keeps every thread in the project, a delegated worker's included.
+Where a skill reads chat history or transcripts, find threads by topic with `t3_thread_search`, list them newest first with `t3_thread_list`, and read one with `t3_thread_read`.
 
 ## Worker
 

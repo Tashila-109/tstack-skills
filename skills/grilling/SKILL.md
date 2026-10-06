@@ -58,10 +58,5 @@ Act on the result only after the human confirms you share one understanding.
 
 ## In a tstack task
 
-The lead runs the grill in its own thread or pane, with the human answering there.
-That is the one place a lead talks to the human directly, and the tstack router's rule 4 names it.
-Before the first round, the lead sends main `grill <id>: waiting for you in the lead's thread`, so main can tell the human where to go.
-A worker puts its open questions in its result instead of grilling.
-After each round, the lead appends the settled decisions to `tasks/<id>/evidence/grill.md` under the task home, which session pickup reads to rebuild the grill.
-Answers in the grill settle the design but never authorize work; authorization stays with main, through the gates in [decisions](../tstack/references/decisions.md).
-When the human confirms, the lead tells main the grill is done and moves on.
+Only main talks to the human, so only main runs a grill.
+A lead opens a `question` decision for what it cannot settle, as [decisions](../tstack/references/decisions.md) says, and a worker puts its open questions in its result.

@@ -1,5 +1,5 @@
 These skills adapt skills from mattpocock/skills (https://github.com/mattpocock/skills), revision c55ee46073ed923f86ce59a5eb3b6d895095d1b7:
-grilling, grill-with-docs, domain-modeling, codebase-design, writing-for-agents, teach, handoff, two-axis-review, to-spec, to-tickets, and the spec-driven playbook's implement stage.
+grilling, grill-with-docs, domain-modeling, codebase-design, writing-for-agents, teach, handoff, two-axis-review, to-spec and to-tickets.
 
 MIT License
 

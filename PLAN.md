@@ -80,7 +80,8 @@ Each runtime reference maps a verb to concrete calls, so the skill text stays po
 | collect | lead | `task_status`, plus the worker's result file | `herdr agent wait`, then the worker's result file |
 | report | lead to main | `t3_thread_send` to main's thread with mode `queue`, which waits for a busy main and starts an idle one (measured) | `herdr agent wait main --until idle --until done`, then `herdr agent prompt main "<text>"`, because a prompt to a busy agent takes over its turn (measured) |
 | decide | lead to main to human | The lead writes a decision file, reports, and ends its turn. Main asks the human and sends the answer back. | Same |
-| watch-pr | lead | `watch_pull_request` | `gh pr checks --watch` |
+| watch-pr | lead | `link_pull_request` when the PR opens, then `watch_pull_request` | `gh pr checks --watch` |
+| hold | main | `t3_thread_interrupt`, then a `queue` message; the lead stops workers with `task_cancel` | `herdr agent prompt` without waiting, which takes over the turn; the lead closes worker panes |
 
 The depth stays main → lead → worker.
 A worker that runs a dispatching skill, such as `how` with explorers, uses its harness's native subagents instead of `delegate`.
@@ -169,7 +170,7 @@ A doc is done only after someone follows it on a scratch project and gets the re
 | `docs/guide/05-verify-and-ship.md` | How-to | Verification skills, Opening a PR, answering decisions, and merging on your word. |
 | `docs/guide/06-run-while-away.md` | How-to | Autonomous run, `show-me-your-work`, and reading the evidence folder afterwards. |
 | `docs/guide/07-principles.md` | How-to | Steering by principle name. |
-| `docs/guide/08-plan-with-specs.md` | How-to | Grilling, spec-driven work, and tickets. |
+| `docs/guide/08-plan-across-phases.md` | How-to | Multi-phase plan and orchestrate, and the design, spec and implement gates. |
 | `docs/guide/09-recipes-and-pitfalls.md` | How-to | Prompts to copy and mistakes measured on real runs. |
 | `docs/runtimes/t3.md` | How-to | One provider instance per role, pinning main, permission modes, which threads appear, and where questions and decisions show up. |
 | `docs/runtimes/herdr.md` | How-to | Starting main in a pane, the tabs and panes each lead and worker gets, how leads report, and checking on a quiet lead. |
@@ -270,3 +271,4 @@ These items are deliberately excluded:
 - the upstream `automate-me`, `make-bot-ui` and `setup` skills and its automations, because they are Cursor- or Grok-specific, and `tstack-setup` replaces setup
 - tstackv2's afk, quiet, stow, recovery and harness-adapters, because T3 covers them and Herdr v1 has no watcher
 - a Herdr watcher; add one if leads go quiet without reporting
+- the spec-driven playbook, removed on 2026-10-06 because upstream has none and multi-phase plan and orchestrate already gate a plan on the human's approval; `to-spec` and `to-tickets` stay as standalone skills

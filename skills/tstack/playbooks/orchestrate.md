@@ -20,7 +20,7 @@ Open a todo list for the steps below. Keep skipped steps with a reason.
 3. **Design gate.** Open the `design` gate, a `design-approval` decision on `design.md` at its commit, and wait for main's answer.
    Reversible preparation cannot bypass this gate.
    Artifact: `decisions/design.md`
-4. **Spec.** Delegate a worker to read the approved design and write `spec.md` beside it. Keep ordered phases, owned paths, dependencies, data contracts and verification in this one file. Use the skeleton and the checker from [Multi-phase plan](multi-phase-plan.md), and save the checker's clean output to `evidence/check-plan.md`. No tickets, per-phase document tree or separate orchestration database; the spec-driven playbook owns tickets.
+4. **Spec.** Delegate a worker to read the approved design and write `spec.md` beside it. Keep ordered phases, owned paths, dependencies, data contracts and verification in this one file. Use the skeleton and the checker from [Multi-phase plan](multi-phase-plan.md), and save the checker's clean output to `evidence/check-plan.md`. No tickets, per-phase document tree or separate orchestration database.
    Commit the spec.
    Artifact: `evidence/check-plan.md`
 5. **Spec and implement gates.** Read the spec, open the `spec` gate, a `spec-approval` decision on `spec.md` at its commit, and wait for main's answer.

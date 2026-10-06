@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break an approved spec or plan into tracer-bullet tickets, each naming the tickets that block it, as one file per ticket plus an index. Use at the spec-driven playbook's tickets stage, or when the human asks to split a spec or plan into tickets.
+description: Break an approved spec or plan into tracer-bullet tickets, each naming the tickets that block it, as one file per ticket plus an index. Use when the human asks to split a spec or plan into tickets.
 ---
 
 # To tickets
@@ -51,7 +51,7 @@ The reason names the area it owns or the ticket it collides with.
 ## 4. Write the tickets
 
 Write one file per ticket, numbered in dependency order with blockers first, as `NN-slug.md` from the [ticket template](#ticket-template).
-In the spec-driven playbook they go in `tasks/<id>/tickets/` under the task home; otherwise write them where the human says.
+Write them where the human says.
 Every ticket starts with `Status: ready`.
 
 Describe behavior, not files: no file paths or code snippets, which go stale fast.

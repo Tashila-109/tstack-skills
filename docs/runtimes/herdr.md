@@ -51,6 +51,12 @@ From a shell, `herdr agent get <task id>-lead` shows its state.
 A `blocked` state means an approval or a question is on its screen.
 Answer approvals yourself in that pane.
 
+## Stop running work
+
+Tell main to stop, for example "stop the greet task".
+Main prompts the lead at once, which takes over its turn, and sends it a hold.
+The lead closes its workers' panes and makes no more commits or pushes until you tell main to release it.
+
 ## After the merge
 
 Main closes the lead's tab, removes its worktree, and deletes `task/<task id>`.

@@ -47,6 +47,12 @@ A `blocked` status means an approval or question is on screen.
 Read it and tell the human.
 Never type an answer into it yourself.
 
+### hold
+
+Prompt the lead without waiting first: `herdr agent prompt <id>-lead "hold <id>: <the human's words>"`.
+A prompt to a working agent takes over its turn, which is what a hold needs.
+To release it, wait for it to be idle, then prompt `release <id>:`.
+
 ### After the merge
 
 1. `herdr tab close <tab>`.
@@ -84,6 +90,7 @@ A `blocked` status means the worker hit an approval or a question.
 Read it with `herdr agent read`, and report it to main instead of answering it.
 A timeout is not a failure.
 Read the screen before deciding.
+To stop a running worker, close its pane with `herdr pane close <pane>`.
 
 ### A candidate that needs its own checkout
 
@@ -98,6 +105,14 @@ Run `gh pr checks <url> --watch --fail-fast` as a background command, so your ha
 Set no timeout of your own, because a review bot can take half an hour.
 When it exits, read new review comments with `gh pr view <url> --comments`.
 Never poll with a sleep loop.
+
+## History
+
+Each harness keeps its own session files.
+Where a skill reads chat history or transcripts, read this checkout's:
+- Claude Code: `~/.claude/projects/<checkout path with each / and . turned into ->/`;
+- Pi: `~/.pi/agent/sessions/--<checkout path without its leading /, with each / turned into ->--/`;
+- Codex: the files under `~/.codex/sessions/` whose `cwd` is this checkout.
 
 ## Worker
 
