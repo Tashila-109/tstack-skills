@@ -179,7 +179,7 @@ tstack spends extra tokens on workers and review panels, which is the price of t
 To spend fewer:
 - Rerun `tstack-setup` and pick a smaller budget.
   `unlimited` runs every seat at `max`, `large` at `xhigh`, `medium` at `high`, and `small` at `medium`.
-  With no budget, the template's efforts stay, which sit between `medium` and `large`.
+  With no budget, the template's efforts stay, from `high` to `max`.
 - Set a role to `inherit`, so it runs on the caller's own harness and model.
 - Shorten a panel list in `~/.tstack/models.md`, because each seat runs one agent.
 - Save tstack for work that needs rigor.

@@ -77,7 +77,7 @@ Ask the human for one:
 - `small`: `medium`.
 
 The budget sets every seat's effort.
-With no budget, the template's efforts stay, which sit between `medium` and `large`.
+With no budget, the template's efforts stay, from `high` to `max`.
 When a model does not allow that value, use the highest value it allows at or below it.
 
 ## 5. Confirm the roles
@@ -92,22 +92,22 @@ Never write a seat you could not confirm.
 ```text
 # tstack models. One line per role. A seat is harness/model@effort, a list is a panel, and inherit means the caller's own harness and model.
 # budget: none, the template's efforts
-lead: claude/claude-opus-5-5@high
-feature, refactoring: grok/grok-4.7@xhigh
-bug-fix: grok/grok-4.7@xhigh
-perf-issue, hillclimb: grok/grok-4.7@xhigh
+lead: claude/claude-opus-5-5@xhigh
+feature, refactoring: pi/openai/gpt-6.1-sol@xhigh
+bug-fix: pi/openai/gpt-6.1-sol@xhigh
+perf-issue, hillclimb: pi/openai/gpt-6.1-sol@xhigh
 judgment and prose, hardest tasks: claude/claude-opus-5-5@high
-how explorer: claude/claude-sonnet-5@high
+how explorer: claude/claude-sonnet-5-5@max
 how explainer: claude/claude-opus-5-5@high
-why investigators: grok/grok-4.7@high
+why investigators: grok/grok-4.7@xhigh
 why synthesizer: claude/claude-opus-5-5@high
-reflect tooling: codex/gpt-6.1-sol@high
+reflect tooling: codex/gpt-6.1-sol@xhigh
 reflect judgment, reflect divergent, reflect synthesizer: claude/claude-opus-5-5@high
 architect runners: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
 arena runners: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
 arena cross-judge pool: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
 interrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
-swarm workers: grok/grok-4.7@high
+swarm workers: grok/grok-4.7@xhigh
 comment sicko: inherit
 review: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
 verify: claude/claude-opus-5-5@high

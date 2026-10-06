@@ -86,11 +86,11 @@ The models file maps each role to seats, one line per role.
 A seat is `harness/model@effort`, and the model ID is the harness's own ID, so no separate model catalog is needed.
 
 ```text
-# budget: large (xhigh)
-lead: claude/claude-opus-5-5@high
-feature, refactoring: grok/grok-4.7@xhigh
-bug-fix: grok/grok-4.7@xhigh
-how explorer: claude/claude-sonnet-5@high
+# budget: none, the template's efforts
+lead: claude/claude-opus-5-5@xhigh
+feature, refactoring: pi/openai/gpt-6.1-sol@xhigh
+bug-fix: pi/openai/gpt-6.1-sol@xhigh
+how explorer: claude/claude-sonnet-5-5@max
 architect runners: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
 interrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, pi/xai/grok-4.7@high
 review: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
