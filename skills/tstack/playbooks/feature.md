@@ -28,7 +28,7 @@
    Write the interrogate verdict to `evidence/interrogate.md`, or one line saying why the design is not contested.
    Artifact: `evidence/interrogate.md`
 8. Run **Opening a PR**.
-   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
 
 Code-coupled work (one feature, one migration) goes to a single owner with the checkpoint inline. That owner fans out internally after the blocking phase. Parent-level fan-out is for slices that produce independent artifacts (audits, cross-subsystem investigations, competing experiments). Rewrite the checkpoint at phase boundaries. Spawn a fresh owner rather than chaining interrupts.
 

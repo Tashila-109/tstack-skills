@@ -59,7 +59,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 | `home` | Prints `<primary checkout>/.tstack`, from any checkout of the project. |
 | `brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship\|scout] [--delivery local-only\|pr]` | Creates the task directory with `task.json` and `brief.md`. Refuses an existing task ID. |
 | `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer. Without `--through`, it also requires `report.md`, and with `pr` delivery `evidence/babysit.md`. |
-| `seat <role> --runtime t3\|herdr` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. |
+| `seat <role> --runtime t3\|herdr [--cross <model>]` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. With `--cross`, prints only the first seat whose model family differs from `<model>`'s, such as `gpt` for `claude-opus-5-5`. |
 | `check-seats <file>` | Checks every seat in the models files against a saved T3 `orchestrator_capabilities` result: the instance can run child tasks, the model is advertised, and the effort value is offered. Names the advertised ID when only a provider prefix differs. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag each per-project skill path, to `.git/info/exclude`. |
 | `link-skills <worktree>` | Links a per-project install into a linked worktree. |
@@ -99,7 +99,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | `swarm workers` | the swarm skill |
 | `reflect tooling`, `reflect judgment`, `reflect divergent`, `reflect synthesizer` | the reflect skill |
 | `comment sicko` | the no-comments skill |
-| `review` | the two-axis-review skill: the first seat reviews standards, the second spec |
+| `review` | the two-axis-review skill, where the first seat reviews standards and the second spec, and Opening a PR's cross-model review, which takes the first seat outside the lead's model family |
 | `verify` | the shipping playbook's per-PR verifiers, and the autopilots' live lanes |
 
 ## Verbs

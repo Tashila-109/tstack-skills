@@ -22,6 +22,6 @@ Be scientific. Every shipped line traces to runtime evidence. Belt-and-suspender
    Copy the red-then-green output from the worker's result into `evidence/red-green.md`, or write why no cheap test path existed and which check stood in for it.
    Artifact: `evidence/red-green.md`
 6. Run **Opening a PR**.
-   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
 
 **Reply:** what was broken, root cause, fix, how you verified. Paste failing-then-passing repro output verbatim.

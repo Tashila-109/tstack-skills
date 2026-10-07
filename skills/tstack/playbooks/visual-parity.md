@@ -11,6 +11,6 @@
    Write each component's diff result to `evidence/diffs.md`.
    Artifact: `evidence/diffs.md`
 5. Run **Opening a PR** per component or per safe batch.
-   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`
+   Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
 
 **Reply:** components migrated, the diff result for each, the baseline harness location, what's left.

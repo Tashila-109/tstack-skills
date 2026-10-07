@@ -4,7 +4,7 @@
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>]
-//   node tstack.mjs seat <role> --runtime t3|herdr
+//   node tstack.mjs seat <role> --runtime t3|herdr [--cross <model>]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
 //   node tstack.mjs exclude [--project-skills]
 //   node tstack.mjs link-skills <worktree>
@@ -245,13 +245,22 @@ export function parseSeat(text) {
 	return { harness: m[1].toLowerCase(), model: effort ? m[2].slice(0, at) : m[2], effort };
 }
 
-export function seat(models, role, runtime) {
+function family(model) {
+	return model.split("/").pop().split("-")[0].toLowerCase();
+}
+
+export function seat(models, role, runtime, cross) {
 	const key = role.trim().toLowerCase();
 	const value =
 		models.get(key) ?? models.get(key.split(",")[0].trim()) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
 	if (!value) throw new Refusal(`no line for role "${role}" in the models file; run tstack-setup to write it`);
-	return value.split(",").map((s) => {
-		const parsed = parseSeat(s.trim());
+	let seats = value.split(",").map((s) => parseSeat(s.trim()));
+	if (cross !== undefined) {
+		const other = seats.find((s) => !s.inherit && family(s.model) !== family(cross));
+		if (!other) throw new Refusal(`no "${role}" seat outside the ${family(cross)} family; add one to that line`);
+		seats = [other];
+	}
+	return seats.map((parsed) => {
 		if (parsed.inherit) return parsed;
 		if (runtime === "t3") {
 			const instances = new Map(
@@ -352,7 +361,7 @@ export function main(argv) {
 		}
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");
-			return seat(loadModels(taskHome()), f._.join(" "), f.runtime)
+			return seat(loadModels(taskHome()), f._.join(" "), f.runtime, f.cross)
 				.map((s) => JSON.stringify(s))
 				.join("\n");
 		case "check-seats": {

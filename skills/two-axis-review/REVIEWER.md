@@ -1,6 +1,6 @@
 # Two-axis reviewer
 
-You review one axis of a frozen scope, named in your brief.
+You review a frozen scope on the axis your brief names, or on both axes when it names both.
 Your brief gives the scope, the head, and the sources for your axis.
 
 You are read-only.
@@ -8,7 +8,7 @@ Write nothing in the checkout except your result file: no edits, no formatter, n
 Reading files and running `git diff`, `git log`, and `git show` are fine.
 Run a check only when it writes nothing in the checkout.
 
-Stay on your axis.
+With one axis, stay on it.
 If you see a likely defect that belongs to the other axis, name it in one line under `Outside this axis`, without a severity, and leave it to the lead.
 
 ## Findings
@@ -86,7 +86,8 @@ Where the grill settled something, the grill wins over any later document.
 
 ## Report
 
-Stay under 500 words, cutting Could findings first.
+Stay under 500 words per axis, cutting Could findings first.
+With both axes, give one report with a section per axis, each in the shape below, and leave out `Outside this axis`.
 
 ```text
 ## <Standards|Spec> review of <scope> at <head>
@@ -111,4 +112,4 @@ Must: <n> · Should: <n> · Could: <n>
 ```
 
 With no findings, say so and give the verdict.
-Your final verdict line names the axis, the verdict, and the counts, such as `DONE standards FAIL: 1 Must, 2 Should, 0 Could`.
+Your final verdict line names each axis, its verdict, and its counts, such as `DONE standards FAIL: 1 Must, 2 Should, 0 Could`.

@@ -82,6 +82,16 @@ herdr args pi: --no-session`);
 	assert.throws(() => seat(parseModels("lead: grok/grok-4.7@high"), "lead", "t3"), /no T3 instance for harness grok/);
 });
 
+test("seat --cross picks the first seat outside the caller's model family", () => {
+	const models = parseModels("review: inherit, claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high\nsolo: claude/claude-sonnet-5-5");
+	const kinds = (cross) => seat(models, "review", "herdr", cross).map((s) => s.kind);
+	assert.deepEqual(kinds("claude-opus-5-5"), ["codex"]);
+	assert.deepEqual(kinds("cursor/claude-opus-5-5@300k"), ["codex"]);
+	assert.deepEqual(kinds("openai/gpt-6.1-sol"), ["claude"]);
+	assert.deepEqual(kinds("grok-4.7"), ["claude"]);
+	assert.throws(() => seat(models, "solo", "herdr", "claude-opus-5-5"), /no "solo" seat outside the claude family/);
+});
+
 test("a project's models file cannot set launch flags, and seats cannot smuggle flags", () => {
 	const { home } = scratch();
 	const globalDir = join(home, "..", "global");

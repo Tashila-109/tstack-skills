@@ -6,9 +6,23 @@ Invoked at the end of every other playbook.
 Every delivery mode runs the cleanup in **PRs** below: the router's before-commit cleanup, `/no-comments`, `/technical-writing` and `/unslop` on the commit bodies.
 `/no-comments` runs Comment Sicko as a worker, with its result at `results/comment-sicko.md`.
 Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
-The calling step names that artifact.
-- `local-only` delivery stops after **Commits** and the cleanup: no push and no PR. The clean branch is the deliverable, and the lead merges it at the router's Finish, on the human's word.
+Then run the **Cross-model review** below.
+The calling step names both artifacts.
+- `local-only` delivery stops after **Commits**, the cleanup and the review: no push and no PR. The clean branch is the deliverable, and the lead merges it at the router's Finish, on the human's word.
 - `pr` delivery pushes the task branch, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Go on to the router's Finish, with the PR's full URL and its head SHA, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done.
+
+**Cross-model review.** One reviewer from another model family reads the final diff before the branch leaves the worktree.
+Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed head, as a calling playbook's final `two-axis-review` does.
+- Rebase per **Commits**, commit everything, and record the base and head SHAs.
+  Nothing writes in the checkout until the reviewer is collected.
+- Run `tstack.mjs seat review --runtime <runtime> --cross <your model ID>`.
+  It prints the first `review` seat outside your model's family, so a Claude lead gets a GPT reviewer and a GPT lead gets a Claude reviewer.
+- Write the brief to `evidence/reviews/final-brief.md`: the checkout, the base and head SHAs with the `git diff <base>...<head>` command, the task's goal and finish as the spec, `AGENTS.md` and what it points at as the standards, and the line `Read <two-axis-review directory>/REVIEWER.md and review both axes.`, with the directory as an absolute path.
+- Delegate one read-only worker on that seat, named `review-final`, with its result at `results/review-final.md`, as [dispatch](../references/dispatch.md) says.
+- Decide each finding as [two-axis-review's step 7](../../two-axis-review/SKILL.md#7-act-on-the-findings) says, with this one reviewer in place of the two axes.
+  A repair makes a new head, and the new head gets a fresh review.
+- Write `evidence/reviews/final.md`: the reviewed head, the reviewer's seat and result path, its report, and your decision on each finding.
+  The review is done when the recorded head is `HEAD` and no accepted Must is open.
 
 **Worktree.** Work from the task's worktree off main. Workers share it. Two writers on the same branch each get their own checkout through the runtime reference. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
 
@@ -41,4 +55,4 @@ After these sections, attach videos or screenshots when they prove a claim. Do n
 
 **Babysit.** In tstack a task delivers one PR, and the `pr` delivery line above says when its lead babysits it. Push back when feedback drifts from intent.
 
-Only the lead opens a PR. It runs `interrogate` when the design is contested, the before-commit cleanup, and `/no-comments` first, then babysits it as the `pr` delivery line says.
+Only the lead opens a PR. It runs `interrogate` when the design is contested, the before-commit cleanup, `/no-comments` and the cross-model review first, then babysits it as the `pr` delivery line says.

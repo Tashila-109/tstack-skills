@@ -72,3 +72,7 @@ Every adapted playbook ends with Opening a PR, which runs the cleanup whatever t
 - `technical-writing` and `unslop` shape the commit messages and the PR description.
 
 The lead records each changed file's verdict in `closing-pass.md`.
+
+Then one reviewer from another model family reads the final diff before anything is pushed or merged.
+A Claude lead gets the GPT seat from your `review` line, and a GPT lead gets the Claude seat.
+The lead decides each finding, repairs what blocks, and has the new head reviewed again.
