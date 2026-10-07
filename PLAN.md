@@ -231,8 +231,8 @@ The steps were:
 
 Done on 2026-10-05.
 Multi-phase plan and orchestrate came from tstackv2's adaptations, with `check-plan.mjs` and gates under `decisions/`.
-Babysit, shipping and the two autopilots came from upstream, with `gh` for every PR operation and merges only through main.
-Autopilot-full merges under one recorded grant from the human, and both autopilots are main's programs, not a lead's playbook.
+Babysit, shipping and the two autopilots came from upstream, with `gh` for every PR operation and merges only on the human's word.
+Autopilot-full merges under one recorded grant from the human, and since Phase 5 both autopilots are a coordinator's programs, not a lead's playbook.
 The as-written playbooks gained `Artifact:` lines where a step leaves evidence.
 Babysit has run live on both runtimes, on [T3](docs/verification/2026-10-05-tstack-router-live-t3.md) and on [Herdr](docs/verification/2026-10-05-tstack-router-live-herdr.md).
 Shipping and the two autopilots have not yet run in a live task.
