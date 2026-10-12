@@ -26,6 +26,10 @@ Match the check to the change:
 - a storage change reads back the written value.
 
 Ask for the proof as an artifact you can inspect yourself: the failing test and then the passing one, a before and after recording, the trace, the screenshot.
+For a feature, a bug fix or a large effort, the lead writes it as one table in `evidence/verify.md`: each claim, the action a user takes, the file that proves it, and a verdict of passed, failed or blocked.
+It copies the few artifacts it cites into `evidence/proof/` and shows you the table at the end, as a page on T3.
+`tstack.mjs check` refuses a proof that cites no evidence file, so a confident sentence alone cannot pass.
+The rules live in [references/proof.md](../../skills/tstack/references/proof.md).
 If the fix already merged, ask for the same check again on the default branch.
 An artifact beats a plausible explanation, because you can challenge it without replaying the run.
 
@@ -64,6 +68,7 @@ $tstack create a verification skill for this project.
 
 `create-verification-skill` works out how the app launches, what can drive it, and what evidence proves each feature works.
 It writes a project skill named `verify-<app>`, with a feature map, and proves it once end to end before handing it over.
+It also breaks each of its own checks once to show the check can fail, and each feature page records when it last passed and at which commit.
 From then on, "verify it in the app" is a step any lead can run.
 
 Name it in a request when you want the proof in a specific form:

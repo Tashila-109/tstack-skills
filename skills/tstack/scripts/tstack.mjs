@@ -12,7 +12,7 @@
 // Exit 0 on success, 1 on a refusal (the reason is on stderr), 2 on a usage error, 3 on anything unexpected.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +20,9 @@ import { fileURLToPath } from "node:url";
 const SKILL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
 const GRANTED = /^##\s+Answer\s*\n+\s*granted\b/im;
+const PROOF = "evidence/verify.md";
+const CITED = /`(evidence\/[^`\s]+)`/g;
+const SKIPPED = /^\s*skip:\s*\S/im;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
@@ -120,6 +123,10 @@ export function parseSteps(markdown) {
 	return steps;
 }
 
+function hasVerifySkill(primary) {
+	return SKILL_DIRS.some((dir) => existsSync(join(primary, dir)) && readdirSync(join(primary, dir)).some((name) => name.startsWith("verify-")));
+}
+
 function insideTask(taskDir, path) {
 	const full = resolve(taskDir, path);
 	const rel = relative(taskDir, full);
@@ -168,6 +175,13 @@ export function brief(home, id, opts) {
 			? steps.map((s) => `${s.n}. ${s.text}${s.artifacts.length ? ` Artifact: ${s.artifacts.map((a) => `\`${a}\``).join(", ")}` : ""}`)
 			: ["This playbook has no numbered steps. Follow its prose."]),
 		"",
+		...(steps.some((s) => s.artifacts.includes(PROOF)) && !hasVerifySkill(dirname(home))
+			? [
+					"This project has no `verify-*` skill.",
+					"If the change has a UI, CLI or service surface, run create-verification-skill before you verify, or say in `evidence/verify.md` why not.",
+					"",
+				]
+			: []),
 		"The final report goes in `report.md` in the task directory.",
 		`\`node ${fileURLToPath(import.meta.url)} check ${id}\` must pass before you report done.`,
 		...(learnings ? ["", "## Learnings from earlier tasks", "", learnings] : []),
@@ -198,19 +212,29 @@ export function check(home, id, through) {
 		if (task.delivery === "pr") wanted.push({ step: "pr delivery", path: "evidence/babysit.md" });
 		wanted.push({ step: "final report", path: "report.md" });
 	}
-	const missing = wanted.filter(({ path }) => {
+	const problems = [];
+	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
-		if (!existsSync(full) || !statSync(full).isFile()) return true;
-		const text = readFileSync(full, "utf8");
-		return path.startsWith("decisions/") ? !GRANTED.test(text) : !text.trim();
-	});
-	if (missing.length)
-		throw new Refusal(
-			missing
-				.map((m) => `missing ${m.step}: ${m.path}${m.path.startsWith("decisions/") ? " with a granted answer" : ""}`)
-				.join("\n"),
-		);
+		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
+		if (path.startsWith("decisions/") ? !GRANTED.test(text) : !text.trim())
+			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
+		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
+	}
+	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
+}
+
+function proofGaps(taskDir, text) {
+	if (SKIPPED.test(text)) return [];
+	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
+	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
+	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
+}
+
+function hasContent(path) {
+	if (!existsSync(path)) return false;
+	const stat = statSync(path);
+	return stat.isDirectory() ? readdirSync(path).length > 0 : stat.size > 0;
 }
 
 export function parseModels(text) {

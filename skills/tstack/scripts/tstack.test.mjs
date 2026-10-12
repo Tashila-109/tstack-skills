@@ -222,3 +222,44 @@ test("every shipped playbook numbers its steps from 1 without gaps", () => {
 		assert.deepEqual(steps.map((s) => s.n), steps.map((_, i) => i + 1), name);
 	}
 });
+
+const PROVING = `### Proving
+
+1. Prove it.
+   Artifact: \`evidence/verify.md\`
+`;
+
+test("check refuses a proof that cites no evidence, or evidence that is missing or empty", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "proving.md"), PROVING);
+	brief(home, "proof", { playbook: "proving", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "proof");
+	writeFileSync(join(task, "evidence/verify.md"), "It works, I checked.\n");
+	assert.throws(() => check(home, "proof", 1), /evidence\/verify\.md cites no file under evidence\//);
+	writeFileSync(join(task, "evidence/verify.md"), "Only `evidence/verify.md` itself.\n");
+	assert.throws(() => check(home, "proof", 1), /cites no file/, "a proof cannot cite itself");
+	writeFileSync(join(task, "evidence/verify.md"), "| list hides it | archive | `evidence/proof/list.png` | passed |\n");
+	assert.throws(() => check(home, "proof", 1), /cites evidence\/proof\/list\.png, which is missing or empty/);
+	mkdirSync(join(task, "evidence/proof"));
+	writeFileSync(join(task, "evidence/proof/list.png"), "");
+	assert.throws(() => check(home, "proof", 1), /missing or empty/);
+	writeFileSync(join(task, "evidence/proof/list.png"), "png");
+	assert.equal(check(home, "proof", 1), "ok proof: 1 required file present");
+	writeFileSync(join(task, "evidence/verify.md"), "Raw runs: `evidence/proof/`\n");
+	assert.equal(check(home, "proof", 1), "ok proof: 1 required file present", "a non-empty folder counts");
+	writeFileSync(join(task, "evidence/verify.md"), "skip: docs-only change, no surface to drive\n");
+	assert.equal(check(home, "proof", 1), "ok proof: 1 required file present");
+});
+
+test("brief points at create-verification-skill only when a proving playbook meets a project without one", () => {
+	const { dir, home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "proving.md"), PROVING);
+	const read = (id) => readFileSync(join(home, "tasks", id, "brief.md"), "utf8");
+	brief(home, "bare", { playbook: "proving", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.match(read("bare"), /no `verify-\*` skill/);
+	brief(home, "other", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.doesNotMatch(read("other"), /verify-\*/);
+	mkdirSync(join(dir, ".agents/skills/verify-app"), { recursive: true });
+	brief(home, "equipped", { playbook: "proving", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.doesNotMatch(read("equipped"), /verify-\*/);
+});

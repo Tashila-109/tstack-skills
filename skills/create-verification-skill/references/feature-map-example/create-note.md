@@ -2,6 +2,8 @@
 
 Create note lets a user save a titled note from the browser or CLI, cancel an unfinished draft, and confirm the saved note from a second user-facing view.
 
+Status: passed, 2026-10-12, 4f2c9a1. Not covered: none.
+
 ## Sub-features
 
 - `create-open` opens a blank editor from each browser entry point.

@@ -2,7 +2,7 @@
 
 **You own the measurement story. Plan, review, verify the numbers.** Tie every fix to a measurement, don't read source instead of measuring.
 
-1. Capture a baseline trace via the matching control skill. Vet the baseline, and each later number, with the **benchmark-checklist** skill.
+1. Capture a baseline trace with the project's `verify-*` skill. Vet the baseline, and each later number, with the **benchmark-checklist** skill.
    Write the baseline, how it was captured, and the checklist's answers to `evidence/baseline.md`.
    Artifact: `evidence/baseline.md`
 2. `how` to ground hypotheses. Don't claim a perf ceiling without running it first.
