@@ -80,7 +80,7 @@ Freeze again and rerun both axes.
 
 Write `tasks/<id>/evidence/reviews/<label>.md` with:
 
-- a first line naming the reviewed head;
+- a first line naming the reviewed head and the round, such as `Head 1a2b3c4, round 2`;
 - the scope, base, and each reviewer's name, seat and result path;
 - `## Standards` and `## Spec`, each report verbatim or lightly cleaned;
 - one closing line with each axis's verdict, its finding counts by severity, and the worst finding within that axis.
@@ -103,11 +103,16 @@ A refusal or behavior left with no test gets a new test in the same repair.
 A worker repair's brief asks for the suite result and that list in the worker's result.
 The lead copies the list into the aggregate and into the next round's spec brief, so the spec reviewer checks each entry.
 A Should or Could never opens a repair or a review round on its own.
+Wording in an architecture or design document is a Should unless it contradicts what the code does.
 Record each one in the aggregate with the reason it stays, or fix it only when the fix is trivial and the lead is writing a Must's repair itself.
 The same rule holds for blocking and non-blocking findings from an external or agent review of a PR head.
 When a finding recurs, encode the fix as a check instead of more text, as [principle-encode-lessons-in-structure](../principle-encode-lessons-in-structure/SKILL.md) says.
+When two rounds in a row accept a Must of the same class, such as two races on one lifecycle, stop fixing instances.
+Find the shared premise as [principle-attack-the-premise](../principle-attack-the-premise/SKILL.md) says, and make the next repair remove it.
 A round collects both axes on one frozen head for one deliverable.
 A repair series follows that deliverable across heads under its one label.
 After three complete rounds with an accepted Must still open, open a `question` decision named `review-<label>` under [decisions](../tstack/references/decisions.md#open-a-decision-lead), with the rounds and the open findings, and the last round's frozen head as its subject.
 Wait for the human's answer before another repair or round 4.
+Each answered `review-<label>` decision allows three more rounds, and the next one is named `review-<label>-2`, then `review-<label>-3`.
+`tstack.mjs check` refuses a task whose aggregate names a round past what its answered decisions allow.
 Record the repair series, round number, each earlier round's head and accepted Musts, and any checkpoint decision in the aggregate.

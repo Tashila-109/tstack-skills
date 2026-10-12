@@ -81,7 +81,7 @@ for (let i = start; i < raw.length; i++) {
 	}
 	lines.push({ n, text, code: !!fence });
 	if (fence) continue;
-	if (/<[^>]+>/.test(text)) fail(n, "unfilled placeholder");
+	if (/(?<![\w:])<[^>]+>/.test(text)) fail(n, "unfilled placeholder");
 	const prose = text
 		.replace(/`[^`]*`/g, "`")
 		.replace(/!\[[^\]]*\]\([^)]*\)/g, "")

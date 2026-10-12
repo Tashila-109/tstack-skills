@@ -23,6 +23,8 @@ const GRANTED = /^##\s+Answer\s*\n+\s*granted\b/im;
 const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
+const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
+const REVIEW_ROUNDS = 3;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
@@ -220,6 +222,7 @@ export function check(home, id, through) {
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 	}
+	problems.push(...reviewCapGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
 }
@@ -229,6 +232,27 @@ function proofGaps(taskDir, text) {
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
 	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
+}
+
+function reviewCapGaps(taskDir) {
+	const reviews = join(taskDir, "evidence", "reviews");
+	if (!existsSync(reviews)) return [];
+	const decisions = join(taskDir, "decisions");
+	const answered = existsSync(decisions)
+		? readdirSync(decisions).filter((name) => ANSWERED.test(readFileSync(join(decisions, name), "utf8")))
+		: [];
+	const gaps = [];
+	for (const name of readdirSync(reviews)) {
+		const label = name.match(/^([a-z0-9][a-z0-9-]*)\.md$/)?.[1];
+		if (!label || /-(standards|spec|brief)$/.test(label)) continue;
+		const round = Number(readFileSync(join(reviews, name), "utf8").split("\n", 1)[0].match(/\bround\s+(\d+)\b/i)?.[1] ?? 0);
+		const checkpoints = answered.filter((d) => d === `review-${label}.md` || new RegExp(`^review-${label}-\\d+\\.md$`).test(d)).length;
+		if (round > REVIEW_ROUNDS * (checkpoints + 1))
+			gaps.push(
+				`review ${label} is at round ${round}, past ${REVIEW_ROUNDS * (checkpoints + 1)}: ask the human with an answered decisions/review-${label}${checkpoints ? `-${checkpoints + 1}` : ""}.md first`,
+			);
+	}
+	return gaps;
 }
 
 function hasContent(path) {

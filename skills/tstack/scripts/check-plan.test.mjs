@@ -56,3 +56,12 @@ test("each checklist rule fails a spec that breaks it", () => {
 	}
 	assert.equal(spawnSync("node", [CHECKER], { encoding: "utf8" }).status, 2);
 });
+
+test("a type's generic parameters are not placeholders, but a bare one is", () => {
+	const spec = filledSkeleton();
+	const generic = check(spec.replace("Read `design.md`", "Read `design.md` and `Option<HoldReason>`, `Vec::<u8>` and `Result<(), Error>`"));
+	assert.equal(generic.status, 0, generic.stderr);
+	const bare = check(spec.replace("Read `design.md`", "Read `design.md` and `<HoldReason>`"));
+	assert.equal(bare.status, 1);
+	assert.match(bare.stderr, /unfilled placeholder/);
+});
