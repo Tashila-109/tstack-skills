@@ -263,3 +263,26 @@ test("brief points at create-verification-skill only when a proving playbook mee
 	brief(home, "equipped", { playbook: "proving", goal: "g", finish: "f", playbooksDir: playbooks });
 	assert.doesNotMatch(read("equipped"), /verify-\*/);
 });
+
+test("check refuses a review past three rounds per answered checkpoint decision", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "rounds", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "rounds");
+	writeFileSync(join(task, "report.md"), "done\n");
+	mkdirSync(join(task, "evidence/reviews"));
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "evidence/reviews/m3-spec.md"), "Head abc, round 9 brief\n");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head abc, round 3\n");
+	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head def, round 4\n");
+	assert.throws(() => check(home, "rounds"), /review m3 is at round 4, past 3: .*decisions\/review-m3\.md/);
+	writeFileSync(join(task, "decisions/review-m3.md"), "# Keep going?\n\n## Answer\n\n");
+	assert.throws(() => check(home, "rounds"), /round 4/, "an unanswered decision is no checkpoint");
+	writeFileSync(join(task, "decisions/review-m3.md"), "# Keep going?\n\n## Answer\n\nanswered\nyes, two more, 2026-10-12\n");
+	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head 123, round 7\n");
+	assert.throws(() => check(home, "rounds"), /past 6: .*decisions\/review-m3-2\.md/);
+	writeFileSync(join(task, "decisions/review-m3-2.md"), "## Answer\n\ngranted\ngo on, 2026-10-12\n");
+	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
+});

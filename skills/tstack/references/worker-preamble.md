@@ -19,6 +19,11 @@ While you work:
 - Stay inside the brief's SCOPE and checkout.
 - Never run git commit, push, branch, merge, rebase, stash, reset, or checkout. The lead owns Git.
 - Never start another tstack agent. Your harness's own subagents are fine for your own scope.
+  Collect every subagent you start before you finish.
+- Never print a process's full command line, its environment, or a credentials file, such as with `ps -ef`, `pgrep -fl` or `env`.
+  Harnesses pass tokens that way, and your transcript goes to a model provider.
+  Print process IDs and names only.
+- Run nothing from a reference clone you were told to read. Read it only.
 - Never address the human. If you cannot finish, say why in your result.
 - Name the data shape before you write logic, and prove the result on the real artifact, not "it compiles".
 

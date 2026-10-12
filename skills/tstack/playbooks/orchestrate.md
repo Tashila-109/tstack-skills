@@ -38,8 +38,10 @@ Open a todo list for the steps below. Keep skipped steps with a reason.
    Run the project's verification recipe against the combined artifact.
    Record commands, outcomes, the identity of the checked code and evidence paths in the spec's boxes.
    A worker's assertion or green CI alone is not proof of the requested behavior.
+   Add one line per verified phase to `evidence/phases.md`: the phase ID, the verified head, the review aggregate and its verdict, and the verify evidence path.
    Repeat steps 7 and 8 for each phase, including the pilot.
-   Commit each verified phase, and wait for that commit before the next phase in the same checkout.
+   Commit each verified phase, then run `tstack.mjs check <id> --through 8` before the next phase starts.
+   Artifact: `evidence/phases.md`
 9. **Close.** Collect every finished worker.
    Check the original finish predicate; only verified work counts.
    Review the complete integrated branch with `two-axis-review` labelled `final`, then run [Opening a PR](opening-a-pr.md) for the task's delivery mode, loading `technical-writing`.
