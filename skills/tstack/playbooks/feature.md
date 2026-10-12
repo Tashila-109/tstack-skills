@@ -19,8 +19,7 @@
    Each worker's brief names the data shape from `evidence/design.md`.
    Write `evidence/dispatch.md`: each worker's brief and result paths, and your review of each diff with anything you sent back.
    Artifact: `evidence/dispatch.md`
-5. Verify on the matching surface. "Inconclusive" or wrong-surface is not a pass. Flag it.
-   Write the commands or steps you ran and their real output to `evidence/verify.md`.
+5. Prove it on the surface a user touches, and write the proof as [proof](../references/proof.md) says.
    Artifact: `evidence/verify.md`
 6. Rebase into small, ordered commits. Stack follow-ups.
    Use the **sequence-verifiable-units** principle skill, building, verifying, and committing each small unit before the next.

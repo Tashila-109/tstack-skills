@@ -112,6 +112,7 @@ It ends with `## Remember`, short lessons a later task in this project should kn
 ### Finish
 
 1. Tell the human the outcome from `report.md`: who it is for, what changed for them, how it was proved, what the next maintainer inherits, and the follow-ups.
+   Show the proof as [references/proof.md](references/proof.md#show-it) says.
    For `pr` delivery, give the PR's full URL.
    A lead that a coordinator launched reports done to it with the head SHA of its task branch, and stops here.
 2. A scout has nothing to merge, so skip to step 5.
@@ -168,7 +169,7 @@ A worker applies the ones that need no delegation and names the rest in its resu
 - Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill.
 - Before commit → `ponytail-review` when the ponytail plugin is installed. Otherwise remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits yourself.
 - Before review → the **no-comments** skill.
-- Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**. On T3, the runtime reference's surface tools drive a web UI or a simulator and record the evidence. For bug fixes, reproduce first on the same surface yourself.
+- Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**, and write the proof as [references/proof.md](references/proof.md) says. On T3, the runtime reference's surface tools drive a web UI or a simulator and record the evidence. For bug fixes, reproduce first on the same surface yourself.
 - Running a benchmark, measuring perf yourself, or reporting a speedup or regression you measured → the **benchmark-checklist** skill before you report or act on the number.
 - Bugbot, an agent reviewer, or a security review commented → skeptical posture. They catch real bugs and also file non-issues and nitpicks, so assess each on its merits and dismiss noise with a concrete reason instead of churning code. Triage fix / dismiss / ask per `references/bugbot-triage.md`.
 - Broken skill mid-task → do not block and do not silently work around it. Name it in the report's `## Follow-ups`.

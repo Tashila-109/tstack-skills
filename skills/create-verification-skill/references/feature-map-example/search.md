@@ -2,6 +2,8 @@
 
 Search lets a user find notes by title or body text, inspect a matching note, and distinguish no matches from an unavailable search.
 
+Status: blocked, 2026-10-12, 4f2c9a1. Not covered: search-cli, because the `notes` CLI was not on `PATH`.
+
 ## Sub-features
 
 - `search-open` opens search from each supported browser entry point.

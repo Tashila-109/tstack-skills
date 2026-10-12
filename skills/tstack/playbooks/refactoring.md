@@ -15,7 +15,7 @@ If the cleanup reveals a missing feature or a real bug, split it out and ship th
 5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave (**principle-migrate-callers-then-delete-legacy-apis**). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a worker on the `refactoring` seat with a specific scope (file paths, the names being moved, the behavior to hold).
    Write `evidence/dispatch.md`: each worker's brief and result paths, and your review of each diff.
    Artifact: `evidence/dispatch.md`
-6. Prove behavior is unchanged on the real artifact, not "it compiles" (**principle-prove-it-works**). For larger reshapes, run an equivalence check: a script that diffs old-vs-new outputs, a recorded baseline replayed against the new code, or a smoke run on the matching surface via the relevant control skill.
+6. Prove behavior is unchanged on the real artifact, not "it compiles" (**principle-prove-it-works**). For larger reshapes, run an equivalence check: a script that diffs old-vs-new outputs, a recorded baseline replayed against the new code, or a smoke run on the matching surface with the project's `verify-*` skill.
    Write the equivalence check you ran and its output to `evidence/equivalence.md`.
    Artifact: `evidence/equivalence.md`
 7. Confirm the change is worth keeping. The success measure is reduced reader load (**principle-minimize-reader-load**). If the diff does not lower reader load somewhere, revert it.

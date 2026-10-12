@@ -9,7 +9,7 @@
 3. Run the phases under the skill's Phase C loop. Log each decision with the **show-me-your-work** skill as the step lands, into `evidence/decisions.tsv`.
    Artifact: `evidence/decisions.tsv`
 4. Run Phase E. Check the whole against the predicate on the real product, not only the harness.
-   Write what you ran and its real output to `evidence/verify.md`, ending with VERIFIED, NOT VERIFIED or INCONCLUSIVE.
+   Write the proof as [proof](../references/proof.md) says, ending with VERIFIED, NOT VERIFIED or INCONCLUSIVE.
    Artifact: `evidence/verify.md`
 5. Run **Opening a PR**.
    Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
