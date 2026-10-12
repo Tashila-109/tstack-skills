@@ -15,6 +15,7 @@ If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
 | delegate | lead, or a skill the lead runs | Start a worker on a seat with a written brief. Launch every independent worker before you wait on any. |
 | collect | lead | Read a finished worker's result file and verdict. |
 | report | a coordinator's lead | Send the coordinator a message without interrupting it. |
+| notify | lead | Send another task's lead a message without interrupting it, such as a hold before a plan amendment or the granted change after it. Find its thread or agent in that task's `lead.txt`, or ask the human. Start the message with `from <your task id> lead:`. |
 | decide | lead | Write a decision file and put it to the human, as [decisions.md](decisions.md) says. |
 | watch-pr | lead | Get woken when the PR's checks finish, someone comments, or it conflicts. |
 | hold | coordinator | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for the coordinator's release. A lead the human talks to is held by the human's own stop. |

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -285,4 +286,33 @@ test("check refuses a review past three rounds per answered checkpoint decision"
 	assert.throws(() => check(home, "rounds"), /past 6: .*decisions\/review-m3-2\.md/);
 	writeFileSync(join(task, "decisions/review-m3-2.md"), "## Answer\n\ngranted\ngo on, 2026-10-12\n");
 	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
+});
+
+test("check refuses a hashed document that changed after its latest grant, and a stale check-plan run", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "plan", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "plan");
+	writeFileSync(join(task, "report.md"), "done\n");
+	mkdirSync(join(task, "decisions"));
+	const hash = (text) => createHash("sha256").update(text).digest("hex");
+	const gate = (name, text, answer = "granted") =>
+		writeFileSync(join(task, "decisions", name), `# Approve?\n\nKind: design-approval\nSubject: \`design.md\` sha256 ${hash(text)}\n\n## Answer\n\n${answer}\nok, 2026-10-12\n`);
+	writeFileSync(join(task, "design.md"), "v1\n");
+	gate("design.md", "v1\n");
+	assert.equal(check(home, "plan"), "ok plan: 1 required file present");
+	writeFileSync(join(task, "design.md"), "v2\n");
+	assert.throws(() => check(home, "plan"), /design\.md changed after decisions\/design\.md granted it/);
+	gate("design-2.md", "v2\n", "denied");
+	assert.throws(() => check(home, "plan"), /changed after decisions\/design\.md/, "a denied amendment grants nothing");
+	gate("design-2.md", "v2\n");
+	assert.equal(check(home, "plan"), "ok plan: 1 required file present");
+	writeFileSync(join(task, "decisions/design-3.md"), `Subject: \`.tstack/tasks/plan/design.md\` sha256 ${hash("v2\n")}\n\n## Answer\n\ngranted\n`);
+	assert.equal(check(home, "plan"), "ok plan: 1 required file present", "a path from the project root resolves too");
+	const spec = join(task, "spec.md");
+	writeFileSync(spec, "s1\n");
+	writeFileSync(join(task, "evidence/check-plan.md"), `${spec} sha256 ${hash("s1\n")}\n1 phase sections, 0 problems\n`);
+	assert.equal(check(home, "plan"), "ok plan: 1 required file present");
+	writeFileSync(spec, "s2\n");
+	assert.throws(() => check(home, "plan"), /evidence\/check-plan\.md checked an older/);
 });

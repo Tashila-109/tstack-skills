@@ -58,7 +58,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 | --- | --- |
 | `home` | Prints `<primary checkout>/.tstack`, from any checkout of the project. |
 | `brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship\|scout] [--delivery local-only\|pr]` | Creates the task directory with `task.json` and `brief.md`. Refuses an existing task ID. |
-| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer, and `evidence/verify.md` must cite a non-empty file under `evidence/` or hold a `skip:` line. A review aggregate past round 3 needs an answered `review-<label>` decision for each further three rounds. Without `--through`, it also requires `report.md`, and with `pr` delivery `evidence/babysit.md`. |
+| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer, and `evidence/verify.md` must cite a non-empty file under `evidence/` or hold a `skip:` line. A review aggregate past round 3 needs an answered `review-<label>` decision for each further three rounds. A document a granted decision cites by SHA-256 must still match that hash in its latest granted decision, and `evidence/check-plan.md` must have checked the spec as it is now. Without `--through`, it also requires `report.md`, and with `pr` delivery `evidence/babysit.md`. |
 | `seat <role> --runtime t3\|herdr [--cross <model>]` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. With `--cross`, prints only the first seat whose model family differs from `<model>`'s, such as `gpt` for `claude-opus-5-5`. |
 | `check-seats <file>` | Checks every seat in the models files against a saved T3 `orchestrator_capabilities` result: the instance can run child tasks, the model is advertised, and the effort value is offered. Names the advertised ID when only a provider prefix differs. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag each per-project skill path, to `.git/info/exclude`. |
@@ -112,6 +112,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | delegate | lead | Starts a worker on a seat with a written brief. |
 | collect | lead | Reads a finished worker's result. |
 | report | a coordinator's lead | Messages the coordinator without interrupting it. |
+| notify | lead | Messages another task's lead without interrupting it, such as a hold before a plan amendment. The receiver acts only on the granted decision it names. |
 | decide | lead | Writes a decision file and asks you in its thread. A coordinator's lead sends it to the coordinator. |
 | watch-pr | lead | Gets woken by the PR's checks and reviews. |
 | hold | coordinator | Stops a lead's turn at once on your stop, until you release it. A lead you talk to is held by your own stop. |

@@ -51,6 +51,11 @@ If the wait times out, the coordinator is still busy.
 Wait again rather than prompting a working coordinator.
 Start the message with `report <id>:`, `decision <id>:` or `handoff <id>:`, and for a decision end your turn after sending.
 
+### notify (another task's lead)
+
+Wait for the other lead the same way, then prompt it:
+`herdr agent wait <lead> --until idle --until done --timeout 600000`, then `herdr agent prompt <lead> "from <id> lead: ..."`.
+
 ### delegate
 
 1. Run `tstack.mjs seat "<role>" --runtime herdr`.

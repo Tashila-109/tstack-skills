@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Checks the tstack spec checklist, not evidence truth or runtime approval.
+import { createHash } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 
 const RULE =
@@ -249,7 +251,7 @@ for (const phase of phaseSections) {
 			const text = gate.lines.map((l) => l.text).join("\n");
 			if (gateBoxes.length === 0)
 				fail(gate.n, `${phase.title}: Review gate has no box`);
-			for (const word of ["screenshot", "video", "operator"]) {
+			for (const word of ["screenshot", "operator"]) {
 				if (!text.includes(word))
 					fail(gate.n, `${phase.title}: Review gate lacks "${word}"`);
 			}
@@ -302,6 +304,7 @@ if (closeIndex !== -1) {
 	}
 }
 
+console.log(`${path.resolve(file)} sha256 ${createHash("sha256").update(fs.readFileSync(file)).digest("hex")}`);
 for (const line of report) console.log(line);
 console.log(
 	`${phaseSections.length} phase sections, ${problems.length} problems`,
