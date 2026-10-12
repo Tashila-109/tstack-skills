@@ -58,6 +58,10 @@ Send with `t3_thread_send`: `{ "threadId": "<coordinator from the launch block>"
 Start the message with `report <id>:`, `decision <id>:` or `handoff <id>:`.
 For a decision, end your turn after sending, and wait for the coordinator's answer.
 
+### notify (another task's lead)
+
+Send with `t3_thread_send`: `{ "threadId": "<the other lead's thread>", "message": "from <id> lead: ...", "mode": "queue", "clientRequestId": "<id>-notify-<n>" }`.
+
 ### delegate
 
 1. Run `tstack.mjs seat "<role>" --runtime t3`.

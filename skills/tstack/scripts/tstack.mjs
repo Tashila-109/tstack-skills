@@ -12,9 +12,10 @@
 // Exit 0 on success, 1 on a refusal (the reason is on stderr), 2 on a usage error, 3 on anything unexpected.
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SKILL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -25,6 +26,8 @@ const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const REVIEW_ROUNDS = 3;
+const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
+const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
@@ -222,7 +225,7 @@ export function check(home, id, through) {
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 	}
-	problems.push(...reviewCapGaps(taskDir));
+	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
 }
@@ -252,6 +255,33 @@ function reviewCapGaps(taskDir) {
 				`review ${label} is at round ${round}, past ${REVIEW_ROUNDS * (checkpoints + 1)}: ask the human with an answered decisions/review-${label}${checkpoints ? `-${checkpoints + 1}` : ""}.md first`,
 			);
 	}
+	return gaps;
+}
+
+function sha256(path) {
+	return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function staleGaps(taskDir) {
+	const gaps = [];
+	const decisions = join(taskDir, "decisions");
+	const latest = new Map();
+	for (const name of existsSync(decisions) ? readdirSync(decisions) : []) {
+		const [, family, n = "1"] = name.match(/^(.+?)(?:-(\d+))?\.md$/) ?? [];
+		const text = family ? readFileSync(join(decisions, name), "utf8") : "";
+		const subject = text.match(HASHED_SUBJECT);
+		if (subject && GRANTED.test(text) && (latest.get(family)?.n ?? 0) < Number(n))
+			latest.set(family, { n: Number(n), name, path: subject[1], hash: subject[2] });
+	}
+	for (const { name, path, hash } of latest.values()) {
+		const full = isAbsolute(path) ? path : [resolve(taskDir, path), resolve(taskDir, "..", "..", "..", path)].find((p) => existsSync(p));
+		if (!full || !existsSync(full)) gaps.push(`decisions/${name} grants ${path}, which is missing`);
+		else if (sha256(full) !== hash) gaps.push(`${path} changed after decisions/${name} granted it: open the next decision as references/decisions.md says`);
+	}
+	const checked = join(taskDir, "evidence", "check-plan.md");
+	const spec = existsSync(checked) ? readFileSync(checked, "utf8").match(CHECKED_SPEC) : null;
+	if (spec && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
+		gaps.push(`evidence/check-plan.md checked an older ${spec[1]}: run check-plan.mjs again and save its output`);
 	return gaps;
 }
 

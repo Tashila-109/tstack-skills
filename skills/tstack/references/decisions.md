@@ -37,7 +37,7 @@ Use these sections:
 # <one-line question>
 
 Kind: question | design-approval | spec-approval | implement-authorization
-Subject: <the path and commit, the action, or the head SHA this decision is about>
+Subject: <the path and commit, the path and its SHA-256 for a document kept out of Git, the action, or the head SHA this decision is about>
 
 ## Requirement
 The original requirement or accepted finish.
@@ -60,6 +60,8 @@ Then ask the human, as [Ask the human](#ask-the-human) says.
 Gates come in order: `design-approval` before `spec-approval`, and both before `implement-authorization`.
 A gate covers its subject as it was when you opened it.
 After a grant, a changed design or spec is a new decision under a new name, such as `design-2`, and the gates after it follow again.
+For a document kept out of Git, write the Subject as its path in backticks followed by its SHA-256.
+`tstack.mjs check` refuses a task when such a document no longer matches the hash in its latest granted decision.
 
 ## Ask the human
 

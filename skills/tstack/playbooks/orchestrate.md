@@ -9,21 +9,21 @@ Workers implement or verify their assigned scope and return evidence.
 
 Open a todo list for the steps below. Keep skipped steps with a reason.
 
-1. **Frame.** State the checkable finish predicate, scope, deadline and constraints. Identify independent work and shared writes. For a contested approach, use [arena](../../arena/SKILL.md). Record genuine product questions; a deadline does not approve them.
+1. **Frame.** State the checkable finish predicate, scope, deadline and constraints. Identify independent work and shared writes. For a contested approach, use [arena](../../arena/SKILL.md). Record genuine product questions; a deadline does not approve them. Settle the three planning questions [Multi-phase plan](multi-phase-plan.md) step 1 names.
    Write them to `evidence/frame.md`.
    Artifact: `evidence/frame.md`
 2. **Design.** Delegate one worker on the `judgment and prose` seat to write `design.md` under the project's docs directory for this branch, usually `docs/<branch>/`.
    Keep only `design.md` and `spec.md` there for this workflow.
    It covers the problem, alternatives, choice, boundaries and acceptance criteria.
    No implementation yet.
-   Read its result and the actual file, then commit it.
-3. **Design gate.** Open the `design` gate, a `design-approval` decision on `design.md` at its commit, and wait for the human's answer.
+   Review it as [Multi-phase plan](multi-phase-plan.md) step 2 says, then commit it or record its hash.
+3. **Design gate.** Open the `design` gate, a `design-approval` decision on `design.md` at its commit or hash, and wait for the human's answer.
    Reversible preparation cannot bypass this gate.
    Artifact: `decisions/design.md`
 4. **Spec.** Delegate a worker to read the approved design and write `spec.md` beside it. Keep ordered phases, owned paths, dependencies, data contracts and verification in this one file. Use the skeleton and the checker from [Multi-phase plan](multi-phase-plan.md), and save the checker's clean output to `evidence/check-plan.md`. No tickets, per-phase document tree or separate orchestration database.
-   Commit the spec.
+   Review it as [Multi-phase plan](multi-phase-plan.md) step 3 says, then commit it or record its hash.
    Artifact: `evidence/check-plan.md`
-5. **Spec and implement gates.** Read the spec, open the `spec` gate, a `spec-approval` decision on `spec.md` at its commit, and wait for the human's answer.
+5. **Spec and implement gates.** Read the spec, open the `spec` gate, a `spec-approval` decision on `spec.md` at its commit or hash, and wait for the human's answer.
    Then open the `implement` gate, an `implement-authorization` decision on the granted spec, and wait for its answer before any pilot or implementation.
    Artifact: `decisions/spec.md`, `decisions/implement.md`
 6. **Pilot.** Run the first representative phase through implementation, review and its real verification. Fix a bad brief or verification recipe before increasing concurrency. A cheap repeated unit needs a cheap pilot, not a second ceremony.
@@ -75,5 +75,6 @@ Stop on broken infrastructure and report the exact blocker with preserved partia
 
 Escalate unresolved product choices, missing authorization, destructive operations and a failed plan under [decisions](../references/decisions.md).
 Keep the decision gates intact even under deadline pressure.
+A change to the granted design or spec runs as [Multi-phase plan](multi-phase-plan.md#amend-a-granted-plan) says, in this task.
 
 **Reply:** the finish predicate, completed phases, verified evidence, abandoned scope and open decisions. Include PR links only when publication actually happened.

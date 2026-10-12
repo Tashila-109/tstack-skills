@@ -27,6 +27,7 @@ Pick the scope:
 - `doc`: one or more documents, such as a design or a spec, at a head commit.
 
 Commit what the review covers, so the checkout is clean.
+A document the human keeps out of Git is frozen by its SHA-256 instead: record `shasum -a 256` for each one, and compare again when you collect.
 Stop writing, and let no worker write in this checkout until both reports are collected.
 Record the head with `git rev-parse HEAD`.
 For `code`, resolve the fixed point with `git rev-parse <fixed-point>`.
@@ -68,12 +69,14 @@ Resolve the seats with `tstack.mjs seat review --runtime <runtime>`.
 The first seat reviews standards and the second reviews spec.
 Delegate both at once, as [dispatch](../tstack/references/dispatch.md) says, named `review-<label>-standards` and `review-<label>-spec`, with result files at `tasks/<id>/results/review-<label>-<axis>.md`.
 The `review` seats should run models from different families, so each axis also gets an independent model.
+For a `doc` scope, prefer review seats whose model did not write the document, and say in the aggregate which seats you used.
+Each round after the first lists the previous round's accepted findings in both briefs, so the reviewers confirm each fix, including a fix the lead wrote.
 Both reviewers read the same checkout at once, and neither writes anything but its own result file.
 
 ## 5. Collect and check the freeze
 
 Collect each reviewer once it is done, as the runtime reference says.
-If a reviewer reports a head-changed incident, or `git rev-parse HEAD` no longer matches the recorded head, the review covers nothing.
+If a reviewer reports a head-changed incident, or `git rev-parse HEAD` or a recorded document hash no longer matches, the review covers nothing.
 Freeze again and rerun both axes.
 
 ## 6. Aggregate
