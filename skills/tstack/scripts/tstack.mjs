@@ -26,6 +26,7 @@ const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const REVIEW_ROUNDS = 3;
+const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
 const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
 
@@ -225,6 +226,7 @@ export function check(home, id, through) {
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 	}
+	if (through === undefined) problems.push(...workerGaps(taskDir));
 	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
@@ -235,6 +237,18 @@ function proofGaps(taskDir, text) {
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
 	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
+}
+
+function workerGaps(taskDir) {
+	const briefs = join(taskDir, "briefs");
+	if (!existsSync(briefs)) return [];
+	return readdirSync(briefs)
+		.filter((name) => name.endsWith(".md"))
+		.filter((name) => {
+			const result = join(taskDir, "results", name);
+			return !(existsSync(result) && VERDICT.test(readFileSync(result, "utf8")));
+		})
+		.map((name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`);
 }
 
 function reviewCapGaps(taskDir) {
@@ -293,15 +307,28 @@ function hasContent(path) {
 
 export function parseModels(text) {
 	const lines = new Map();
-	for (const raw of text.split("\n")) {
+	for (const [i, raw] of text.split("\n").entries()) {
 		const line = raw.trim();
 		if (!line || line.startsWith("#")) continue;
 		const at = line.indexOf(":");
-		if (at < 1) continue;
+		if (at < 1 || !line.slice(at + 1).trim()) throw new Refusal(`models file line ${i + 1} is not "role: seats": ${line}`);
 		const value = line.slice(at + 1).trim();
-		for (const key of line.slice(0, at).split(",")) lines.set(key.trim().toLowerCase(), value);
+		for (const raw of line.slice(0, at).split(",")) {
+			const key = raw.trim().toLowerCase();
+			if (lines.has(key)) throw new Refusal(`models file names role "${key}" twice, again on line ${i + 1}`);
+			lines.set(key, value);
+		}
 	}
 	return lines;
+}
+
+const PANELS = new Set(["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"]);
+
+function templateRoles() {
+	const path = join(SKILL_DIR, "..", "tstack-setup", "SKILL.md");
+	if (!existsSync(path)) return undefined;
+	const block = readFileSync(path, "utf8").match(/```text\n(# tstack models[\s\S]*?)```/)?.[1];
+	return block ? new Set([...parseModels(block).keys()].filter((k) => k !== "t3 instances")) : undefined;
 }
 
 const HERDR = {
@@ -371,26 +398,39 @@ export function seat(models, role, runtime, cross) {
 	});
 }
 
-export function checkSeats(models, caps) {
-	const providers = new Map((caps.providers ?? []).filter((p) => p.canRunChildTask).map((p) => [p.providerInstanceId, p]));
+export function checkSeats(models, caps, roles = templateRoles()) {
+	const providers = new Map((caps.providers ?? []).map((p) => [p.providerInstanceId, p]));
 	const problems = new Set();
 	const checked = new Set();
+	for (const role of roles ?? []) if (!models.has(role)) problems.add(`no line for role "${role}"; every role needs one`);
 	for (const role of models.keys()) {
 		if (role === "t3 instances" || role.startsWith("herdr args")) continue;
-		for (const s of seat(models, role, "t3")) {
-			if (s.inherit) continue;
+		if (roles && !roles.has(role) && !(role.startsWith("lead ") && existsSync(join(SKILL_DIR, "playbooks", `${role.slice(5)}.md`))))
+			problems.add(`unknown role "${role}"; check its spelling against the tstack-setup template`);
+		const seats = seat(models, role, "t3");
+		const real = seats.filter((s) => !s.inherit);
+		if (new Set(real.map((s) => JSON.stringify(s))).size < real.length) problems.add(`${role}: the same seat is listed twice`);
+		if (PANELS.has(role) && new Set(real.map((s) => family(s.model))).size < 2)
+			problems.add(`${role}: a panel needs seats from at least two model families, and inherit does not count`);
+		for (const s of real) {
 			checked.add(JSON.stringify(s));
 			const where = `${role}: ${s.providerInstanceId} ${s.model}`;
 			const provider = providers.get(s.providerInstanceId);
 			const model = provider?.models?.find((m) => m.id === s.model);
-			if (!provider) problems.add(`${where}: instance ${s.providerInstanceId} cannot run child tasks here`);
+			const why = provider?.constraints?.length ? ` (${provider.constraints.join(" ")})` : "";
+			if (!provider) problems.add(`${where}: no instance ${s.providerInstanceId} in this T3`);
+			else if (!provider.canRunChildTask) problems.add(`${where}: instance ${s.providerInstanceId} cannot run child tasks here${why}`);
+			else if (provider.canRunCrossProviderChildTask === false)
+				problems.add(`${where}: instance ${s.providerInstanceId} cannot run a child for a parent on another provider${why}`);
 			else if (!model) {
 				const near = (provider.models ?? []).filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
 				problems.add(`${where}: model not advertised${near.length ? `; advertised as ${near.join(" or ")}` : ""}`);
 			} else
 				for (const o of s.options ?? []) {
-					const values = model.options?.find((x) => x.id === o.id)?.options?.map((v) => v.id) ?? [];
-					if (!values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
+					const option = model.options?.find((x) => x.id === o.id);
+					const values = option?.options?.map((v) => v.id) ?? [];
+					if (option?.type === "boolean") problems.add(`${where}: ${o.id} is an on/off option, so drop the @${o.value} effort`);
+					else if (!values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
 				}
 		}
 	}

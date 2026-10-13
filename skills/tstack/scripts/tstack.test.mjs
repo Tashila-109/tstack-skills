@@ -200,12 +200,76 @@ test("check-seats names each seat T3 does not advertise, and the ID it goes by",
 		],
 	};
 	const instances = "t3 instances: claude=claudeAgent/effort, pi=pi/thinking, open=opencode/x";
-	assert.equal(checkSeats(parseModels(`lead: claude/claude-opus-5-5@high\nbug-fix: pi/openai/gpt-6.1-sol@xhigh\ncomment sicko: inherit\n${instances}`), caps), "ok: 2 seats advertised");
-	assert.throws(() => checkSeats(parseModels(`bug-fix: pi/gpt-6.1-sol@xhigh\n${instances}`), caps), /bug-fix: pi gpt-6\.1-sol: model not advertised; advertised as openai\/gpt-6\.1-sol/);
-	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5@max\n${instances}`), caps), /effort max not offered \(medium, high\)/);
-	assert.throws(() => checkSeats(parseModels(`review: open/some-model\n${instances}`), caps), /instance opencode cannot run child tasks/);
+	assert.equal(checkSeats(parseModels(`lead: claude/claude-opus-5-5@high\nbug-fix: pi/openai/gpt-6.1-sol@xhigh\ncomment sicko: inherit\n${instances}`), caps, null), "ok: 2 seats advertised");
+	assert.throws(() => checkSeats(parseModels(`bug-fix: pi/gpt-6.1-sol@xhigh\n${instances}`), caps, null), /bug-fix: pi gpt-6\.1-sol: model not advertised; advertised as openai\/gpt-6\.1-sol/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5@max\n${instances}`), caps, null), /effort max not offered \(medium, high\)/);
+	assert.throws(() => checkSeats(parseModels(`review: open/some-model\n${instances}`), caps, null), /instance opencode cannot run child tasks/);
 	const bare = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true }] };
-	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\n${instances}`), bare), /model not advertised/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\n${instances}`), bare, null), /model not advertised/);
+});
+
+test("check-seats reads a real T3 catalog: provider reasons, cross-provider limits, boolean options and panel families", () => {
+	const caps = JSON.parse(readFileSync(new URL("./t3-catalog.fixture.json", import.meta.url), "utf8"));
+	const instances = "t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thinking, grok=grok/reasoningEffort, open=opencode/x";
+	const roles = new Set(["lead", "interrogate reviewers"]);
+	const ok = `lead: claude/claude-opus-5-5@high\ninterrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, pi/openai/gpt-6.1-sol@xhigh\n${instances}`;
+	assert.equal(checkSeats(parseModels(ok), caps, roles), "ok: 3 seats advertised");
+	assert.throws(() => checkSeats(parseModels(`lead: grok/grok-4.7@high\ninterrogate reviewers: claude/claude-opus-5-5, codex/gpt-6.1-sol\n${instances}`), caps, roles), /grok-4\.7: instance grok cannot run child tasks here \(.*not logged in/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-haiku-4-5@high\ninterrogate reviewers: claude/claude-opus-5-5, codex/gpt-6.1-sol\n${instances}`), caps, roles), /effort high not offered \(no such option\)/);
+	assert.throws(() => checkSeats(parseModels(`lead: haiku/claude-haiku-4-5@high\ninterrogate reviewers: claude/claude-opus-5-5, codex/gpt-6.1-sol\n${instances}, haiku=claudeAgent/thinking`), caps, roles), /thinking is an on\/off option, so drop the @high effort/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\ninterrogate reviewers: claude/claude-opus-5-5@high, claude/claude-sonnet-5-5@high, inherit\n${instances}`), caps, roles), /interrogate reviewers: a panel needs seats from at least two model families/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\ninterrogate reviewers: codex/gpt-6.1-sol, codex/gpt-6.1-sol, claude/claude-opus-5-5\n${instances}`), caps, roles), /the same seat is listed twice/);
+	const noCross = { providers: caps.providers.map((p) => (p.providerInstanceId === "codex" ? { ...p, canRunCrossProviderChildTask: false } : p)) };
+	assert.throws(() => checkSeats(parseModels(ok), noCross, roles), /cannot run a child for a parent on another provider/);
+});
+
+test("check-seats names missing and misspelled roles against the tstack-setup template", () => {
+	const caps = JSON.parse(readFileSync(new URL("./t3-catalog.fixture.json", import.meta.url), "utf8"));
+	const instances = "t3 instances: claude=claudeAgent/effort";
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\ninterogate reviewers: inherit\n${instances}`), caps), (err) => {
+		assert.match(err.message, /no line for role "interrogate reviewers"/);
+		assert.match(err.message, /unknown role "interogate reviewers"/);
+		assert.doesNotMatch(err.message, /role "lead"/);
+		return true;
+	});
+	assert.doesNotThrow(() => {
+		try {
+			checkSeats(parseModels(`lead bug-fix: claude/claude-opus-5-5\n${instances}`), caps);
+		} catch (err) {
+			assert.doesNotMatch(err.message, /unknown role "lead bug-fix"/);
+		}
+	});
+});
+
+test("a models file refuses a malformed line and a role named twice", () => {
+	assert.throws(() => parseModels("lead claude/claude-opus-5-5\n"), /line 1 is not "role: seats"/);
+	assert.throws(() => parseModels("# c\nlead:\n"), /line 2 is not "role: seats"/);
+	assert.throws(() => parseModels("review: inherit\nlead, review: inherit\n"), /names role "review" twice, again on line 2/);
+	assert.equal(parseModels("# a comment: with a colon\n\nlead: inherit\n").get("lead"), "inherit");
+});
+
+test("the tstack-setup template is a complete, valid models file", () => {
+	const setup = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8");
+	const template = parseModels(setup.match(/```text\n(# tstack models[\s\S]*?)```/)[1]);
+	for (const role of ["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
+		assert.ok(new Set(seat(template, role, "t3").map((s) => s.model.split("/").pop().split("-")[0])).size >= 2, role);
+});
+
+test("check refuses a worker brief whose result has no verdict line", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "w", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "w");
+	writeFileSync(join(task, "report.md"), "done\n");
+	mkdirSync(join(task, "briefs"));
+	mkdirSync(join(task, "results"));
+	writeFileSync(join(task, "briefs", "fix.md"), "GOAL fix it\n");
+	assert.throws(() => check(home, "w"), /briefs\/fix\.md has no results\/fix\.md/);
+	assert.equal(check(home, "w", 1), "ok w: 0 required files present", "a step check does not wait on running workers");
+	writeFileSync(join(task, "results", "fix.md"), "changed a.js\n");
+	assert.throws(() => check(home, "w"), /has no results\/fix\.md with a DONE/);
+	writeFileSync(join(task, "results", "fix.md"), "changed a.js\nDONE fixed\n");
+	assert.equal(check(home, "w"), "ok w: 1 required file present");
 });
 
 test("steps inside a code fence are not playbook steps, and steps must run from 1", () => {

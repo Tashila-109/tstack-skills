@@ -126,5 +126,8 @@ Review the diff yourself and write your own summary.
 Do not pass on what the worker said.
 A second opinion is the same brief on a different model, and agreement is high signal.
 
+`tstack.mjs check` refuses a task while a brief under `briefs/` has no result with a verdict line.
+A worker you cancel, or a brief you never sent, still gets a result: `FAILED <why it never finished>`.
+
 Give new work to a fresh worker with consolidated scope: the original brief, every later direction, and the previous result.
 Continue an existing worker only when the work needs state that worker alone holds, such as uncommitted changes or a process it still runs.
