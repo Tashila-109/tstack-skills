@@ -46,11 +46,13 @@ Read the skill before you recommend it, and give one example prompt.
 | The human wants to | Use |
 | --- | --- |
 | Do any non-trivial task with rigor | the [router](../tstack/SKILL.md) |
+| Check that the agent understood their goal and the problem before it starts | [in-your-own-words](../in-your-own-words/SKILL.md) |
 | Know how code works now, or where new code should live | [how](../how/SKILL.md) |
 | Know why code is shaped this way, or where a number came from | [why](../why/SKILL.md) |
 | Understand a change or subsystem in this session | [explain](../explain/SKILL.md) |
 | Learn a topic over several sessions | [teach](../teach/SKILL.md) |
 | Catch up on their own recent work on a topic | [recall](../recall/SKILL.md) |
+| Catch up on what changed in this thread since their last message, with visuals and what each decision needs | [ketchup](../ketchup/SKILL.md) |
 | Get findings with no code change | the [investigation](../tstack/playbooks/investigation.md) playbook |
 | Diagnose a live symptom, or a captured profile, with no fix yet | [runtime-forensics](../tstack/playbooks/runtime-forensics.md) or [trace-forensics](../tstack/playbooks/trace-forensics.md) |
 | Find what a small diff could break outside itself | [blast-radius](../blast-radius/SKILL.md) |
@@ -58,6 +60,7 @@ Read the skill before you recommend it, and give one example prompt.
 | Get several attempts at one brief, merged | [arena](../arena/SKILL.md) |
 | Check many slices in parallel | [swarm](../swarm/SKILL.md) |
 | Have other models try to break a diff | [interrogate](../interrogate/SKILL.md) |
+| Get a strict bug, security and maintainability review of a branch from two models | [thermo-review](../thermo-review/SKILL.md) |
 | Settle an open design question by running a sketch | the [prototype](../tstack/playbooks/prototype.md) playbook |
 | Plan work in phases, with no build | the [multi-phase-plan](../tstack/playbooks/multi-phase-plan.md) playbook |
 | Plan work in phases and build it | the [orchestrate](../tstack/playbooks/orchestrate.md) playbook |
@@ -93,9 +96,11 @@ The `principle-*` skills are indexed in the router, and the human steers with th
   `teach` is a different job: a learning workspace over several sessions.
 - `arena` gives every runner the same brief and merges the best parts into one result.
   `swarm` gives each worker its own slice, or races workers, and returns one table.
-- `interrogate` reviews the diff with several models.
+- `interrogate` reviews the diff with several models against one rubric.
+  `thermo-review` runs two strict reviewers on two model families, one for bugs and security, one for maintainability.
   `blast-radius` looks for breakage outside the diff and proves the one fact that makes the change safe.
 - `recall` rebuilds the human's own context on a topic from recent sessions and the shared record.
+  `ketchup` covers only this thread since the human's last message.
   The `session-pickup` playbook resumes one specific prior run, and starts from the newest handoff file.
 - `figure-it-out` designs one rigorous run and writes its phase list to a file.
   `orchestrate` plans and builds work that spans phases, behind the human's three gates.

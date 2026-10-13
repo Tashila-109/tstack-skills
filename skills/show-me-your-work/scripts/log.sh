@@ -24,8 +24,8 @@ fi
 
 ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # Strip tabs/newlines/CR so cells stay on one line, and prefix any cell
-# whose first char a spreadsheet would parse as a formula (=, +, -, @)
-# with a single quote. The skill expects this log to be read in
+# whose first char a spreadsheet would parse as a formula (=, +, -, @),
+# or a TSV reader as an opening quote ("), with a single quote. The skill expects this log to be read in
 # spreadsheets, so attacker-controlled evidence (PR titles, filenames,
 # generated text) must not become formula execution when a reviewer
 # opens the file.
@@ -33,10 +33,19 @@ clean() {
 	local v
 	v=$(printf '%s' "$1" | tr '\t\n\r' '   ')
 	case "${v#"${v%%[![:space:]]*}"}" in
-		=*|+*|-*|@*) printf "'%s" "$v" ;;
+		=*|+*|-*|@*|\"*) printf "'%s" "$v" ;;
 		*) printf '%s' "$v" ;;
 	esac
 }
-printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
-	"$ts" "$(clean "$1")" "$(clean "$2")" "$(clean "$3")" "$(clean "$4")" "$(clean "$5")" \
-	>> "$logfile"
+printf -v row '%s\t%s\t%s\t%s\t%s\t%s\n' \
+	"$ts" "$(clean "$1")" "$(clean "$2")" "$(clean "$3")" "$(clean "$4")" "$(clean "$5")"
+# Append the row in one write(2), so parallel writers never interleave a long
+# row. A shell printf can split it across several writes.
+if command -v perl >/dev/null 2>&1; then
+	printf '%s' "$row" | perl -e 'binmode STDIN; local $/; my $r = <STDIN>;
+		open(my $f, ">>:raw", $ARGV[0]) or die "log.sh: $!\n";
+		my $n = syswrite($f, $r) // die "log.sh: $!\n";
+		$n == length $r or die "log.sh: wrote $n of ", length $r, " bytes\n"' "$logfile"
+else
+	printf '%s' "$row" >> "$logfile"
+fi

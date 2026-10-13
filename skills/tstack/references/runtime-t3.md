@@ -5,6 +5,8 @@ Use this when the `t3-code` MCP tools are available, for example `orchestrator_c
 This file owns the calls.
 The calls were measured on T3 Code (Nightly), 2026-10-05.
 The surface tools, history, PR linking, hold, worker cancellation and the heartbeat were added on 2026-10-06 from T3's own tool definitions, and have not yet run in a live task.
+Moving a lead with `t3_worktree_handoff` ran live on 2026-10-14, as [the record](../../../docs/verification/2026-10-14-t3-worktree-handoff.md) says.
+The PR wait loop and the delegated candidate's worktree were added that day and have not yet run in a live task.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
 
@@ -19,6 +21,8 @@ The surface tools, history, PR linking, hold, worker cancellation and the heartb
   Mode `queue` waits for the busy turn to end and starts an idle target at once.
   Always send with `queue`.
 - With a per-project install, a new T3 worktree gets the skills only through the project action that `tstack-setup` asks the human to add.
+- `t3_worktree_status` says whether your thread is bound to a worktree.
+  `t3_worktree_handoff` moves an unbound thread into a new worktree and keeps the conversation, but T3 marks the turn that calls it failed, and a `continuationPrompt` stays queued until the human's next message.
 - A delegated worker runs in its parent's checkout, and its completion wakes the parent as a new turn.
   End your turn instead of polling.
 - Seats come from `tstack.mjs seat`.
@@ -37,7 +41,8 @@ Never delete it yourself.
 
 ### launch-lead
 
-A lead uses this to move a ship task out of the primary checkout, and a coordinator uses it to start each lead.
+A coordinator uses this to start each lead, and a lead uses it to hand off its task to a fresh thread.
+A lead moving its own ship task out of the primary checkout uses [Moving your own task](#moving-your-own-task) instead.
 It needs Full access.
 Without it, ask the human to open a thread in New worktree mode and send the launch block as its first message, then stop.
 
@@ -50,7 +55,18 @@ Without it, ask the human to open a thread in New worktree mode and send the lau
    - `modelSelection`: the seat, with `providerInstanceId` renamed to `instanceId`; leave it out for `inherit`
    - `message`: the launch block from dispatch.md; a coordinator sets `coordinator:` to its `currentThreadId`, and a lead moving its own task leaves that line out
 4. A coordinator writes the returned `threadId` to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead's reports arrive as new turns.
-   A lead moving its own task tells the human to continue in the thread titled `<id> lead`, and stops.
+   A lead handing off its task tells the human to continue in the thread titled `<id> lead`, and stops.
+
+### Moving your own task
+
+When intake finds you in the primary checkout, move this thread instead of starting another.
+
+1. Call `t3_worktree_status`.
+   If it reports a worktree, you are already out of the primary checkout, so go on with intake.
+2. Tell the human, in this turn, that the thread is moving to the worktree on `task/<id>` and that they should send any message to continue there.
+3. Call `t3_worktree_handoff` as the last action of the turn, with `branch`: `task/<id>`, `baseRef`: the primary checkout's current branch, and `startFromOrigin`: `false`.
+   Pass no `continuationPrompt`, because it waits behind the human's next message anyway.
+4. When the human's next message arrives, run `git rev-parse --git-dir --git-common-dir`, confirm the two paths differ, and follow [Lead](../SKILL.md#lead).
 
 ### report and decide (a coordinator's lead)
 
@@ -86,21 +102,43 @@ To stop a running worker, call `task_cancel` with its `taskId`.
 ### A candidate that needs its own checkout
 
 Arena and swarm candidates that must build or run code need their own worktree.
-Launch each with `t3_thread_launch`:
-- `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<your task branch>", "branch": "<your task branch>-<name>", "startFromOrigin": false }`
-- `modelSelection`: from the seat
-- `message`: the worker preamble
+A delegated worker starts in your checkout, so make the worktree yourself and point the worker at it:
 
-Follow it with `t3_thread_wait`, because a launched thread does not wake you.
+1. Run `git worktree add <home>/worktrees/<id>-<name> -b <your task branch>-<name>` from your task worktree, so the candidate starts from your commits.
+   Run `tstack.mjs link-skills <that path>` if the skills are installed per project.
+2. Record `git status --porcelain` in your own worktree.
+3. Delegate the candidate as [delegate](#delegate) says.
+   Its brief's SCOPE names the worktree's absolute path as its checkout, and tells it to run every command with that path as its working directory and to edit files by absolute path.
+4. After you collect it, confirm `git status --porcelain` in your worktree is unchanged, so the candidate never wrote outside its own.
+5. Remove the worktree once you have taken what you need, and keep its branch.
+
 Design sketches that only write files need no worktree: give each candidate its own directory under `<home>/tasks/<id>/evidence/`.
 
 ### Opening and watching a PR
 
 Right after `gh pr create`, call `link_pull_request` with the PR's `url`, so T3 shows the PR beside your thread and settles the thread when it merges.
+Before you report done, call `list_thread_pull_requests` and link any PR of yours it lacks.
 
-For watch-pr, call `watch_pull_request` with its `url`, handle the existing comments, then end your turn.
-It wakes you when a check fails, the required checks pass, someone else comments or reviews, or the branch conflicts.
+T3's `watch_pull_request` wakes you on a failed check, passing required checks, a comment or review from another GitHub account, a conflict, or a close.
+It never wakes on a merge, on the base moving ahead, or on review bots going quiet, and it misses comments posted before you armed it.
+T3 ignores comments from the GitHub account it reads with, and only a top-level thread can watch.
+So watch-pr on T3 is a loop inside your turn, with the watch kept for a human's review:
+
+1. Handle the review threads already on the PR.
+2. Run `tstack.mjs pr-state <pr> --wait 540`, with your shell's own timeout above 540 seconds and under the 600-second tool cap.
+   It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
+3. Act on the verdict as the babysit playbook says.
+   After any `WAITING` other than `review-required`, and after every push, go back to step 2 in the same turn.
+4. On `WAITING review-required`, tell the human the PR waits on their review.
+   If your thread is settled, unsettle it with `t3_thread_organize`, because a settled thread ends its watches.
+   Then call `watch_pull_request` with the PR's `url` and end your turn.
+   Their review wakes you, and you start again at step 1.
+5. When you stop, call `unwatch_pull_request` if the watch is armed.
+
 A wake is news, not a merge decision.
+
+When T3's review guides are on, `write_pull_request_guides` with the PR's `url` writes a reviewer's tour of the change into the PR's Guide tab.
+It fails when guides are off, which changes nothing else.
 
 ### After the merge
 
@@ -133,8 +171,11 @@ Never delete a T3 worktree yourself.
 ## Heartbeat
 
 When a lead's long run has no event to wake it, or a coordinator runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
+Give it a `title` that names the task or program.
 Each run posts that prompt into your own thread.
-Delete it with `delete_scheduled_task` when the lead reports done or the program's queue ends.
+Delete it with `delete_scheduled_task` when the lead reports done, the program's queue ends, or the human stops you, because a schedule outlives a stop and would start the work again.
+The project holds other scheduled tasks, so find yours in `list_scheduled_tasks` by its title and your thread's `boundThreadId`, and never delete one that does not match both.
+`run_scheduled_task_now` runs it once, to prove it posts what you expect.
 
 ## Proving on the real surface
 
@@ -154,6 +195,14 @@ An error saying the capability is unavailable means that access is off, so use t
 
 T3 keeps every thread in the project, a delegated worker's included.
 Where a skill reads chat history or transcripts, find threads by topic with `t3_thread_search`, list them newest first with `t3_thread_list`, and read one with `t3_thread_read`.
+`t3_thread_search` covers one project, the calling thread's or the `projectId` you pass, so search once per project from `t3_project_list` when the work spans projects.
+Bound each read with `maxCharsPerItem` and page with `afterPosition`.
+Expand one item with `itemId` and `textOffset` only when it matters.
+
+## Worktrees in use
+
+A worktree is in use while a T3 thread is bound to it, whatever `worktree-audit.sh` says.
+`t3_thread_list` does not return a thread's worktree, so page through it with `includeSubagents: true` and read each thread's `worktreePath` from `t3_thread_read`.
 
 ## Worker
 

@@ -39,9 +39,8 @@ It builds a measurement harness first and proves the harness can see the change,
 ## A PR that waits on CI and review
 
 With PR delivery, the lead opens the PR ready and babysits it to merge-ready before it reports done.
-It wakes on checks and reviews rather than polling:
-- on T3, through `watch_pull_request`;
-- on Herdr, through `gh pr checks --watch` in its pane.
+It reads the PR's state with `tstack.mjs pr-state`, which waits for running checks and gives review bots ten minutes to post after the last push, comment or review.
+When the PR waits only on your review, the lead on T3 arms `watch_pull_request` and ends its turn, so your review wakes it.
 
 It fixes conflicts first, then review threads, then CI.
 It reruns a failed check once, and a second identical failure counts as a real failure.

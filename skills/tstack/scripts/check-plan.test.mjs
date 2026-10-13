@@ -65,3 +65,11 @@ test("a type's generic parameters are not placeholders, but a bare one is", () =
 	assert.equal(bare.status, 1);
 	assert.match(bare.stderr, /unfilled placeholder/);
 });
+
+test("fences follow CommonMark: an info string with a backtick opens none, and only a bare fence closes one", () => {
+	const ok = (body) => check(`${filledSkeleton()}\n${body}\n`);
+	assert.equal(ok("~~~js `x`\n<placeholder>\n~~~").status, 0, "a tilde fence may carry a backtick");
+	assert.equal(ok("```\n<placeholder>\n```   ").status, 0, "a closing fence may carry trailing spaces");
+	assert.equal(ok("```\n```bash\n<placeholder>\n```").status, 0, "a fence with an info string never closes one");
+	assert.notEqual(ok("```js `x`\n<placeholder>").status, 0, "a backtick info string is inline code, not a fence");
+});

@@ -58,9 +58,10 @@ It needs Node 20 or newer, or Bun, and no packages.
 | --- | --- |
 | `home` | Prints `<primary checkout>/.tstack`, from any checkout of the project. |
 | `brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship\|scout] [--delivery local-only\|pr]` | Creates the task directory with `task.json` and `brief.md`. Refuses an existing task ID. |
-| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer, and `evidence/verify.md` must cite a non-empty file under `evidence/` or hold a `skip:` line. A review aggregate past round 3 needs an answered `review-<label>` decision for each further three rounds. A document a granted decision cites by SHA-256 must still match that hash in its latest granted decision, and `evidence/check-plan.md` must have checked the spec as it is now. Without `--through`, it also requires `report.md`, and with `pr` delivery `evidence/babysit.md`. |
+| `check <id> [--through <step>]` | Refuses until every artifact frozen for the task, and every artifact its playbook names, exists and is not blank. An artifact under `decisions/` also needs a `granted` answer, and `evidence/verify.md` must cite a non-empty file under `evidence/` or hold a `skip:` line. A review aggregate past round 3 needs an answered `review-<label>` decision for each further three rounds. A document a granted decision cites by SHA-256 must still match that hash in its latest granted decision, and `evidence/check-plan.md` must have checked the spec as it is now. Without `--through`, it also requires `report.md`, with `pr` delivery `evidence/babysit.md`, and a result with a `DONE`, `BLOCKED` or `FAILED` line for every brief under `briefs/`. |
 | `seat <role> --runtime t3\|herdr [--cross <model>]` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. With `--cross`, prints only the first seat whose model family differs from `<model>`'s, such as `gpt` for `claude-opus-5-5`. |
-| `check-seats <file>` | Checks every seat in the models files against a saved T3 `orchestrator_capabilities` result: the instance can run child tasks, the model is advertised, and the effort value is offered. Names the advertised ID when only a provider prefix differs. |
+| `check-seats <file>` | Checks every seat in the models files against a saved T3 `orchestrator_capabilities` result: the instance can run child tasks, with T3's reason when it cannot, the model is advertised, and the effort value is offered. Names the advertised ID when only a provider prefix differs. Also refuses a role the tstack-setup template has with no line, a role it does not know, a seat listed twice in a role, and a panel role (`architect runners`, `arena runners`, `arena cross-judge pool`, `interrogate reviewers`, `review`) with fewer than two model families. |
+| `pr-state <pr> [--wait <seconds>]` | Prints one verdict for a PR from GitHub's own state: `READY`, `WAITING` with checks running, a review bot's ten-minute settle or a required review, `BLOCKER` with conflicts, failing checks, open threads, requested changes or a base ahead, or `MERGED` or `CLOSED`. With `--wait`, up to 540 seconds, it rereads every minute while the verdict is `WAITING`. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag each per-project skill path, to `.git/info/exclude`. |
 | `link-skills <worktree>` | Links a per-project install into a linked worktree. |
 
@@ -88,19 +89,19 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 
 | Role | Used by |
 | --- | --- |
-| `lead` | leads that launch-lead starts: a move out of the primary checkout, a handoff, or a coordinator's queue item |
+| `lead` | leads that launch-lead starts: a move out of the primary checkout on Herdr, a handoff, or a coordinator's queue item |
 | `feature`, `refactoring`, `bug-fix`, `perf-issue`, `hillclimb` | the playbook of that name, for its code-writing workers |
 | `judgment and prose`, `hardest tasks` | any playbook, for judgment-heavy work or the hardest changes |
 | `how explorer`, `how explainer` | the how skill |
 | `why investigators`, `why synthesizer` | the why skill |
 | `architect runners` | the architect skill |
 | `arena runners`, `arena cross-judge pool` | the arena skill |
-| `interrogate reviewers` | the interrogate skill |
+| `interrogate reviewers` | the interrogate skill, and thermo-review, which takes the first seat and the first seat of another family |
 | `swarm workers` | the swarm skill |
 | `reflect tooling`, `reflect judgment`, `reflect divergent`, `reflect synthesizer` | the reflect skill |
 | `comment sicko` | the no-comments skill |
 | `review` | the two-axis-review skill, where the first seat reviews standards and the second spec, and Opening a PR's cross-model review, which takes the first seat outside the lead's model family |
-| `verify` | the shipping playbook's per-PR verifiers, and the autopilots' live lanes |
+| `verify` | the shipping playbook's per-PR verifiers, the autopilots' live lanes, and two-axis-review's run after each repair |
 
 ## Verbs
 
@@ -108,13 +109,13 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 
 | Verb | Who | Does |
 | --- | --- | --- |
-| launch-lead | lead, to move or hand off its own task, or a coordinator | Starts a lead in a new worktree on `task/<id>`, or in the task's existing worktree for a handoff. |
+| launch-lead | lead, to move or hand off its own task, or a coordinator | Starts a lead in a new worktree on `task/<id>`, or in the task's existing worktree for a handoff. On T3 a lead moves its own task by moving its thread instead. |
 | delegate | lead | Starts a worker on a seat with a written brief. |
 | collect | lead | Reads a finished worker's result. |
 | report | a coordinator's lead | Messages the coordinator without interrupting it. |
 | notify | lead | Messages another task's lead without interrupting it, such as a hold before a plan amendment. The receiver acts only on the granted decision it names. |
 | decide | lead | Writes a decision file and asks you in its thread. A coordinator's lead sends it to the coordinator. |
-| watch-pr | lead | Gets woken by the PR's checks and reviews. |
+| watch-pr | lead | Waits for the PR's next verdict from `tstack.mjs pr-state`. On T3, a PR that waits on your review also gets T3's PR watch. |
 | hold | coordinator | Stops a lead's turn at once on your stop, until you release it. A lead you talk to is held by your own stop. |
 
 ## Playbooks
@@ -133,11 +134,11 @@ The lead picks one per task from the [router's intake table](../skills/tstack/SK
 | Group | Skills |
 | --- | --- |
 | Router and setup | `tstack`, `tstack-setup`, `tstack-help` |
-| Understand | `how`, `why`, `explain`, `recall`, `teach` |
+| Understand | `how`, `why`, `explain`, `recall`, `teach`, `in-your-own-words`, `ketchup` |
 | Plan | `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets` |
 | Design | `architect`, `arena`, `swarm`, `interrogate`, `figure-it-out` |
 | Build and clean | `tdd`, `no-comments`, `unslop`, `technical-writing`, `typescript-best-practices`, `blast-radius`, `benchmark-checklist` |
-| Review and verify | `two-axis-review`, `create-verification-skill`, `maintain-verification-skill` |
+| Review and verify | `two-axis-review`, `thermo-review`, `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `create-verification-skill`, `maintain-verification-skill` |
 | Record and improve | `show-me-your-work`, `handoff`, `reflect`, `correct`, `bro`, `writing-for-agents` |
 | Principles | 24 `principle-*` skills, indexed in the router |
 

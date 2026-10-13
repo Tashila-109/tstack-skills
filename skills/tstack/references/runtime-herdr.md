@@ -87,10 +87,11 @@ Design sketches that only write files need no worktree: give each candidate its 
 
 ### watch-pr
 
-Run `gh pr checks <url> --watch --fail-fast` as a background command, so your harness wakes you when it exits.
-Set no timeout of your own, because a review bot can take half an hour.
-When it exits, read new review comments with `gh pr view <url> --comments`.
-Never poll with a sleep loop.
+Run `tstack.mjs pr-state <pr> --wait 540` as a background command, so your harness wakes you when it exits.
+It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
+On `WAITING`, run it again; a review bot can take half an hour.
+On any other verdict, read new review comments with `gh pr view <url> --comments` and act per the babysit playbook.
+Never poll with a sleep loop of your own.
 
 ### After the merge
 

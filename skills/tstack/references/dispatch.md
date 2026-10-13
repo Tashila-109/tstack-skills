@@ -17,7 +17,7 @@ If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
 | report | a coordinator's lead | Send the coordinator a message without interrupting it. |
 | notify | lead | Send another task's lead a message without interrupting it, such as a hold before a plan amendment or the granted change after it. Find its thread or agent in that task's `lead.txt`, or ask the human. Start the message with `from <your task id> lead:`. |
 | decide | lead | Write a decision file and put it to the human, as [decisions.md](decisions.md) says. |
-| watch-pr | lead | Get woken when the PR's checks finish, someone comments, or it conflicts. |
+| watch-pr | lead | Wait for the PR's next verdict from `tstack.mjs pr-state`, which reads checks, review threads, conflicts and the base, without a sleep loop of your own. |
 | hold | coordinator | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for the coordinator's release. A lead the human talks to is held by the human's own stop. |
 
 ### The launch block
@@ -83,7 +83,7 @@ Read their Cursor terms this way:
 | The text says | Do |
 | --- | --- |
 | Spawn a `Task` subagent, `subagent_type: generalPurpose`, with a `model` for a role | delegate on that role's seats from the models file, with [worker-preamble.md](worker-preamble.md). |
-| `subagent_type: "Comment Sicko"` | delegate on the `comment sicko` role, with the brief set to [the no-comments skill's Comment Sicko prompt](../../no-comments/references/comment-sicko.md) plus the scope. |
+| `subagent_type: "comment-sicko"` | delegate on the `comment sicko` role, with the brief set to [the no-comments skill's Comment Sicko prompt](../../no-comments/references/comment-sicko.md) plus the scope. |
 | `readonly: true` | Say "read-only: change no files" in the worker brief. |
 | `run_in_background: true`, `environment: "cloud"`, `cloud_base_branch` | Ignore. Workers run on this machine, and delegate never blocks. |
 | A role default such as `claude-opus-5-5-max`, used when the rule line is missing | Ignore. A missing line is a refusal, per Seats. |
@@ -125,6 +125,9 @@ You own every worker's work.
 Review the diff yourself and write your own summary.
 Do not pass on what the worker said.
 A second opinion is the same brief on a different model, and agreement is high signal.
+
+`tstack.mjs check` refuses a task while a brief under `briefs/` has no result with a verdict line.
+A worker you cancel, or a brief you never sent, still gets a result: `FAILED <why it never finished>`.
 
 Give new work to a fresh worker with consolidated scope: the original brief, every later direction, and the previous result.
 Continue an existing worker only when the work needs state that worker alone holds, such as uncommitted changes or a process it still runs.

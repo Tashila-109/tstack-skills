@@ -6,6 +6,7 @@
 //   node tstack.mjs check <id> [--through <step>]
 //   node tstack.mjs seat <role> --runtime t3|herdr [--cross <model>]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
+//   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
 //   node tstack.mjs exclude [--project-skills]
 //   node tstack.mjs link-skills <worktree>
 //
@@ -26,6 +27,7 @@ const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const REVIEW_ROUNDS = 3;
+const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
 const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
 
@@ -225,6 +227,7 @@ export function check(home, id, through) {
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 	}
+	if (through === undefined) problems.push(...workerGaps(taskDir));
 	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
@@ -235,6 +238,18 @@ function proofGaps(taskDir, text) {
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
 	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
+}
+
+function workerGaps(taskDir) {
+	const briefs = join(taskDir, "briefs");
+	if (!existsSync(briefs)) return [];
+	return readdirSync(briefs)
+		.filter((name) => name.endsWith(".md"))
+		.filter((name) => {
+			const result = join(taskDir, "results", name);
+			return !(existsSync(result) && VERDICT.test(readFileSync(result, "utf8")));
+		})
+		.map((name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`);
 }
 
 function reviewCapGaps(taskDir) {
@@ -293,15 +308,28 @@ function hasContent(path) {
 
 export function parseModels(text) {
 	const lines = new Map();
-	for (const raw of text.split("\n")) {
+	for (const [i, raw] of text.split("\n").entries()) {
 		const line = raw.trim();
 		if (!line || line.startsWith("#")) continue;
 		const at = line.indexOf(":");
-		if (at < 1) continue;
+		if (at < 1 || !line.slice(at + 1).trim()) throw new Refusal(`models file line ${i + 1} is not "role: seats": ${line}`);
 		const value = line.slice(at + 1).trim();
-		for (const key of line.slice(0, at).split(",")) lines.set(key.trim().toLowerCase(), value);
+		for (const raw of line.slice(0, at).split(",")) {
+			const key = raw.trim().toLowerCase();
+			if (lines.has(key)) throw new Refusal(`models file names role "${key}" twice, again on line ${i + 1}`);
+			lines.set(key, value);
+		}
 	}
 	return lines;
+}
+
+const PANELS = new Set(["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"]);
+
+function templateRoles() {
+	const path = join(SKILL_DIR, "..", "tstack-setup", "SKILL.md");
+	if (!existsSync(path)) return undefined;
+	const block = readFileSync(path, "utf8").match(/```text\n(# tstack models[\s\S]*?)```/)?.[1];
+	return block ? new Set([...parseModels(block).keys()].filter((k) => k !== "t3 instances")) : undefined;
 }
 
 const HERDR = {
@@ -371,26 +399,39 @@ export function seat(models, role, runtime, cross) {
 	});
 }
 
-export function checkSeats(models, caps) {
-	const providers = new Map((caps.providers ?? []).filter((p) => p.canRunChildTask).map((p) => [p.providerInstanceId, p]));
+export function checkSeats(models, caps, roles = templateRoles()) {
+	const providers = new Map((caps.providers ?? []).map((p) => [p.providerInstanceId, p]));
 	const problems = new Set();
 	const checked = new Set();
+	for (const role of roles ?? []) if (!models.has(role)) problems.add(`no line for role "${role}"; every role needs one`);
 	for (const role of models.keys()) {
 		if (role === "t3 instances" || role.startsWith("herdr args")) continue;
-		for (const s of seat(models, role, "t3")) {
-			if (s.inherit) continue;
+		if (roles && !roles.has(role) && !(role.startsWith("lead ") && existsSync(join(SKILL_DIR, "playbooks", `${role.slice(5)}.md`))))
+			problems.add(`unknown role "${role}"; check its spelling against the tstack-setup template`);
+		const seats = seat(models, role, "t3");
+		const real = seats.filter((s) => !s.inherit);
+		if (new Set(real.map((s) => JSON.stringify(s))).size < real.length) problems.add(`${role}: the same seat is listed twice`);
+		if (PANELS.has(role) && new Set(real.map((s) => family(s.model))).size < 2)
+			problems.add(`${role}: a panel needs seats from at least two model families, and inherit does not count`);
+		for (const s of real) {
 			checked.add(JSON.stringify(s));
 			const where = `${role}: ${s.providerInstanceId} ${s.model}`;
 			const provider = providers.get(s.providerInstanceId);
 			const model = provider?.models?.find((m) => m.id === s.model);
-			if (!provider) problems.add(`${where}: instance ${s.providerInstanceId} cannot run child tasks here`);
+			const why = provider?.constraints?.length ? ` (${provider.constraints.join(" ")})` : "";
+			if (!provider) problems.add(`${where}: no instance ${s.providerInstanceId} in this T3`);
+			else if (!provider.canRunChildTask) problems.add(`${where}: instance ${s.providerInstanceId} cannot run child tasks here${why}`);
+			else if (provider.canRunCrossProviderChildTask === false)
+				problems.add(`${where}: instance ${s.providerInstanceId} cannot run a child for a parent on another provider${why}`);
 			else if (!model) {
 				const near = (provider.models ?? []).filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
 				problems.add(`${where}: model not advertised${near.length ? `; advertised as ${near.join(" or ")}` : ""}`);
 			} else
 				for (const o of s.options ?? []) {
-					const values = model.options?.find((x) => x.id === o.id)?.options?.map((v) => v.id) ?? [];
-					if (!values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
+					const option = model.options?.find((x) => x.id === o.id);
+					const values = option?.options?.map((v) => v.id) ?? [];
+					if (option?.type === "boolean") problems.add(`${where}: ${o.id} is an on/off option, so drop the @${o.value} effort`);
+					else if (!values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
 				}
 		}
 	}
@@ -407,6 +448,68 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 		merged.set(k, v);
 	}
 	return merged;
+}
+
+const SETTLE_MS = 10 * 60 * 1000;
+const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"]);
+const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
+  state isDraft mergeable mergeStateStatus reviewDecision headRefOid
+  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { nodes {
+    __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
+  reviewThreads(first: 100) { nodes { isResolved isOutdated } }
+  comments(last: 1) { nodes { createdAt } }
+  reviews(last: 1) { nodes { submittedAt } }
+} } }`;
+
+// One verdict for a PR from GitHub's own state. WAITING means nothing is wrong yet but it is not ready.
+export function prVerdict(pr, now = Date.now()) {
+	const head = pr.headRefOid?.slice(0, 12) ?? "unknown";
+	const say = (verdict, reason) => `${verdict}${reason ? ` ${reason}` : ""} (head ${head})`;
+	if (pr.state === "MERGED") return say("MERGED");
+	if (pr.state === "CLOSED") return say("CLOSED", "closed without merging");
+	if (pr.isDraft) return say("BLOCKER", "draft: mark it ready");
+	if (pr.mergeable === "CONFLICTING") return say("BLOCKER", "conflicts: merge the base branch in");
+	const commit = pr.commits?.nodes?.[0]?.commit;
+	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
+		c.__typename === "StatusContext"
+			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
+			: { name: c.name, failed: FAILED_RUN.has(c.conclusion), pending: c.status !== "COMPLETED" },
+	);
+	const failed = checks.filter((c) => c.failed).map((c) => c.name);
+	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
+	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved && !t.isOutdated).length;
+	if (open) return say("BLOCKER", `review-threads: ${open} unresolved`);
+	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
+	const pending = checks.filter((c) => c.pending).map((c) => c.name);
+	if (pending.length) return say("WAITING", `checks: ${pending.join(", ")}`);
+	const latest = Math.max(
+		...[commit?.committedDate, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
+	);
+	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment or review was ${Math.round((now - latest) / 1000)}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
+	if (pr.mergeStateStatus === "BEHIND") return say("BLOCKER", "behind-base: merge the base branch in");
+	if (pr.reviewDecision === "REVIEW_REQUIRED") return say("WAITING", "review-required: a human must review");
+	if (pr.mergeStateStatus === "BLOCKED") return say("BLOCKER", "merge-blocked: a branch rule GitHub does not name blocks the merge");
+	if (!checks.length) return say("READY", "ci-none: no checks reported; trust it only when a second run on the same head agrees");
+	return say("READY");
+}
+
+export function prState(number, waitSeconds = 0) {
+	if (!/^\d+$/.test(String(number))) throw new Usage(`pr-state takes a PR number: ${number}`);
+	if (!(waitSeconds >= 0 && waitSeconds <= 540)) throw new Usage("--wait must be 0 to 540 seconds, under the 600-second tool cap");
+	const deadline = Date.now() + waitSeconds * 1000;
+	for (;;) {
+		let raw;
+		try {
+			raw = execFileSync("gh", ["api", "graphql", "-F", "owner={owner}", "-F", "repo={repo}", "-F", `n=${number}`, "-f", `query=${PR_QUERY}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+		} catch (err) {
+			throw new Refusal(`gh could not read PR ${number}: ${String(err.stderr ?? err.message).trim()}`);
+		}
+		const body = JSON.parse(raw);
+		if (body.errors?.length || !body.data?.repository?.pullRequest) throw new Refusal(`gh could not read PR ${number}: ${JSON.stringify(body.errors ?? body)}`);
+		const verdict = prVerdict(body.data.repository.pullRequest);
+		if (!verdict.startsWith("WAITING") || Date.now() + 60_000 > deadline) return verdict;
+		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 60_000);
+	}
 }
 
 const BOOLEAN_FLAGS = new Set(["--project-skills"]);
@@ -447,13 +550,16 @@ export function main(argv) {
 			const caps = JSON.parse(readFileSync(f._[0], "utf8"));
 			return checkSeats(loadModels(taskHome()), Array.isArray(caps) ? JSON.parse(caps[0].text) : caps);
 		}
+		case "pr-state":
+			if (f._.length !== 1) throw new Usage("pr-state takes one PR number");
+			return prState(f._[0], f.wait === undefined ? 0 : Number(f.wait));
 		case "exclude":
 			return exclude(process.cwd(), f["project-skills"] === true);
 		case "link-skills":
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, seat, check-seats, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, seat, check-seats, pr-state, exclude, link-skills");
 	}
 }
 
