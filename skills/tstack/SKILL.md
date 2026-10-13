@@ -167,7 +167,7 @@ A worker applies the ones that need no delegation and names the rest in its resu
 - Parallel fan-out → the **swarm** skill for coverage matrices, races, gauntlets, and exploration partitions. Use **arena** for design or code bakeoffs with base selection and grafting.
 - Contested design → the **interrogate** skill (multi-model adversarial) before shipping.
 - Nontrivial multi-step → write the throughput checkpoint (Feature step 3).
-- Any prose surface → the **unslop** skill. Your reply is a prose surface. Write it per **Writing the reply**. Agent-facing prose also follows the authoring-a-skill playbook.
+- Any prose surface, your reply to the human included → the **unslop** skill. Write the reply per **Writing the reply**. Agent-facing prose also follows the authoring-a-skill playbook.
 - Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill.
 - Before commit → `ponytail-review` when the ponytail plugin is installed. Otherwise remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits yourself.
 - Before review → the **no-comments** skill.

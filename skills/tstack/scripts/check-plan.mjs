@@ -73,12 +73,16 @@ let fence;
 for (let i = start; i < raw.length; i++) {
 	const text = raw[i];
 	const n = i + 1;
-	const marker = text.match(/^\s*(`{3,}|~{3,})/);
-	if (marker) {
+	const opens = !fence && text.match(/^\s*(`{3,}|~{3,})(.*)$/);
+	const closes = fence && text.match(/^\s*(`+|~+)[ \t]*$/);
+	if (opens && !(opens[1][0] === "`" && opens[2].includes("`"))) {
 		lines.push({ n, text, code: true });
-		if (!fence) fence = marker[1];
-		else if (marker[1][0] === fence[0] && marker[1].length >= fence.length)
-			fence = undefined;
+		fence = opens[1];
+		continue;
+	}
+	if (closes && closes[1][0] === fence[0] && closes[1].length >= fence.length) {
+		lines.push({ n, text, code: true });
+		fence = undefined;
 		continue;
 	}
 	lines.push({ n, text, code: !!fence });

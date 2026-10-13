@@ -96,6 +96,8 @@ That reranking is what the separation exists to prevent.
 Decide each finding under [decisions](../tstack/references/decisions.md#what-a-lead-decides-alone).
 The scope counts as reviewed only when no accepted Must remains.
 Only an accepted Must gets a repair and another review: the repair makes a new head, and a new head needs a fresh review on both axes.
+Round 1 reviews the whole scope.
+Each later round of a `code` review reviews the repair diff, `git diff <previous head>..<new head>`, plus the previous round's accepted Musts, because round 1 already covered the rest.
 A repair brief lists only the blocking findings.
 The lead may write a repair itself, red first, when the next review round covers it.
 First implementation still goes to a worker.
@@ -105,6 +107,11 @@ For each test it replaces, deletes, or loosens, it names the refusal or behavior
 A refusal or behavior left with no test gets a new test in the same repair.
 A worker repair's brief asks for the suite result and that list in the worker's result.
 The lead copies the list into the aggregate and into the next round's spec brief, so the spec reviewer checks each entry.
+After each repair of a `code` scope, and before the next round, run the new head on its real surface.
+Delegate it on the `verify` seat, named `verify-<label>-<round>`, with the project's `verify-*` skill or the runtime's surface tools, or run it yourself when the check is one command.
+Record `pass`, `fail` or `could not run` in the aggregate with the evidence path.
+`fail` blocks like an accepted Must.
+`could not run` is not a pass and starts no repair: tell the human.
 A Should or Could never opens a repair or a review round on its own.
 Wording in an architecture or design document is a Should unless it contradicts what the code does.
 Record each one in the aggregate with the reason it stays, or fix it only when the fix is trivial and the lead is writing a Must's repair itself.

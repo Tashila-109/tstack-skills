@@ -83,7 +83,7 @@ Read their Cursor terms this way:
 | The text says | Do |
 | --- | --- |
 | Spawn a `Task` subagent, `subagent_type: generalPurpose`, with a `model` for a role | delegate on that role's seats from the models file, with [worker-preamble.md](worker-preamble.md). |
-| `subagent_type: "Comment Sicko"` | delegate on the `comment sicko` role, with the brief set to [the no-comments skill's Comment Sicko prompt](../../no-comments/references/comment-sicko.md) plus the scope. |
+| `subagent_type: "comment-sicko"` | delegate on the `comment sicko` role, with the brief set to [the no-comments skill's Comment Sicko prompt](../../no-comments/references/comment-sicko.md) plus the scope. |
 | `readonly: true` | Say "read-only: change no files" in the worker brief. |
 | `run_in_background: true`, `environment: "cloud"`, `cloud_base_branch` | Ignore. Workers run on this machine, and delegate never blocks. |
 | A role default such as `claude-opus-5-5-max`, used when the rule line is missing | Ignore. A missing line is a refusal, per Seats. |
