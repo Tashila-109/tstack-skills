@@ -85,7 +85,7 @@ These hold for every role, whatever a playbook says.
 8. Check your checkout.
    A scout runs in any checkout.
    A ship task runs in its own worktree, so when `git rev-parse --git-dir` and `git rev-parse --git-common-dir` print the same path, you are in the primary checkout.
-   Then move the task: run launch-lead for it as the runtime reference says, tell the human where the new lead is, and stop working in this thread.
+   Then move the task out of the primary checkout as the runtime reference says: on T3 this thread moves into the task's worktree, and on Herdr a new lead starts there.
 9. Tell the human in one line which playbook runs the task, its finish, and its delivery, then follow [Lead](#lead).
 
 ## Lead

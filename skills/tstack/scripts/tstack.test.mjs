@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
 const PLAYBOOK = `### Sample
 
@@ -379,4 +379,27 @@ test("check refuses a hashed document that changed after its latest grant, and a
 	assert.equal(check(home, "plan"), "ok plan: 1 required file present");
 	writeFileSync(spec, "s2\n");
 	assert.throws(() => check(home, "plan"), /evidence\/check-plan\.md checked an older/);
+});
+
+test("pr-state turns GitHub's state into one verdict, waiting for checks and review bots to settle", () => {
+	const now = Date.parse("2026-10-14T12:00:00Z");
+	const old = "2026-10-14T11:00:00Z";
+	const run = (name, status, conclusion) => ({ __typename: "CheckRun", name, status, conclusion });
+	const pr = (over = {}, checks = [run("test", "COMPLETED", "SUCCESS")]) => ({
+		state: "OPEN", isDraft: false, mergeable: "MERGEABLE", mergeStateStatus: "CLEAN", reviewDecision: null, headRefOid: "abcdef1234567890",
+		commits: { nodes: [{ commit: { committedDate: old, statusCheckRollup: { contexts: { nodes: checks } } } }] },
+		reviewThreads: { nodes: [] }, comments: { nodes: [] }, reviews: { nodes: [] }, ...over,
+	});
+	assert.equal(prVerdict(pr(), now), "READY (head abcdef123456)");
+	assert.equal(prVerdict(pr({ state: "MERGED" }), now), "MERGED (head abcdef123456)");
+	assert.match(prVerdict(pr({ mergeable: "CONFLICTING" }), now), /^BLOCKER conflicts/);
+	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE"), run("test", "IN_PROGRESS", null)]), now), /^BLOCKER failing-checks: lint/);
+	assert.match(prVerdict(pr({}, [run("test", "IN_PROGRESS", null)]), now), /^WAITING checks: test/);
+	assert.match(prVerdict(pr({}, [{ __typename: "StatusContext", context: "ci/legacy", state: "PENDING" }]), now), /^WAITING checks: ci\/legacy/);
+	assert.match(prVerdict(pr({ reviewThreads: { nodes: [{ isResolved: false, isOutdated: false }, { isResolved: false, isOutdated: true }] } }), now), /^BLOCKER review-threads: 1 unresolved/);
+	assert.match(prVerdict(pr({ reviews: { nodes: [{ submittedAt: "2026-10-14T11:57:00Z" }] } }), now), /^WAITING settle: .*180s ago/);
+	assert.match(prVerdict(pr({ mergeStateStatus: "BEHIND" }), now), /^BLOCKER behind-base/);
+	assert.match(prVerdict(pr({ reviewDecision: "REVIEW_REQUIRED", mergeStateStatus: "BLOCKED" }), now), /^WAITING review-required/);
+	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }), now), /^BLOCKER merge-blocked/);
+	assert.match(prVerdict(pr({}, []), now), /^READY ci-none/);
 });

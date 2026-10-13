@@ -6,6 +6,7 @@
 //   node tstack.mjs check <id> [--through <step>]
 //   node tstack.mjs seat <role> --runtime t3|herdr [--cross <model>]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
+//   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
 //   node tstack.mjs exclude [--project-skills]
 //   node tstack.mjs link-skills <worktree>
 //
@@ -449,6 +450,68 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 	return merged;
 }
 
+const SETTLE_MS = 10 * 60 * 1000;
+const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"]);
+const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
+  state isDraft mergeable mergeStateStatus reviewDecision headRefOid
+  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { nodes {
+    __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
+  reviewThreads(first: 100) { nodes { isResolved isOutdated } }
+  comments(last: 1) { nodes { createdAt } }
+  reviews(last: 1) { nodes { submittedAt } }
+} } }`;
+
+// One verdict for a PR from GitHub's own state. WAITING means nothing is wrong yet but it is not ready.
+export function prVerdict(pr, now = Date.now()) {
+	const head = pr.headRefOid?.slice(0, 12) ?? "unknown";
+	const say = (verdict, reason) => `${verdict}${reason ? ` ${reason}` : ""} (head ${head})`;
+	if (pr.state === "MERGED") return say("MERGED");
+	if (pr.state === "CLOSED") return say("CLOSED", "closed without merging");
+	if (pr.isDraft) return say("BLOCKER", "draft: mark it ready");
+	if (pr.mergeable === "CONFLICTING") return say("BLOCKER", "conflicts: merge the base branch in");
+	const commit = pr.commits?.nodes?.[0]?.commit;
+	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
+		c.__typename === "StatusContext"
+			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
+			: { name: c.name, failed: FAILED_RUN.has(c.conclusion), pending: c.status !== "COMPLETED" },
+	);
+	const failed = checks.filter((c) => c.failed).map((c) => c.name);
+	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
+	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved && !t.isOutdated).length;
+	if (open) return say("BLOCKER", `review-threads: ${open} unresolved`);
+	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
+	const pending = checks.filter((c) => c.pending).map((c) => c.name);
+	if (pending.length) return say("WAITING", `checks: ${pending.join(", ")}`);
+	const latest = Math.max(
+		...[commit?.committedDate, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
+	);
+	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment or review was ${Math.round((now - latest) / 1000)}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
+	if (pr.mergeStateStatus === "BEHIND") return say("BLOCKER", "behind-base: merge the base branch in");
+	if (pr.reviewDecision === "REVIEW_REQUIRED") return say("WAITING", "review-required: a human must review");
+	if (pr.mergeStateStatus === "BLOCKED") return say("BLOCKER", "merge-blocked: a branch rule GitHub does not name blocks the merge");
+	if (!checks.length) return say("READY", "ci-none: no checks reported; trust it only when a second run on the same head agrees");
+	return say("READY");
+}
+
+export function prState(number, waitSeconds = 0) {
+	if (!/^\d+$/.test(String(number))) throw new Usage(`pr-state takes a PR number: ${number}`);
+	if (!(waitSeconds >= 0 && waitSeconds <= 540)) throw new Usage("--wait must be 0 to 540 seconds, under the 600-second tool cap");
+	const deadline = Date.now() + waitSeconds * 1000;
+	for (;;) {
+		let raw;
+		try {
+			raw = execFileSync("gh", ["api", "graphql", "-F", "owner={owner}", "-F", "repo={repo}", "-F", `n=${number}`, "-f", `query=${PR_QUERY}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+		} catch (err) {
+			throw new Refusal(`gh could not read PR ${number}: ${String(err.stderr ?? err.message).trim()}`);
+		}
+		const body = JSON.parse(raw);
+		if (body.errors?.length || !body.data?.repository?.pullRequest) throw new Refusal(`gh could not read PR ${number}: ${JSON.stringify(body.errors ?? body)}`);
+		const verdict = prVerdict(body.data.repository.pullRequest);
+		if (!verdict.startsWith("WAITING") || Date.now() + 60_000 > deadline) return verdict;
+		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 60_000);
+	}
+}
+
 const BOOLEAN_FLAGS = new Set(["--project-skills"]);
 
 function flags(args) {
@@ -487,13 +550,16 @@ export function main(argv) {
 			const caps = JSON.parse(readFileSync(f._[0], "utf8"));
 			return checkSeats(loadModels(taskHome()), Array.isArray(caps) ? JSON.parse(caps[0].text) : caps);
 		}
+		case "pr-state":
+			if (f._.length !== 1) throw new Usage("pr-state takes one PR number");
+			return prState(f._[0], f.wait === undefined ? 0 : Number(f.wait));
 		case "exclude":
 			return exclude(process.cwd(), f["project-skills"] === true);
 		case "link-skills":
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, seat, check-seats, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, seat, check-seats, pr-state, exclude, link-skills");
 	}
 }
 
