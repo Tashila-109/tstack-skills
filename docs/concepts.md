@@ -13,13 +13,8 @@ It then runs the task in its own Git worktree and hands scoped jobs to workers.
 Your list of threads or tabs is your task list.
 T3's sidebar and Herdr's tabs show every task, so tstack keeps no backlog of its own.
 
-Each role has a job and a list of things it never does.
-
-| Role | Owns | Never |
-| --- | --- | --- |
-| Lead | One task: intake, its playbook, worktree, branch, commits, PR, worker briefs, decisions with you, the merge on your word, cleanup, its lessons | A second task, writing under `.tstack/` outside its task folder except `learnings.md` and `grants.md` |
-| Coordinator | An autopilot program: its queue, launching a lead per item, relaying decisions, audits, merges under your grant | Editing project files, running a task's playbook, delegating workers, deciding for you |
-| Worker | Its brief's scope, its evidence, its result file | Git writes, starting tstack agents, addressing you |
+There are three roles: the lead, a coordinator, and workers.
+The router's [Roles](../skills/tstack/SKILL.md#roles) table says what each owns and never does.
 
 Only the two autopilot programs use a coordinator.
 Their leads report to it instead of to you, and the coordinator talks to you.
@@ -31,22 +26,8 @@ A worker that needs help uses its own harness's subagents, which stay inside its
 
 ## The rules
 
-These hold for every role, whatever a playbook says:
-
-1. Project files change only in a task's own worktree.
-   The primary checkout changes only under `.tstack/`, through `tstack.mjs exclude` and `link-skills`, and through the Git commands for creating a task's worktree, merging, and cleaning up on your word.
-2. Merging, discarding work, and anything destructive, irreversible or security-sensitive happen only on your explicit word for that action.
-   A standing merge grant, which a lead or coordinator writes to `.tstack/grants.md` only from your own words, counts as that word for the merges it covers.
-3. Unlanded work is never torn down.
-   When Git refuses to remove a worktree, that is a finding to look at, never an obstacle to force past.
-4. A lead talks to you in its own thread.
-   A lead that a coordinator launched talks to the coordinator instead.
-   Workers never talk to you.
-   When you type into a worker's thread, or a coordinator's lead's thread, that agent follows you and says so in its next report.
-5. Evidence is not authorization.
-   A diagnosis or a recommendation authorizes nothing by itself.
-6. Outcomes are reported faithfully, with the evidence, including failures.
-7. Scripts own facts, and agents own judgment.
+A short list of rules holds for every role, whatever a playbook says: project files change only in a task's worktree, nothing irreversible happens without your word or a grant, unlanded work is never torn down, and evidence is not authorization.
+The router's [Rules](../skills/tstack/SKILL.md#rules) section owns the exact wording.
 
 ## Why every step leaves a file
 

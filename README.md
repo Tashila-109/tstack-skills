@@ -60,7 +60,16 @@ $tstack users see "Hello, undefined" when they pass a name. Repro first, then fi
 Not sure which skill or playbook fits? Run `tstack-help`.
 
 - [Getting started](docs/getting-started.md): install, set up a scratch project, and run one task end to end on T3 and on Herdr.
-- [The guide](docs/guide/01-route-work.md): how to start a task, then understanding, design, building, verifying, running while away, and planning across phases.
+- The guide:
+  [start a task](docs/guide/01-route-work.md),
+  [understand the code](docs/guide/02-understand.md),
+  [design](docs/guide/03-design.md),
+  [build and clean up](docs/guide/04-build-and-clean.md),
+  [verify and ship](docs/guide/05-verify-and-ship.md),
+  [run while away](docs/guide/06-run-while-away.md),
+  [steer by principle](docs/guide/07-principles.md),
+  [plan across phases](docs/guide/08-plan-across-phases.md), and
+  [recipes and pitfalls](docs/guide/09-recipes-and-pitfalls.md).
 - [Concepts](docs/concepts.md) and [Reference](docs/reference.md): why the workflow works this way, and its files, commands, models file and skill list.
 - [T3 Code](docs/runtimes/t3.md) and [Herdr](docs/runtimes/herdr.md): what each runtime shows you, where a task starts, and how to check on a lead.
 - [Migrating from tstackv2](docs/migrating-from-tstackv2.md): move a project tstackv2 set up onto tstack-skills.
