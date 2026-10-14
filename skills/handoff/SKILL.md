@@ -67,9 +67,8 @@ Workers never hand off: each gets a fresh context per brief, and unfinished work
 
 ## Relaunching a lead
 
-Start a fresh lead on the same worktree and branch, once the old lead's turn has ended or, for your own handoff, as your last action:
-- on T3, call `t3_thread_launch` with `workspaceStrategy: { "type": "existing_worktree", "worktreePath": "<the lead's worktree>", "branch": "<its task branch>" }`, the lead's seat, and the launch block;
-- on Herdr, open a new tab on the same worktree and start the lead there, as the Herdr runtime's launch-lead says from step 3, under a new agent name such as `<id>-lead-2`.
+Start a fresh lead on the same worktree and branch, once the old lead's turn has ended or, for your own handoff, as your last action.
+Use the runtime's launch-lead for a handoff: [T3](../tstack/references/runtime-t3.md#launch-lead) or [Herdr](../tstack/references/runtime-herdr.md#launch-lead).
 
 `git worktree list` shows the worktree and its branch.
 Add one line under the launch block: `Pick up from <path to the handoff file>, following the session-pickup playbook.`

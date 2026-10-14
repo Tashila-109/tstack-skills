@@ -85,7 +85,7 @@ Historical data showed humans sometimes dismiss security/data-flow comments. Tre
 
 ## Candidate learnings from recent babysits
 
-Append new candidate learnings here during or after babysitting when they look team-useful but not yet mature. Prefer promoting recurring candidates into the section above once several PRs confirm the pattern.
+Append new candidate learnings here during or after babysitting when they look team-useful but not yet mature. In tstack this file is part of the installed skill, so a lead writes them to `<home>/learnings.md` instead. Prefer promoting recurring candidates into the section above once several PRs confirm the pattern.
 
 ### Manual reimplementations of native browser behavior
 

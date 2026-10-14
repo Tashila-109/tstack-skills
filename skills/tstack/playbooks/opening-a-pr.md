@@ -17,14 +17,14 @@ Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed he
   Nothing writes in the checkout until the reviewer is collected.
 - Run `tstack.mjs seat review --runtime <runtime> --cross <your model ID>`.
   It prints the first `review` seat outside your model's family, so a Claude lead gets a GPT reviewer and a GPT lead gets a Claude reviewer.
-- Write the brief to `evidence/reviews/final-brief.md`: the checkout, the base and head SHAs with the `git diff <base>...<head>` command, the task's goal and finish as the spec, `AGENTS.md` and what it points at as the standards, and the line `Read <two-axis-review directory>/REVIEWER.md and review both axes.`, with the directory as an absolute path.
+- Write the brief to `briefs/review-final.md`: the checkout, the base and head SHAs with the `git diff <base>...<head>` command, the task's goal and finish as the spec, `AGENTS.md` and what it points at as the standards, and the line `Read <two-axis-review directory>/REVIEWER.md and review both axes.`, with the directory as an absolute path.
 - Delegate one read-only worker on that seat, named `review-final`, with its result at `results/review-final.md`, as [dispatch](../references/dispatch.md) says.
 - Decide each finding as [two-axis-review's step 7](../../two-axis-review/SKILL.md#7-act-on-the-findings) says, with this one reviewer in place of the two axes.
   A repair makes a new head, and the new head gets a fresh review.
 - Write `evidence/reviews/final.md`: the reviewed head, the reviewer's seat and result path, its report, and your decision on each finding.
   The review is done when the recorded head is `HEAD` and no accepted Must is open.
 
-**Worktree.** Work from the task's worktree off main. Workers share it. Two writers on the same branch each get their own checkout through the runtime reference. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
+**Worktree.** Work from the task's worktree off main. Workers share it. Two writers on the same branch each get their own checkout through the runtime reference. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: start a fresh worktree off main and redo minimally, keeping the old branch until its work lands or the human drops it.
 
 **Commits.** Commit liberally. Rebase into small, ordered commits before opening PRs. Each commit is a future PR: landable, ordered to tell the story. Amend when the fix belongs in a just-made commit. New commit when separable. Commit bodies don't restate the subject.
 
@@ -45,11 +45,11 @@ After the sections, attach videos or screenshots when they prove a claim. Full S
 
 **Forge.** Use the GitHub CLI, `gh`, for create, edit, view, watch, and merge. Do not require Graphite (`gt`).
 
-**Built-in PR tool.** When the run provides a built-in PR tool, create, edit, retarget, and mark ready through it, never through a forge CLI. A CLI-made PR misses what the tool tracks. Use the resolved forge for everything the tool does not cover, and for every PR operation when the run has no such tool.
+**PR tool.** Create, edit, retarget, and mark ready with `gh`, then link the PR to the thread as the runtime reference says, so the runtime tracks it.
 
-**Size and stacks.** Prefer five narrow PRs to one large PR. A stack is a base-branch chain. The root PR targets trunk. Each child branch rebases onto its parent's exact tip and its PR targets the parent branch. Without a built-in PR tool, create a child with `gh pr create --base <parent-branch>`, and retarget an existing child with `gh pr edit <pr> --base <parent-branch>`. Branch from trunk only for independent work. Rebase on trunk before substantial stack work.
+**Size and stacks.** Prefer five narrow PRs to one large PR. In tstack a task delivers one PR, so split a large change into several tasks, stacked under [Autopilot-stack](autopilot-stack.md) when they are coupled. A stack is a base-branch chain. The root PR targets trunk. Each child branch starts from its parent's tip and its PR targets the parent branch. Create a child with `gh pr create --base <parent-branch>`, and retarget an existing child with `gh pr edit <pr> --base <parent-branch>`. Branch from trunk only for independent work. Bring trunk and each parent in by merge, never by rebase, since a rebased pushed branch needs a force-push.
 
-**Readiness.** Open every PR ready, never as a draft. A built-in PR tool can default to draft, so set `draft: false` on every creation call through it. With `gh`, omit `--draft`. If a PR still opens as a draft, mark it ready through the PR tool, or run `gh pr ready <number>`. Run `gh pr view <number>` before you refer to PR status.
+**Readiness.** Open every PR ready, never as a draft: omit `--draft`. If a PR still opens as a draft, run `gh pr ready <number>`. Run `gh pr view <number>` before you refer to PR status.
 
 **Babysit.** In tstack a task delivers one PR, and the `pr` delivery line above says when its lead babysits it. Push back when feedback drifts from intent.
 

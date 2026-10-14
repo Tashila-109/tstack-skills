@@ -104,7 +104,7 @@ These hold for every role, whatever a playbook says.
    With `pr` delivery, push and open the PR per the playbook.
 6. Decide what you may decide alone, and put the rest to the human as a decision, as [references/decisions.md](references/decisions.md) says.
    A tool approval on screen is the human's: never answer it, and tell the human where a worker's approval waits.
-7. When the human stops you, stop your running workers as the runtime reference's collect says, and make no commits, pushes or new workers until the human tells you to go on.
+7. When the human stops you, stop your running workers as the runtime reference's collect says, delete your heartbeat if you armed one, and make no commits, pushes or new workers until the human tells you to go on.
 8. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id>` until it passes, then follow [Finish](#finish).
 
 The report opens with who the work is for and what changes for them, then what the next maintainer inherits.
@@ -264,8 +264,8 @@ Take the first row that fits, because rows run from the most specific request to
 | --- | --- | --- |
 | A read-only question: how does X work, why was Y built this way, are we sure about Z, should we do X or Y. Brief it as a scout. | `investigation` | Adapted |
 | A read-only sweep that ranks spreading anti-patterns and proposes the strongest fix for each. Brief it as a scout. | `gardener` | Adapted |
-| A runtime symptom (leak, idle-CPU spin, glitch) to diagnose from live instrumentation. The deliverable is a diagnosis, not a fix. | `runtime-forensics` | As written |
-| A captured profiling artifact (cpuprofile, trace, spindump, heap snapshot) to diagnose after the fact. | `trace-forensics` | As written |
+| A runtime symptom (leak, idle-CPU spin, glitch) to diagnose from live instrumentation. The deliverable is a diagnosis, not a fix. Brief it as a scout. | `runtime-forensics` | As written |
+| A captured profiling artifact (cpuprofile, trace, spindump, heap snapshot) to diagnose after the fact. Brief it as a scout. | `trace-forensics` | As written |
 | A throwaway sketch that settles a design or behavior question by observing it ("prototype", "mock it up", "sketch it to decide"). | `prototype` | As written |
 | Pixel-exact UI equivalence: matching two implementations or migrating a styling system. | `visual-parity` | As written |
 | Testing how a skill, structure, or prompt change affects agent behavior before promoting it. | `eval` | As written |

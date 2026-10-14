@@ -122,6 +122,7 @@ A one-command unit may collapse the template to a paragraph that still names goa
 ## Results
 
 A worker writes its result once, to the result path its preamble names, normally `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`, as the [worker preamble](worker-preamble.md) says.
+When a skill says a subagent returns its output in its response, such as reflect's reviewers or a swarm worker's report, that output goes in the worker's result file: on T3 you get back only its final line.
 You own every worker's work.
 Review the diff yourself and write your own summary.
 Do not pass on what the worker said.

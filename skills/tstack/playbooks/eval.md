@@ -10,6 +10,7 @@
 - Sanitize directory and slug names. Use project-shaped names a user might pick.
 - Don't tell the candidate other candidates exist.
 - The judge can know it's judging but sees outputs by sanitized label only, never by model name.
+- In a tstack task, a candidate gets no worker preamble, since it names the task and the router: its first message is the organic request alone, in a checkout outside the task home. The lead still writes its `briefs/<name>.md`, and `results/<name>.md` with a verdict line from its output, so `check` holds.
 - Comparing two variants: one judge scores both sets in a single pass on one scale, blind to which set each came from.
 
 **Steps:**

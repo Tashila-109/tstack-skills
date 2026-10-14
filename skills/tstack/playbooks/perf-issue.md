@@ -21,7 +21,8 @@
    Apply the **sequence-verifiable-units** principle skill, verifying each attempt before trying the next.
 4. Parse and compare the artifacts (JSON to sqlite, diff). "Inconclusive" or wrong-surface is not a pass. Flag it.
    Write the before and after comparison, with the one primary number, to `evidence/compare.md`.
-   Artifact: `evidence/compare.md`
+   Then write the proof as [proof](../references/proof.md) says, citing that file.
+   Artifact: `evidence/compare.md`, `evidence/verify.md`
 5. Cite the measurement in the PR.
 6. Run **Opening a PR**.
    Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`

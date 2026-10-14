@@ -44,8 +44,9 @@ Open a todo list for the steps below. Keep skipped steps with a reason.
    Artifact: `evidence/phases.md`
 9. **Close.** Collect every finished worker.
    Check the original finish predicate; only verified work counts.
+   Write the proof for the whole program as [proof](../references/proof.md) says, citing each phase's verify evidence.
    Review the complete integrated branch with `two-axis-review` labelled `final`, then run [Opening a PR](opening-a-pr.md) for the task's delivery mode, loading `technical-writing`.
-   Artifact: `evidence/reviews/final.md`, `results/comment-sicko.md`, `evidence/closing-pass.md`
+   Artifact: `evidence/verify.md`, `evidence/reviews/final.md`, `results/comment-sicko.md`, `evidence/closing-pass.md`
 
 ## Brief
 
