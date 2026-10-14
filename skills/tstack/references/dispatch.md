@@ -102,6 +102,7 @@ Read their Cursor terms this way:
 ## Briefs
 
 The brief is the product: a worker cannot ask you a question.
+Every worker gets its own name, and so does each seat of a panel, such as `arena-runner-1` and `arena-runner-2`, so no two share a brief, a result, or a T3 request key.
 Write each worker brief to `<home>/tasks/<id>/briefs/<name>.md` with these fields, sized to the unit:
 
 ```text
@@ -120,7 +121,7 @@ A one-command unit may collapse the template to a paragraph that still names goa
 
 ## Results
 
-A worker writes its result once, to the result path its preamble names, normally `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`.
+A worker writes its result once, to the result path its preamble names, normally `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`, as the [worker preamble](worker-preamble.md) says.
 You own every worker's work.
 Review the diff yourself and write your own summary.
 Do not pass on what the worker said.
