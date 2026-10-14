@@ -157,10 +157,11 @@ ls ~/tstack-scratch/.tstack/tasks/*/evidence/
 
 You find:
 - `brief.md`: the goal, the finish, and the playbook steps the lead copied into its todo list;
-- `evidence/repro.md`, `mechanism.md`, `fix.md`, `verify.md`, `red-green.md` and `closing-pass.md`: one file per Bug fix step, each read by the step after it;
+- `evidence/repro.md`, `mechanism.md`, `fix.md`, `verify.md`, `red-green.md`, `closing-pass.md` and `reviews/final.md`: the files the Bug fix steps write, each read by the step after it;
+- `results/`: each worker's result, such as `how.md`, `why.md` and `comment-sicko.md`;
 - `report.md`: the lead's final report, with the principles it applied and any lessons for later tasks.
 
-`node ~/.agents/skills/tstack/scripts/tstack.mjs check <task id>` passed on this folder before the lead could report done.
+`node ~/.agents/skills/tstack/scripts/tstack.mjs check <task id> --head <head SHA>` passed on this folder before the lead could report done.
 
 ## Install into one project
 

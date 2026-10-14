@@ -9,7 +9,8 @@ Ask for any of them in a new thread, and the lead briefs a scout task on the Inv
 $tstack how do we dedupe notifications? Is there an N+1 when we look up subscribers?
 ```
 
-The lead runs the skill, writes its output to `evidence/how.md`, and turns it into `report.md`.
+The lead runs `how`, and `why` when you ask why, writes the answer to `evidence/how.md`, and turns it into `report.md`.
+`explain` and `recall` run only when your request names them.
 The lead tells you the findings, not just a notice that the work is done.
 
 ## Start with a read-only investigation
@@ -29,7 +30,7 @@ When the findings point at a fix, start the fix in a new thread.
 ## Trace behavior with how
 
 `how` answers at the level of a senior engineer onboarding you onto the subsystem: the runtime flow, the key types, and the non-obvious parts.
-For a narrow question, it reads and explains directly.
+For a narrow question, it sends one explainer on your `how explainer` seat.
 For a large subsystem, it first sends two to four read-only explorers on your `how explorer` seats, then an explainer on your `how explainer` seat writes one account.
 
 ## Dig up history with why
@@ -80,6 +81,7 @@ $tstack recall my work on the virtualized list from yesterday, then read this bu
 
 ## Why this comes first
 
-The Bug fix, Feature and Refactoring playbooks all start by running `how` over the code they touch, and Bug fix runs `why` too.
-Their first artifact is that traced model, and the design and the fix are built on it.
+The Feature and Refactoring playbooks start by running `how` over the code they touch.
+Bug fix reproduces first, then runs `how` and `why` in its second step.
+The design and the fix are built on that traced model.
 An agent that starts editing without one tends to fix the symptom at the first plausible spot.

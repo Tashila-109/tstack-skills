@@ -44,11 +44,11 @@ Each step that runs a skill writes a file in the task's `evidence/` folder, and 
 
 | Playbook | Files |
 | --- | --- |
-| Bug fix | `repro.md`, `mechanism.md`, `fix.md`, `verify.md`, `red-green.md`, `closing-pass.md` |
-| Feature | `grounding.md`, `design.md`, `throughput.md`, `dispatch.md`, `verify.md`, `interrogate.md`, `closing-pass.md` |
-| Refactoring | `pin.md`, `design.md`, `dispatch.md`, `equivalence.md`, `reader-load.md`, `closing-pass.md` |
+| Bug fix | `repro.md`, `mechanism.md`, `fix.md`, `verify.md`, `red-green.md`, `closing-pass.md`, `reviews/final.md` |
+| Feature | `grounding.md`, `design.md`, `throughput.md`, `dispatch.md`, `verify.md`, `interrogate.md`, `closing-pass.md`, `reviews/final.md` |
+| Refactoring | `pin.md`, `design.md`, `dispatch.md`, `equivalence.md`, `verify.md`, `reader-load.md`, `closing-pass.md`, `reviews/final.md` |
 
-Each also keeps the results of the workers the steps delegate in `results/`: `how.md` and `why.md` from the understanding skills, the fix or feature worker's result, and `comment-sicko.md` from the closing pass.
+Each also keeps the results of the workers the steps delegate in `results/`: `how.md` from the understanding skills, and `why.md` too for Bug fix, the fix or feature worker's result, and `comment-sicko.md` from the closing pass.
 `check` requires those too, so a skill done inline instead of delegated shows up as a missing file.
 Read them when you want to know how the lead reached its answer, not only what it changed.
 
@@ -66,7 +66,7 @@ The lead writes code itself only for a review repair that the next review covers
 
 ## Clean before delivery
 
-Every adapted playbook ends with Opening a PR, which runs the cleanup whatever the delivery mode:
+Bug fix, Feature, Refactoring, Figure it out and Orchestrate end with Opening a PR, which runs the cleanup whatever the delivery mode:
 - unneeded code comes out: narrating comments, unsupported guards, dead compatibility paths, and unrelated edits;
 - `no-comments` hands the comments to a separate reviewer, Comment Sicko, who keeps only what code cannot say;
 - `technical-writing` and `unslop` shape the commit messages and the PR description.
