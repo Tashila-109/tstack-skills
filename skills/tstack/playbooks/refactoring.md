@@ -17,7 +17,8 @@ If the cleanup reveals a missing feature or a real bug, split it out and ship th
    Artifact: `evidence/dispatch.md`
 6. Prove behavior is unchanged on the real artifact, not "it compiles" (**principle-prove-it-works**). For larger reshapes, run an equivalence check: a script that diffs old-vs-new outputs, a recorded baseline replayed against the new code, or a smoke run on the matching surface with the project's `verify-*` skill.
    Write the equivalence check you ran and its output to `evidence/equivalence.md`.
-   Artifact: `evidence/equivalence.md`
+   Then write the proof as [proof](../references/proof.md) says, citing that file.
+   Artifact: `evidence/equivalence.md`, `evidence/verify.md`
 7. Confirm the change is worth keeping. The success measure is reduced reader load (**principle-minimize-reader-load**). If the diff does not lower reader load somewhere, revert it.
    Write `evidence/reader-load.md`: where reader load dropped, or what you reverted because it did not.
    Artifact: `evidence/reader-load.md`

@@ -51,7 +51,8 @@ Without it, ask the human to open a thread in New worktree mode and send the lau
    An autopilot-stack link uses the previous link's task branch instead.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
-   - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": false }`
+   - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": false }`;
+     for a handoff, `{ "type": "existing_worktree", "worktreePath": "<the lead's worktree>", "branch": "task/<id>" }`, and skip step 2
    - `modelSelection`: the seat, with `providerInstanceId` renamed to `instanceId`; leave it out for `inherit`
    - `message`: the launch block from dispatch.md; a coordinator sets `coordinator:` to its `currentThreadId`, and a lead moving its own task leaves that line out
 4. A coordinator writes the returned `threadId` to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead's reports arrive as new turns.

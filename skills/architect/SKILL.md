@@ -50,6 +50,8 @@ If the human pushes back on the shape (in a checkpoint or after the fact), treat
 
 ## Phase D: Implement against the sketch
 
+In a tstack task, the lead stops after Phase C, and the playbook's next step delegates this phase to a worker with the sketch as its contract.
+
 Replace `not implemented` bodies with code, pseudocode with logic. The synthesized sketch is the contract. Deviations from it are signal to surface, not friction to absorb silently. If a function needs a parameter the sketch didn't anticipate, ask whether the sketch was wrong, the requirement was missed, or the implementation is overreaching.
 
 ## Phase E: Scrap when the architecture is wrong

@@ -9,7 +9,8 @@
 3. Migrate one component at a time. Parallelize across worktrees, one owner per component (the **separate-before-serializing-shared-state** principle skill). Shared primitives migrate first as a blocking phase.
 4. Verify each component against its baseline via image diff on the matching surface with the project's `verify-*` skill. A nonzero diff is a fail. Investigate the pixel delta. Loop per component until the diff is zero, as [Autonomous run](autonomous-run.md) says.
    Write each component's diff result to `evidence/diffs.md`.
-   Artifact: `evidence/diffs.md`
+   Then write the proof as [proof](../references/proof.md) says, citing that file.
+   Artifact: `evidence/diffs.md`, `evidence/verify.md`
 5. Run **Opening a PR** per component or per safe batch.
    Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
 

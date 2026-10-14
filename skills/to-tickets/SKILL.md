@@ -73,11 +73,12 @@ Put these three questions to the human with the index:
 - Should any tickets be merged or split?
 
 Revise the tickets and the index until the human approves the breakdown.
-In a tstack task the approval is the playbook's implement-authorization on the index, so the questions go into that decision.
+In a tstack task the approval is a decision on the index, as [decisions](../tstack/references/decisions.md) says, so the questions go into that decision.
 
 ## In a tstack task
 
-The lead writes the tickets in its own context, right after the spec is approved.
+No tstack playbook writes tickets: Multi-phase plan and Orchestrate keep the phases in one spec.
+When the human asks for tickets anyway, the lead writes them in its own context, after the spec is approved.
 Tickets are execution state, not project files: they stay uncommitted under the task home, and the committed spec stays the durable record.
 
 Bracket the set with two verification tickets, both run on the `verify` seat:

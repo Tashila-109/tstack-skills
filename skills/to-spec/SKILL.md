@@ -51,8 +51,8 @@ Done when all four hold.
 
 ## In a tstack task
 
-The lead writes the spec in its own context, right after the design is approved.
-The lead commits `spec.md` as one docs stage, then opens the playbook's spec gate.
+The [Multi-phase plan](../tstack/playbooks/multi-phase-plan.md) playbook owns a task's spec: its skeleton, its checker and its gate.
+In a task that runs it, follow that playbook instead of the template below.
 Never edit the approved design while writing; a changed subject is a new decision under [decisions](../tstack/references/decisions.md#open-a-decision-lead).
 
 ## Template

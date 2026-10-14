@@ -1,6 +1,6 @@
 ### Shipping
 
-**You own the verdicts. Verify each PR independently, find the verified run from the root, and land it on the human's word.** This is the half after `playbooks/babysit.md`. The lead verifies, then lands as [Landing](#landing) says. Under an autopilot, the coordinator lands instead.
+**You own the verdicts. Verify each PR independently, find the verified run from the root, and land it on the human's word.** This is the half after `playbooks/babysit.md`. The lead verifies, then lands as [Landing](#landing) says. Under an autopilot, the coordinator lands instead, auditing the verdicts the lead's `verify` workers wrote rather than delegating its own.
 
 1. **Verify every PR independently.** Delegate one worker per PR on the `verify` seat, not batched, each exercising the real surface with the project's verification skill against the PR's parent versus its head. Each writes its proof in its result as [proof](../references/proof.md) says, returns `PASS`, `PASS+NOTES` or `FAIL`, and posts that verdict on its own PR with `gh pr comment`. Safe means a verdict from an agent that did not write the code. CI green is not a verdict, and an approving bot review is not a verdict.
 2. **Find the contiguous verified run rooted at the bottom.** Walk up from the lowest unmerged PR and stop at the first one without a passing verdict, where both `PASS` and `PASS+NOTES` pass. A verified PR sitting above an unverified one is not landable. Name the ceiling as a PR number and say what breaks the chain.

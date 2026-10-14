@@ -54,7 +54,7 @@ The reviewer brings the smell baseline from [REVIEWER.md](REVIEWER.md) itself.
 
 ## 4. Brief and delegate both reviewers
 
-Write one brief per axis under the task home, at `tasks/<id>/evidence/reviews/<label>-standards.md` and `tasks/<id>/evidence/reviews/<label>-spec.md`.
+Write one brief per axis under the task home, at `tasks/<id>/briefs/review-<label>-standards.md` and `tasks/<id>/briefs/review-<label>-spec.md`, so `tstack.mjs check` holds the task until each has a result.
 `<label>` names the deliverable under review, such as `01` for a ticket, `design`, or `final` for the branch.
 Every round on that deliverable reuses its label, so each round's briefs and aggregate replace the last round's, and `<label>.md` always covers the last reviewed head.
 Each brief carries:

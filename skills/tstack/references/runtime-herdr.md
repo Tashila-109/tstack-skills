@@ -30,17 +30,18 @@ Intake moves a ship task started in the primary checkout into its own worktree a
 
 ### launch-lead
 
-A lead uses this to move a ship task out of the primary checkout, and a coordinator uses it to start each lead.
+A lead uses this to move a ship task out of the primary checkout, a coordinator uses it to start each lead, and both use it to relaunch a lead for a handoff.
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime herdr`.
 2. From the primary checkout, which must be on the default branch with no uncommitted changes, run `git worktree add ~/.tstack/worktrees/<project>/<id> -b task/<id>`, where `<project>` is the primary checkout's directory name.
    An autopilot-stack link branches from the previous link's task branch instead: add that branch name as the last argument.
    If the primary checkout has a `skills-lock.json`, the skills are installed per project, so run `tstack.mjs link-skills <worktree>` too.
+   For a handoff, skip this step: the worktree exists, and the new agent takes the next free name, such as `<id>-lead-2`.
 3. `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <id> --no-focus`, and keep `.result.tab.tab_id` and `.result.root_pane.pane_id`.
 4. `herdr agent start <id>-lead --kind <kind> --pane <pane> -- <args...>`.
 5. `herdr agent prompt <id>-lead "<launch block>" --wait --until working --timeout 30000`.
    A coordinator sets `coordinator:` to its agent name, and a lead moving its own task leaves that line out.
-6. A coordinator writes the tab ID and worktree path to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead prompts it when it reports.
+6. A coordinator writes the agent name, tab ID and worktree path to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead prompts it when it reports.
    A lead moving its own task tells the human to continue in the tab labelled `<id>`, and stops.
 
 ### report and decide (a coordinator's lead)
@@ -59,7 +60,7 @@ Wait for the other lead the same way, then prompt it:
 ### delegate
 
 1. Run `tstack.mjs seat "<role>" --runtime herdr`.
-   For `inherit`, use your own lead seat.
+   For `inherit`, start your own harness with your own model and effort.
 2. Write each worker's brief, per dispatch.md.
 3. Split a pane for each worker.
    The first is `herdr pane split --current --direction right --cwd "$PWD" --no-focus`.
