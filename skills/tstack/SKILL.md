@@ -105,7 +105,7 @@ These hold for every role, whatever a playbook says.
 6. Decide what you may decide alone, and put the rest to the human as a decision, as [references/decisions.md](references/decisions.md) says.
    A tool approval on screen is the human's: never answer it, and tell the human where a worker's approval waits.
 7. When the human stops you, stop your running workers as the runtime reference's collect says, delete your heartbeat if you armed one, and make no commits, pushes or new workers until the human tells you to go on.
-8. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id>` until it passes, then follow [Finish](#finish).
+8. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id> --head <head SHA>` until it passes, then follow [Finish](#finish).
 
 The report opens with who the work is for and what changes for them, then what the next maintainer inherits.
 It names each principle you applied and the decision it changed, citing only principles whose `SKILL.md` you read during this task.
@@ -121,7 +121,7 @@ It ends with `## Remember`, short lessons a later task in this project should kn
    Otherwise ask whether to merge, unless a grant in `<home>/grants.md` covers this merge.
    To use a grant, check each of its conditions on the head, and quote the grant when you tell the human what merged.
    Never merge without the human's word or a grant.
-3. On the human's word, merge only the head SHA that `check` passed on and the human saw, so a later commit never lands:
+3. On the human's word, merge only the head SHA that `check --head` passed on and the human saw, so a later commit never lands:
    - for `local-only`, run `git -C <primary checkout> merge --ff-only <head SHA>`, which needs the primary checkout on the default branch with no uncommitted changes;
      if it cannot fast-forward, bring the default branch into your branch, verify again, and ask the human again;
    - for `pr`, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
@@ -142,7 +142,7 @@ At the start of a session, read the newest `<home>/handoff/coordinator-*.md` whe
    - For a decision, ask the human as [references/decisions.md](references/decisions.md#for-a-coordinators-lead) says, record their answer in the decision file, and send it to the lead.
    - For a handoff, start a fresh lead from the handoff file, as the **handoff** skill's "Relaunching a lead" says.
    - On the human's stop, hold every running lead, as dispatch.md's hold verb says, until the human releases it.
-3. When a lead reports done, run `tstack.mjs check <id>`.
+3. When a lead reports done, run `tstack.mjs check <id> --head <its head SHA>`.
    A refusal goes back to the lead.
    Read `report.md` and the evidence it cites, then audit and merge as the program playbook says.
 4. After each merge, clean up per the runtime reference.

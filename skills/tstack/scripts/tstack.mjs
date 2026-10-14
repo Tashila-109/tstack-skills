@@ -3,7 +3,7 @@
 //
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
-//   node tstack.mjs check <id> [--through <step>]
+//   node tstack.mjs check <id> [--through <step>] [--head <sha>]
 //   node tstack.mjs seat <role> --runtime t3|herdr [--cross <model>]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
 //   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
@@ -22,6 +22,8 @@ import { fileURLToPath } from "node:url";
 const SKILL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
 const GRANTED = /^##\s+Answer\s*\n+\s*granted\b/im;
+const DELEGATED = new Set(["evidence/dispatch.md", "evidence/fix.md"]);
+const RESULT = /\bresults\/[a-z0-9][a-z0-9.-]*\.md\b/g;
 const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
@@ -110,22 +112,31 @@ function isLink(path) {
 	}
 }
 
+// The markdown with every fenced code line blanked, so an example never counts as the real thing.
+export function prose(markdown) {
+	let fence;
+	return markdown
+		.split("\n")
+		.map((line) => {
+			// A fence closes only on a bare run of its own character at least as long; a backtick info string opens none.
+			const run = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
+			if (!fence && run && !(run[1][0] === "`" && run[2].includes("`"))) fence = run[1];
+			else if (fence && run?.[1][0] === fence[0] && run[1].length >= fence.length && !run[2].trim()) fence = undefined;
+			else if (!fence) return line;
+			return "";
+		})
+		.join("\n");
+}
+
 export function parseSteps(markdown) {
 	const steps = [];
-	let fence;
-	for (const line of markdown.split("\n")) {
-		// A fence closes only on a bare run of its own character at least as long; a backtick info string opens none.
-		const run = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
-		if (!fence && run && !(run[1][0] === "`" && run[2].includes("`"))) fence = run[1];
-		else if (fence && run?.[1][0] === fence[0] && run[1].length >= fence.length && !run[2].trim()) fence = undefined;
-		else if (!fence) {
-			const step = line.match(/^(\d+)\.\s+(.*)$/);
-			const artifact = line.match(/^\s*Artifact:\s*(.+)$/);
-			if (step) steps.push({ n: Number(step[1]), text: step[2].trim(), artifacts: [] });
-			else if (artifact && steps.length) {
-				const paths = [...artifact[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-				steps.at(-1).artifacts.push(...(paths.length ? paths : [artifact[1].trim()]));
-			}
+	for (const line of prose(markdown).split("\n")) {
+		const step = line.match(/^(\d+)\.\s+(.*)$/);
+		const artifact = line.match(/^\s*Artifact:\s*(.+)$/);
+		if (step) steps.push({ n: Number(step[1]), text: step[2].trim(), artifacts: [] });
+		else if (artifact && steps.length) {
+			const paths = [...artifact[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+			steps.at(-1).artifacts.push(...(paths.length ? paths : [artifact[1].trim()]));
 		}
 	}
 	return steps;
@@ -193,7 +204,7 @@ export function brief(home, id, opts) {
 				]
 			: []),
 		"The final report goes in `report.md` in the task directory.",
-		`\`node ${fileURLToPath(import.meta.url)} check ${id}\` must pass before you report done.`,
+		`\`node ${fileURLToPath(import.meta.url)} check ${id} --head <head SHA>\` must pass before you report done.`,
 		...(learnings ? ["", "## Learnings from earlier tasks", "", learnings] : []),
 		"",
 	];
@@ -202,7 +213,7 @@ export function brief(home, id, opts) {
 	return briefPath;
 }
 
-export function check(home, id, through) {
+export function check(home, id, through, head, cwd = process.cwd()) {
 	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
 	const taskDir = join(home, "tasks", id);
 	const taskPath = join(taskDir, "task.json");
@@ -227,11 +238,14 @@ export function check(home, id, through) {
 	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
-		if (path.startsWith("decisions/") ? !GRANTED.test(text) : !text.trim())
+		if (path.startsWith("decisions/") ? !GRANTED.test(prose(text)) : !text.trim())
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
+		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
+		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
+	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd));
 	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
@@ -242,6 +256,46 @@ function proofGaps(taskDir, text) {
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
 	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
+}
+
+function delegationGaps(taskDir, path, text) {
+	const cited = [...new Set(prose(text).match(RESULT) ?? [])];
+	if (!cited.length) return ["cites no results/<name>.md: this step delegates, with no skip"];
+	const gaps = cited.filter((r) => !VERDICT.test(readIfFile(insideTask(taskDir, r)))).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
+	if (path === "evidence/fix.md") {
+		const briefs = (prose(text).match(/\bbriefs\/[a-z0-9][a-z0-9.-]*\.md\b/g) ?? []).map((b) => readIfFile(insideTask(taskDir, b)));
+		if (!briefs.some((b) => /\btdd\b/.test(b))) gaps.push("cites no brief under briefs/ that lists the tdd skill");
+	}
+	return gaps;
+}
+
+function reportGaps(text) {
+	const body = prose(text);
+	return [
+		...["## Remember", "## Follow-ups"].filter((h) => !new RegExp(`^${h}\\s*$`, "m").test(body)).map((h) => `report.md has no ${h} heading`),
+		...(/\u2014/.test(body) ? ["report.md uses a long dash: rewrite the sentence, as the unslop skill says"] : []),
+	];
+}
+
+// Each review or proof must name a commit whose tree is the head's, so a later commit cannot ride on old evidence.
+function headGaps(taskDir, head, cwd) {
+	const tree = (rev) => {
+		try {
+			return execFileSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{tree}`], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+		} catch {
+			return "";
+		}
+	};
+	const want = /^[0-9a-f]{7,40}$/.test(head) ? tree(head) : "";
+	if (!want) throw new Refusal(`--head must be a commit SHA in ${cwd}: ${head}`);
+	return [PROOF, "evidence/reviews/final.md"]
+		.filter((path) => existsSync(join(taskDir, path)))
+		.filter((path) => ![...new Set(readFileSync(join(taskDir, path), "utf8").match(/\b[0-9a-f]{7,40}\b/g) ?? [])].some((sha) => tree(sha) === want))
+		.map((path) => `${path} names no commit with the same tree as ${head}: verify or review again on this head`);
+}
+
+function readIfFile(path) {
+	return existsSync(path) && statSync(path).isFile() ? readFileSync(path, "utf8") : "";
 }
 
 function workerGaps(taskDir) {
@@ -261,7 +315,7 @@ function reviewCapGaps(taskDir) {
 	if (!existsSync(reviews)) return [];
 	const decisions = join(taskDir, "decisions");
 	const answered = existsSync(decisions)
-		? readdirSync(decisions).filter((name) => ANSWERED.test(readFileSync(join(decisions, name), "utf8")))
+		? readdirSync(decisions).filter((name) => ANSWERED.test(prose(readFileSync(join(decisions, name), "utf8"))))
 		: [];
 	const gaps = [];
 	for (const name of readdirSync(reviews)) {
@@ -289,7 +343,7 @@ function staleGaps(taskDir) {
 		const [, family, n = "1"] = name.match(/^(.+?)(?:-(\d+))?\.md$/) ?? [];
 		const text = family ? readFileSync(join(decisions, name), "utf8") : "";
 		const subject = text.match(HASHED_SUBJECT);
-		if (subject && GRANTED.test(text) && (latest.get(family)?.n ?? 0) < Number(n))
+		if (subject && GRANTED.test(prose(text)) && (latest.get(family)?.n ?? 0) < Number(n))
 			latest.set(family, { n: Number(n), name, path: subject[1], hash: subject[2] });
 	}
 	for (const { name, path, hash } of latest.values()) {
@@ -301,6 +355,8 @@ function staleGaps(taskDir) {
 	const spec = existsSync(checked) ? readFileSync(checked, "utf8").match(CHECKED_SPEC) : null;
 	if (spec && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
 		gaps.push(`evidence/check-plan.md checked an older ${spec[1]}: run check-plan.mjs again and save its output`);
+	if (existsSync(checked) && !/^\d+ phase sections?, 0 problems$/m.test(readFileSync(checked, "utf8")))
+		gaps.push("evidence/check-plan.md is not a clean check-plan.mjs run: fix every problem and save the output that ends in 0 problems");
 	return gaps;
 }
 
@@ -546,7 +602,7 @@ export function main(argv) {
 			if (f._.length !== 1) throw new Usage("check takes one task id");
 			const through = f.through === undefined ? undefined : Number(f.through);
 			if (through !== undefined && !(Number.isInteger(through) && through > 0)) throw new Usage(`--through must be a step number: ${f.through}`);
-			return check(taskHome(), f._[0], through);
+			return check(taskHome(), f._[0], through, f.head);
 		}
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");

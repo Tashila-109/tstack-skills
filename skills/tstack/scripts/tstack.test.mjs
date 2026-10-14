@@ -10,6 +10,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "
 import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
 const PLAYBOOK = `### Sample
 
 1. Ground the change.
@@ -58,7 +59,7 @@ test("check refuses until every frozen artifact and the report exist", () => {
 	writeFileSync(join(task, "evidence/design.md"), "pick A\n");
 	writeFileSync(join(task, "evidence/alternatives.md"), "A, B\n");
 	assert.throws(() => check(home, "demo"), /missing final report: report.md/);
-	writeFileSync(join(task, "report.md"), "done\n");
+	writeFileSync(join(task, "report.md"), REPORT);
 	assert.equal(check(home, "demo"), "ok demo: 4 required files present");
 	assert.throws(() => check(home, "../demo"), /task id must match/);
 	writeFileSync(join(dir, "outside.md"), "traced elsewhere\n");
@@ -156,7 +157,7 @@ test("check keeps the playbook's artifacts even when task.json loses them", () =
 	task.playbook = "feature";
 	task.steps = [];
 	writeFileSync(taskPath, JSON.stringify(task));
-	writeFileSync(join(home, "tasks", "tamper", "report.md"), "done\n");
+	writeFileSync(join(home, "tasks", "tamper", "report.md"), REPORT);
 	assert.throws(() => check(home, "tamper"), /missing step 1 \(added to the playbook after the brief\): evidence\/grounding\.md/);
 });
 
@@ -192,7 +193,7 @@ test("a pr-delivery task is done only with babysit evidence", () => {
 	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
 	brief(home, "pr", { playbook: "plain", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
 	const task = join(home, "tasks", "pr");
-	writeFileSync(join(task, "report.md"), "done\n");
+	writeFileSync(join(task, "report.md"), REPORT);
 	assert.throws(() => check(home, "pr"), /missing pr delivery: evidence\/babysit\.md/);
 	writeFileSync(join(task, "evidence/babysit.md"), "drive: PR #1 merge-ready at abc123\n");
 	assert.equal(check(home, "pr"), "ok pr: 2 required files present");
@@ -267,7 +268,7 @@ test("check refuses a worker brief whose result has no verdict line", () => {
 	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
 	brief(home, "w", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
 	const task = join(home, "tasks", "w");
-	writeFileSync(join(task, "report.md"), "done\n");
+	writeFileSync(join(task, "report.md"), REPORT);
 	mkdirSync(join(task, "briefs"));
 	mkdirSync(join(task, "results"));
 	writeFileSync(join(task, "briefs", "fix.md"), "GOAL fix it\n");
@@ -343,7 +344,7 @@ test("check refuses a review past three rounds per answered checkpoint decision"
 	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
 	brief(home, "rounds", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
 	const task = join(home, "tasks", "rounds");
-	writeFileSync(join(task, "report.md"), "done\n");
+	writeFileSync(join(task, "report.md"), REPORT);
 	mkdirSync(join(task, "evidence/reviews"));
 	mkdirSync(join(task, "decisions"));
 	writeFileSync(join(task, "evidence/reviews/m3-spec.md"), "Head abc, round 9 brief\n");
@@ -366,7 +367,7 @@ test("check refuses a hashed document that changed after its latest grant, and a
 	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
 	brief(home, "plan", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
 	const task = join(home, "tasks", "plan");
-	writeFileSync(join(task, "report.md"), "done\n");
+	writeFileSync(join(task, "report.md"), REPORT);
 	mkdirSync(join(task, "decisions"));
 	const hash = (text) => createHash("sha256").update(text).digest("hex");
 	const gate = (name, text, answer = "granted") =>
@@ -388,6 +389,57 @@ test("check refuses a hashed document that changed after its latest grant, and a
 	assert.equal(check(home, "plan"), "ok plan: 1 required file present");
 	writeFileSync(spec, "s2\n");
 	assert.throws(() => check(home, "plan"), /evidence\/check-plan\.md checked an older/);
+	writeFileSync(join(task, "evidence/check-plan.md"), `${spec} sha256 ${hash("s2\n")}\n1 phase sections, 2 problems\n`);
+	assert.throws(() => check(home, "plan"), /not a clean check-plan\.mjs run/);
+	writeFileSync(join(task, "decisions/design-4.md"), `Subject: \`design.md\` sha256 ${hash("v3\n")}\n\n\`\`\`text\n## Answer\n\ngranted\n\`\`\`\n`);
+	writeFileSync(join(task, "evidence/check-plan.md"), `${spec} sha256 ${hash("s2\n")}\n1 phase sections, 0 problems\n`);
+	assert.equal(check(home, "plan"), "ok plan: 1 required file present", "a grant inside a code fence grants nothing");
+});
+
+test("check holds the report's shape and a delegating step's worker results", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "fixing.md"), "1. Fix it.\n   Artifact: `evidence/fix.md`\n");
+	brief(home, "fx", { playbook: "fixing", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "fx");
+	writeFileSync(join(task, "evidence/fix.md"), "skip: did it myself\n");
+	assert.throws(() => check(home, "fx", 1), /cites no results\/<name>\.md/);
+	mkdirSync(join(task, "briefs"));
+	mkdirSync(join(task, "results"));
+	writeFileSync(join(task, "briefs/fix.md"), "SKILLS tdd\n");
+	writeFileSync(join(task, "results/fix.md"), "changed a.js\n");
+	writeFileSync(join(task, "evidence/fix.md"), "Brief `briefs/fix.md`, result `results/fix.md`. Diff reviewed.\n");
+	assert.throws(() => check(home, "fx", 1), /cites results\/fix\.md, which has no DONE/);
+	writeFileSync(join(task, "results/fix.md"), "changed a.js\nDONE fixed\n");
+	assert.equal(check(home, "fx", 1), "ok fx: 1 required file present");
+	writeFileSync(join(task, "briefs/fix.md"), "SKILLS none\n");
+	assert.throws(() => check(home, "fx", 1), /lists the tdd skill/);
+	writeFileSync(join(task, "briefs/fix.md"), "SKILLS tdd\n");
+	writeFileSync(join(task, "report.md"), "done \u2014 shipped\n\n## Remember\n");
+	assert.throws(() => check(home, "fx"), /no ## Follow-ups heading[\s\S]*long dash/);
+	writeFileSync(join(task, "report.md"), REPORT);
+	assert.equal(check(home, "fx"), "ok fx: 2 required files present");
+});
+
+test("check --head refuses proof and review that name no commit with the head's tree", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+	writeFileSync(join(dir, "a.txt"), "1\n");
+	git("add", "a.txt");
+	git("commit", "-q", "-m", "one");
+	const one = git("rev-parse", "HEAD");
+	git("commit", "-q", "--allow-empty", "-m", "same tree");
+	const same = git("rev-parse", "HEAD");
+	writeFileSync(join(dir, "a.txt"), "2\n");
+	git("commit", "-q", "-am", "two");
+	const two = git("rev-parse", "HEAD");
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "hd", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "hd");
+	writeFileSync(join(task, "report.md"), REPORT);
+	writeFileSync(join(task, "evidence/verify.md"), `Head ${one.slice(0, 12)}\n`);
+	assert.equal(check(home, "hd", undefined, same, dir), "ok hd: 1 required file present", "an empty commit keeps the tree");
+	assert.throws(() => check(home, "hd", undefined, two, dir), /evidence\/verify\.md names no commit with the same tree/);
+	assert.throws(() => check(home, "hd", undefined, "nothex", dir), /--head must be a commit SHA/);
 });
 
 test("pr-state turns GitHub's state into one verdict, waiting for checks and review bots to settle", () => {
