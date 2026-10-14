@@ -16,10 +16,16 @@ if [ -n "$logdir" ] && [ "$logdir" != "." ] && [ ! -d "$logdir" ]; then
 	mkdir -p "$logdir"
 fi
 
-# Use `>>` here, never `>`. A network mount can fail this test for a log
-# that exists. Then the cost is one stray header line, not the rows.
+# Never truncate the log. A new log appears by hard link from a file that
+# already holds the header, and link(2) fails when the log exists, so of two
+# writers starting a new log only one header lands. A log that exists but is
+# empty gets the header by append. A network mount can fail the -s test for a
+# log that exists; then the cost is one stray header line, not the rows.
 if [ ! -s "$logfile" ]; then
-	printf 'ts\tphase\tdecision\twhy\tevidence\tresult\n' >> "$logfile"
+	tmp=$(mktemp "$logfile.XXXXXX")
+	printf 'ts\tphase\tdecision\twhy\tevidence\tresult\n' > "$tmp"
+	ln "$tmp" "$logfile" 2>/dev/null || [ -s "$logfile" ] || cat "$tmp" >> "$logfile"
+	rm -f "$tmp"
 fi
 
 ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"

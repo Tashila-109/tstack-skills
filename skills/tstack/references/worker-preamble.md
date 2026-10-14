@@ -30,5 +30,7 @@ While you work:
 When you finish:
 - Write the result file once: write <result>.tmp, then rename it onto <result>.
   It holds what you changed (paths), what you ran with its real output, and what remains.
-- Your final message is one line: DONE <summary>, BLOCKED <why>, or FAILED <why>.
+  Its last line is your verdict: DONE <summary>, BLOCKED <why>, or FAILED <why>.
+  A skill's own verdict goes after it, such as DONE ISSUES: 3 proven, or FAILED FAIL: the button never renders.
+- Your final message is that verdict line.
 ```

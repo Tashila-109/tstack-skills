@@ -112,19 +112,20 @@ function isLink(path) {
 
 export function parseSteps(markdown) {
 	const steps = [];
-	let fenced = false;
+	let fence;
 	for (const line of markdown.split("\n")) {
-		if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-		if (fenced) continue;
-		const step = line.match(/^(\d+)\.\s+(.*)$/);
-		if (step) {
-			steps.push({ n: Number(step[1]), text: step[2].trim(), artifacts: [] });
-			continue;
-		}
-		const artifact = line.match(/^\s*Artifact:\s*(.+)$/);
-		if (artifact && steps.length) {
-			const paths = [...artifact[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-			steps.at(-1).artifacts.push(...(paths.length ? paths : [artifact[1].trim()]));
+		// A fence closes only on a bare run of its own character at least as long; a backtick info string opens none.
+		const run = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
+		if (!fence && run && !(run[1][0] === "`" && run[2].includes("`"))) fence = run[1];
+		else if (fence && run?.[1][0] === fence[0] && run[1].length >= fence.length && !run[2].trim()) fence = undefined;
+		else if (!fence) {
+			const step = line.match(/^(\d+)\.\s+(.*)$/);
+			const artifact = line.match(/^\s*Artifact:\s*(.+)$/);
+			if (step) steps.push({ n: Number(step[1]), text: step[2].trim(), artifacts: [] });
+			else if (artifact && steps.length) {
+				const paths = [...artifact[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+				steps.at(-1).artifacts.push(...(paths.length ? paths : [artifact[1].trim()]));
+			}
 		}
 	}
 	return steps;
@@ -138,6 +139,8 @@ function insideTask(taskDir, path) {
 	const full = resolve(taskDir, path);
 	const rel = relative(taskDir, full);
 	if (!rel || rel.startsWith("..") || rel.startsWith(sep)) throw new Refusal(`artifact path leaves the task directory: ${path}`);
+	if (existsSync(full) && relative(realpathSync(taskDir), realpathSync(full)).startsWith(".."))
+		throw new Refusal(`artifact ${path} is a link to outside the task directory: copy the file in instead`);
 	return full;
 }
 
@@ -200,6 +203,7 @@ export function brief(home, id, opts) {
 }
 
 export function check(home, id, through) {
+	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
 	const taskDir = join(home, "tasks", id);
 	const taskPath = join(taskDir, "task.json");
 	if (!existsSync(taskPath)) throw new Refusal(`no task ${id} at ${taskDir}`);
@@ -357,8 +361,7 @@ function family(model) {
 
 export function seat(models, role, runtime, cross) {
 	const key = role.trim().toLowerCase();
-	const value =
-		models.get(key) ?? models.get(key.split(",")[0].trim()) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
+	const value = models.get(key) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
 	if (!value) throw new Refusal(`no line for role "${role}" in the models file; run tstack-setup to write it`);
 	let seats = value.split(",").map((s) => parseSeat(s.trim()));
 	if (cross !== undefined) {
@@ -453,10 +456,10 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 const SETTLE_MS = 10 * 60 * 1000;
 const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"]);
 const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
-  state isDraft mergeable mergeStateStatus reviewDecision headRefOid
-  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { nodes {
+  state isDraft mergeable mergeStateStatus reviewDecision headRefOid updatedAt
+  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
     __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
-  reviewThreads(first: 100) { nodes { isResolved isOutdated } }
+  reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { isResolved } }
   comments(last: 1) { nodes { createdAt } }
   reviews(last: 1) { nodes { submittedAt } }
 } } }`;
@@ -470,6 +473,9 @@ export function prVerdict(pr, now = Date.now()) {
 	if (pr.isDraft) return say("BLOCKER", "draft: mark it ready");
 	if (pr.mergeable === "CONFLICTING") return say("BLOCKER", "conflicts: merge the base branch in");
 	const commit = pr.commits?.nodes?.[0]?.commit;
+	// ponytail: reads the first 100 checks and threads; page through them if a PR ever has more.
+	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage)
+		return say("BLOCKER", "too-many: over 100 checks or review threads, so read them on GitHub");
 	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
 		c.__typename === "StatusContext"
 			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
@@ -477,15 +483,17 @@ export function prVerdict(pr, now = Date.now()) {
 	);
 	const failed = checks.filter((c) => c.failed).map((c) => c.name);
 	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
-	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved && !t.isOutdated).length;
+	// An outdated thread still counts: branch protection's resolve-conversations rule counts it.
+	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved).length;
 	if (open) return say("BLOCKER", `review-threads: ${open} unresolved`);
 	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
 	const pending = checks.filter((c) => c.pending).map((c) => c.name);
 	if (pending.length) return say("WAITING", `checks: ${pending.join(", ")}`);
 	const latest = Math.max(
-		...[commit?.committedDate, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
+		...[commit?.committedDate, pr.updatedAt, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
 	);
-	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment or review was ${Math.round((now - latest) / 1000)}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
+	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment, review or edit was ${Math.round((now - latest) / 1000)}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
+	if (pr.mergeable === "UNKNOWN" || pr.mergeStateStatus === "UNKNOWN") return say("WAITING", "mergeable-unknown: GitHub is still computing whether it merges");
 	if (pr.mergeStateStatus === "BEHIND") return say("BLOCKER", "behind-base: merge the base branch in");
 	if (pr.reviewDecision === "REVIEW_REQUIRED") return say("WAITING", "review-required: a human must review");
 	if (pr.mergeStateStatus === "BLOCKED") return say("BLOCKER", "merge-blocked: a branch rule GitHub does not name blocks the merge");
@@ -537,7 +545,7 @@ export function main(argv) {
 		case "check": {
 			if (f._.length !== 1) throw new Usage("check takes one task id");
 			const through = f.through === undefined ? undefined : Number(f.through);
-			if (through !== undefined && !Number.isInteger(through)) throw new Usage(`--through must be a step number: ${f.through}`);
+			if (through !== undefined && !(Number.isInteger(through) && through > 0)) throw new Usage(`--through must be a step number: ${f.through}`);
 			return check(taskHome(), f._[0], through);
 		}
 		case "seat":

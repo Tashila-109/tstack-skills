@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
 import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
+const HERE = dirname(fileURLToPath(import.meta.url));
 const PLAYBOOK = `### Sample
 
 1. Ground the change.
@@ -44,7 +46,7 @@ test("taskHome resolves the primary checkout from a linked worktree", () => {
 });
 
 test("check refuses until every frozen artifact and the report exist", () => {
-	const { home, playbooks } = scratch();
+	const { dir, home, playbooks } = scratch();
 	brief(home, "demo", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
 	assert.throws(() => brief(home, "demo", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks }), Refusal);
 	assert.throws(() => check(home, "demo", 1), /missing step 1: evidence\/grounding\.md/);
@@ -58,6 +60,11 @@ test("check refuses until every frozen artifact and the report exist", () => {
 	assert.throws(() => check(home, "demo"), /missing final report: report.md/);
 	writeFileSync(join(task, "report.md"), "done\n");
 	assert.equal(check(home, "demo"), "ok demo: 4 required files present");
+	assert.throws(() => check(home, "../demo"), /task id must match/);
+	writeFileSync(join(dir, "outside.md"), "traced elsewhere\n");
+	rmSync(join(task, "evidence/grounding.md"));
+	symlinkSync(join(dir, "outside.md"), join(task, "evidence/grounding.md"));
+	assert.throws(() => check(home, "demo", 1), /is a link to outside the task directory/);
 });
 
 test("seat resolves roles to T3 targets and Herdr launch flags", () => {
@@ -109,10 +116,10 @@ test("a project's models file cannot set launch flags, and seats cannot smuggle 
 	assert.deepEqual(seat(parseModels("lead: claude/claude-opus-5-5[1m]@max"), "lead", "herdr")[0].args.slice(0, 4), ["--model", "claude-opus-5-5[1m]", "--effort", "max"]);
 });
 
-test("a combined role line resolves by its first role", () => {
-	const models = parseModels("reflect judgment, reflect divergent, reflect synthesizer: claude/claude-opus-5-5@high");
-	assert.deepEqual(seat(models, "reflect judgment, divergent, synthesizer", "herdr")[0].args.slice(0, 2), ["--model", "claude-opus-5-5"]);
-	assert.throws(() => seat(models, "reflect divergent", "t3"), /no T3 instance/);
+test("a combined role line gives each role its own seat, and a seat call names one role", () => {
+	const models = parseModels("reflect judgment: claude/claude-opus-5-5@high\nreflect divergent, reflect synthesizer: grok/grok-4.7@high");
+	assert.deepEqual(seat(models, "reflect divergent", "herdr")[0].args.slice(0, 2), ["--model", "grok-4.7"]);
+	assert.throws(() => seat(models, "reflect judgment, divergent, synthesizer", "herdr"), /no line for role/);
 });
 
 test("exclude and link-skills keep a per-project install out of Git and inside worktrees", () => {
@@ -162,7 +169,7 @@ test("a model ID may contain @ when the last segment is not an effort", () => {
 test("the CLI runs when invoked through a symlink, as Claude's skills directory does", () => {
 	const { dir } = scratch();
 	const link = join(dir, "..", `${dir.split("/").at(-1)}-tstack.mjs`);
-	execFileSync("ln", ["-s", join(import.meta.dirname, "tstack.mjs"), link]);
+	execFileSync("ln", ["-s", join(HERE, "tstack.mjs"), link]);
 	assert.equal(execFileSync("node", [link, "home"], { cwd: dir, encoding: "utf8" }).trim(), join(dir, ".tstack"));
 });
 
@@ -274,6 +281,8 @@ test("check refuses a worker brief whose result has no verdict line", () => {
 
 test("steps inside a code fence are not playbook steps, and steps must run from 1", () => {
 	assert.deepEqual(parseSteps("1. Real.\n```text\n1. Example only.\n   Artifact: `evidence/x.md`\n```\n2. Next.\n").map((s) => s.n), [1, 2]);
+	assert.deepEqual(parseSteps("```\n~~~\n1. Example only.\n```\n1. Real.\n").map((s) => s.text), ["Real."], "a ~~~ line inside a ``` fence neither opens nor closes it");
+	assert.deepEqual(parseSteps("````md\n```\n1. Example only.\n````\n1. Real.\n").map((s) => s.text), ["Real."], "a shorter run inside a longer fence does not close it");
 	const { home, playbooks } = scratch();
 	writeFileSync(join(playbooks, "gappy.md"), "1. One.\n3. Three.\n");
 	assert.throws(() => brief(home, "gappy", { playbook: "gappy", goal: "g", finish: "f", playbooksDir: playbooks }), /numbers its steps 1, 3/);
@@ -281,7 +290,7 @@ test("steps inside a code fence are not playbook steps, and steps must run from 
 });
 
 test("every shipped playbook numbers its steps from 1 without gaps", () => {
-	const dir = join(import.meta.dirname, "..", "playbooks");
+	const dir = join(HERE, "..", "playbooks");
 	for (const name of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
 		const steps = parseSteps(readFileSync(join(dir, name), "utf8"));
 		assert.deepEqual(steps.map((s) => s.n), steps.map((_, i) => i + 1), name);
@@ -396,7 +405,10 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE"), run("test", "IN_PROGRESS", null)]), now), /^BLOCKER failing-checks: lint/);
 	assert.match(prVerdict(pr({}, [run("test", "IN_PROGRESS", null)]), now), /^WAITING checks: test/);
 	assert.match(prVerdict(pr({}, [{ __typename: "StatusContext", context: "ci/legacy", state: "PENDING" }]), now), /^WAITING checks: ci\/legacy/);
-	assert.match(prVerdict(pr({ reviewThreads: { nodes: [{ isResolved: false, isOutdated: false }, { isResolved: false, isOutdated: true }] } }), now), /^BLOCKER review-threads: 1 unresolved/);
+	assert.match(prVerdict(pr({ reviewThreads: { nodes: [{ isResolved: false }, { isResolved: true }] } }), now), /^BLOCKER review-threads: 1 unresolved/);
+	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
+	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
+	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");
 	assert.match(prVerdict(pr({ reviews: { nodes: [{ submittedAt: "2026-10-14T11:57:00Z" }] } }), now), /^WAITING settle: .*180s ago/);
 	assert.match(prVerdict(pr({ mergeStateStatus: "BEHIND" }), now), /^BLOCKER behind-base/);
 	assert.match(prVerdict(pr({ reviewDecision: "REVIEW_REQUIRED", mergeStateStatus: "BLOCKED" }), now), /^WAITING review-required/);

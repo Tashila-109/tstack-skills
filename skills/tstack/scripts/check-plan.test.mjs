@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
-const PLAN = join(import.meta.dirname, "..", "playbooks", "multi-phase-plan.md");
-const CHECKER = join(import.meta.dirname, "check-plan.mjs");
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+const PLAN = join(HERE, "..", "playbooks", "multi-phase-plan.md");
+const CHECKER = join(HERE, "check-plan.mjs");
 
 function filledSkeleton() {
 	const src = readFileSync(PLAN, "utf8");
