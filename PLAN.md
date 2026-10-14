@@ -57,12 +57,13 @@ Each runtime reference maps a verb to concrete calls, so the skill text stays po
 
 | Verb | Who | T3 | Herdr |
 | --- | --- | --- | --- |
-| launch-lead | a lead moving or handing off its task, or a coordinator | `t3_thread_launch` with `workspaceStrategy: worktree`, then a prompt naming the role, task, brief and absolute state path | `git worktree add`, `herdr tab create`, `herdr agent start <id>-lead --kind <k>`, `herdr agent prompt` |
+| launch-lead | a lead handing off its task or moving it on Herdr, or a coordinator | `t3_thread_launch` with a `worktree` or, for a handoff, `existing_worktree` strategy, and the launch block as its message; a lead moving its own task calls `t3_worktree_handoff` on its thread instead | `git worktree add`, `herdr tab create`, `herdr agent start <id>-lead --kind <k>`, `herdr agent prompt` |
 | delegate | lead; a skill run by the lead | `delegate_task` (async) with a `target` from the models file; the completion wakes the lead | `herdr pane split`, `herdr agent start <id>-<name>`, `herdr agent prompt` |
 | collect | lead | `task_status`, plus the worker's result file | `herdr agent wait`, then the worker's result file |
 | report | a coordinator's lead to its coordinator | `t3_thread_send` to the coordinator's thread with mode `queue`, which waits for a busy target and starts an idle one (measured) | `herdr agent wait <coordinator> --until idle --until done`, then `herdr agent prompt <coordinator> "<text>"`, because a prompt to a busy agent takes over its turn (measured) |
 | decide | lead to human | The lead writes a decision file, asks the human in its thread, and records their words. A coordinator's lead asks through the coordinator. | Same |
-| watch-pr | lead | `link_pull_request` when the PR opens, then `watch_pull_request` | `gh pr checks --watch` |
+| watch-pr | lead | `link_pull_request` when the PR opens, then `tstack.mjs pr-state <pr> --wait 540` in the turn, and `watch_pull_request` only while the PR waits on a human review | `tstack.mjs pr-state <pr> --wait 540` |
+| notify | lead | `t3_thread_send` to the other lead's thread with mode `queue` | `herdr agent wait`, then `herdr agent prompt` |
 | hold | coordinator; the human's own stop for a lead they talk to | `t3_thread_interrupt`, then a `queue` message; the lead stops workers with `task_cancel` | `herdr agent prompt` without waiting, which takes over the turn; the lead closes worker panes |
 
 The depth is lead → worker, and coordinator → lead → worker in an autopilot program.
@@ -81,7 +82,7 @@ The roles keep the upstream role names, plus tstack's own:
 
 An optional `lead <playbook>` line overrides `lead` for one playbook.
 A lead the human starts runs on the model they picked for the thread or pane.
-The `lead` seat applies to leads that launch-lead starts: a task moved out of the primary checkout, a handoff, or a coordinator's lead.
+The `lead` seat applies to leads that launch-lead starts: a task moved out of the primary checkout on Herdr, a handoff, or a coordinator's lead.
 
 The models file maps each role to seats, one line per role.
 A seat is `harness/model@effort`, and the model ID is the harness's own ID, so no separate model catalog is needed.

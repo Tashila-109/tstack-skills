@@ -11,7 +11,7 @@ If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
 
 | Verb | Who | What it does |
 | --- | --- | --- |
-| launch-lead | a lead moving or handing off its own task, or a coordinator | Start a lead with the launch block below as its first message, in a new worktree, or in the task's existing worktree for a handoff. |
+| launch-lead | a lead handing off its task or moving it on Herdr, or a coordinator | Start a lead with the launch block below as its first message, in a new worktree, or in the task's existing worktree for a handoff. |
 | delegate | lead, or a skill the lead runs | Start a worker on a seat with a written brief. Launch every independent worker before you wait on any. |
 | collect | lead | Read a finished worker's result file and verdict. |
 | report | a coordinator's lead | Send the coordinator a message without interrupting it. |

@@ -34,7 +34,7 @@ A lead that moves its task, and a coordinator that starts leads, launch each wit
 
 | Harness | Autonomy flags |
 | --- | --- |
-| Claude Code | `--permission-mode auto` |
+| Claude Code | `--permission-mode auto --prompt-suggestions false` |
 | Codex | `--dangerously-bypass-approvals-and-sandbox` |
 | Grok Build | `--permission-mode bypassPermissions` |
 | Pi | none |
