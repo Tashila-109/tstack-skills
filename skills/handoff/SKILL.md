@@ -98,4 +98,4 @@ The phase-boundary tree above does not apply to it.
 3. Tell the human the path, and to start a new thread in the primary checkout with the tstack skill and the same program.
    Then stop working in this session.
 
-A new coordinator reads the newest `<home>/handoff/coordinator-*.md` first, as the tstack router's Coordinator section says.
+A new coordinator reads the newest `<home>/handoff/coordinator-*.md` first, as the tstack skill's [coordinator reference](../tstack/references/coordinator.md) says.
