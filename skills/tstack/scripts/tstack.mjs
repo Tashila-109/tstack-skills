@@ -510,7 +510,7 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 }
 
 const SETTLE_MS = 10 * 60 * 1000;
-const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"]);
+const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "STALE"]);
 const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
   state isDraft mergeable mergeStateStatus reviewDecision headRefOid updatedAt
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
@@ -535,7 +535,7 @@ export function prVerdict(pr, now = Date.now()) {
 	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
 		c.__typename === "StatusContext"
 			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
-			: { name: c.name, failed: FAILED_RUN.has(c.conclusion), pending: c.status !== "COMPLETED" },
+			: { name: c.name, failed: FAILED_RUN.has(c.conclusion), pending: c.status !== "COMPLETED", approval: c.conclusion === "ACTION_REQUIRED" },
 	);
 	const failed = checks.filter((c) => c.failed).map((c) => c.name);
 	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
@@ -552,6 +552,9 @@ export function prVerdict(pr, now = Date.now()) {
 	if (pr.mergeable === "UNKNOWN" || pr.mergeStateStatus === "UNKNOWN") return say("WAITING", "mergeable-unknown: GitHub is still computing whether it merges");
 	if (pr.mergeStateStatus === "BEHIND") return say("BLOCKER", "behind-base: merge the base branch in");
 	if (pr.reviewDecision === "REVIEW_REQUIRED") return say("WAITING", "review-required: a human must review");
+	// ACTION_REQUIRED is a gate waiting on a person, such as an owner's approval, not a failed run.
+	const approval = checks.filter((c) => c.approval).map((c) => c.name);
+	if (approval.length) return say("WAITING", `approval: ${approval.join(", ")} waits on a person`);
 	if (pr.mergeStateStatus === "BLOCKED") return say("BLOCKER", "merge-blocked: a branch rule GitHub does not name blocks the merge");
 	if (!checks.length) return say("READY", "ci-none: no checks reported; trust it only when a second run on the same head agrees");
 	return say("READY");

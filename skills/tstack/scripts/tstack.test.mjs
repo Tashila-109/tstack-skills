@@ -465,5 +465,17 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({ mergeStateStatus: "BEHIND" }), now), /^BLOCKER behind-base/);
 	assert.match(prVerdict(pr({ reviewDecision: "REVIEW_REQUIRED", mergeStateStatus: "BLOCKED" }), now), /^WAITING review-required/);
 	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }), now), /^BLOCKER merge-blocked/);
+	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, [run("Code Review Gate", "COMPLETED", "ACTION_REQUIRED")]), now), /^WAITING approval: Code Review Gate/);
+	assert.match(prVerdict(pr({}, [run("Code Review Gate", "COMPLETED", "ACTION_REQUIRED"), run("lint", "COMPLETED", "FAILURE")]), now), /^BLOCKER failing-checks: lint \(/);
 	assert.match(prVerdict(pr({}, []), now), /^READY ci-none/);
+});
+
+test("every skill's name matches its folder, so each one installs and invokes by that name", () => {
+	const skills = join(HERE, "../..");
+	for (const entry of readdirSync(skills, { withFileTypes: true })) {
+		if (!entry.isDirectory()) continue;
+		const dir = entry.name;
+		const name = readFileSync(join(skills, dir, "SKILL.md"), "utf8").match(/^name:\s*(\S+)/m)?.[1];
+		assert.equal(name, dir);
+	}
 });

@@ -134,11 +134,11 @@ The lead picks one per task from the [router's intake table](../skills/tstack/SK
 | Group | Skills |
 | --- | --- |
 | Router and setup | `tstack`, `tstack-setup`, `tstack-help` |
-| Understand | `how`, `why`, `explain`, `recall`, `teach`, `in-your-own-words`, `ketchup` |
+| Understand | `how`, `why`, `explain`, `recall`, `teach`, `in-your-own-words`, `ketchup`, `sharpen` |
 | Plan | `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets` |
 | Design | `architect`, `arena`, `swarm`, `interrogate`, `figure-it-out` |
 | Build and clean | `tdd`, `no-comments`, `unslop`, `technical-writing`, `typescript-best-practices`, `blast-radius`, `benchmark-checklist` |
-| Review and verify | `two-axis-review`, `thermo-review`, `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `create-verification-skill`, `maintain-verification-skill` |
+| Review and verify | `two-axis-review`, `thermo-review`, `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `create-verification-skill`, `maintain-verification-skill`, `create-formal-verification-skill`, `maintain-formal-verification-skill` |
 | Record and improve | `show-me-your-work`, `handoff`, `reflect`, `correct`, `bro`, `writing-for-agents` |
 | Principles | 24 `principle-*` skills, indexed in the router |
 
