@@ -90,7 +90,8 @@ Design sketches that only write files need no worktree: give each candidate its 
 
 Run `tstack.mjs pr-state <pr> --wait 540` as a background command, so your harness wakes you when it exits.
 It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
-On `WAITING`, run it again; a review bot can take half an hour.
+On `WAITING review-required` or `WAITING approval`, tell the human the PR waits on their review or approval, and stop watching until they reply, because polling cannot clear a gate that waits on a person.
+On any other `WAITING`, run it again; a review bot can take half an hour.
 On any other verdict, read new review comments with `gh pr view <url> --comments` and act per the babysit playbook.
 Never poll with a sleep loop of your own.
 
