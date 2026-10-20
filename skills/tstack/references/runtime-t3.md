@@ -129,8 +129,8 @@ So watch-pr on T3 is a loop inside your turn, with the watch kept for a human's 
 2. Run `tstack.mjs pr-state <pr> --wait 540`, with your shell's own timeout above 540 seconds and under the 600-second tool cap.
    It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
 3. Act on the verdict as the babysit playbook says.
-   After any `WAITING` other than `review-required`, and after every push, go back to step 2 in the same turn.
-4. On `WAITING review-required`, tell the human the PR waits on their review.
+   After any `WAITING` other than `review-required` or `approval`, and after every push, go back to step 2 in the same turn.
+4. On `WAITING review-required` or `WAITING approval`, tell the human the PR waits on their review or approval.
    If your thread is settled, unsettle it with `t3_thread_organize`, because a settled thread ends its watches.
    Then call `watch_pull_request` with the PR's `url` and end your turn.
    Their review wakes you, and you start again at step 1.

@@ -126,10 +126,11 @@ On T3, also run `tstack.mjs check-seats <file>` on the saved `orchestrator_capab
 It names a provider T3 cannot run with T3's own reason, such as a CLI that is not logged in, and a panel role whose seats share one model family.
 It checks the global and the project file together, so run it again whenever either file changes, including a project file written by hand.
 
-## 7. Offer a verification skill
+## 7. Offer verification skills
 
 If the project has no `verify-*` skill and no other way to drive the app for proof, offer once to run [create-verification-skill](../create-verification-skill/SKILL.md).
-If the human declines, move on.
+If the project has no formal verification skill, a project skill that runs a model checker, a prover, or another verifier against its code, offer once to run [create-formal-verification-skill](../create-formal-verification-skill/SKILL.md), so agents can prove a key property holds in every case in scope, not only the cases tests reach.
+If the human declines either, move on.
 
 ## 8. Report
 

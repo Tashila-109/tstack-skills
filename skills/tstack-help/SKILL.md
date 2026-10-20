@@ -33,6 +33,9 @@ Check what changes the answer, and mention it only when it does:
   Point to [tstack-setup](../tstack-setup/SKILL.md).
 - No `verify-*` skill in the project means agents have no scripted way to drive the app.
   Mention [create-verification-skill](../create-verification-skill/SKILL.md) when the question is about proving a change works.
+- No formal verification skill in the project means no property is checked past what tests reach.
+  Mention [create-formal-verification-skill](../create-formal-verification-skill/SKILL.md) when the question is about a race, an invariant, or another case tests rarely hit.
+  When one exists and the code it covers changed after the commit it records as last in sync, mention [maintain-formal-verification-skill](../maintain-formal-verification-skill/SKILL.md) if the question touches that code.
 
 If cost is the worry, point to "Keep the cost in check" in [getting started](https://github.com/Tashila-109/tstack-skills/blob/main/docs/getting-started.md).
 
@@ -52,7 +55,8 @@ Read the skill before you recommend it, and give one example prompt.
 | Understand a change or subsystem in this session | [explain](../explain/SKILL.md) |
 | Learn a topic over several sessions | [teach](../teach/SKILL.md) |
 | Catch up on their own recent work on a topic | [recall](../recall/SKILL.md) |
-| Catch up on what changed in this thread since their last message, with visuals and what each decision needs | [ketchup](../ketchup/SKILL.md) |
+| Catch up on what changed in this thread since their last message, in plain words and small visuals, with every item waiting on them decidable from the reply alone | [ketchup](../ketchup/SKILL.md) |
+| Get a prompt rewritten deeper, not bigger, before sending it; it returns the prompt and does not do the task | [sharpen](../sharpen/SKILL.md) |
 | Get findings with no code change | the [investigation](../tstack/playbooks/investigation.md) playbook |
 | Diagnose a live symptom, or a captured profile, with no fix yet | [runtime-forensics](../tstack/playbooks/runtime-forensics.md) or [trace-forensics](../tstack/playbooks/trace-forensics.md) |
 | Find what a small diff could break outside itself | [blast-radius](../blast-radius/SKILL.md) |
@@ -75,6 +79,7 @@ Read the skill before you recommend it, and give one example prompt.
 | Write docs, a README, or a PR description to a standard | [technical-writing](../technical-writing/SKILL.md) |
 | Hear the last reply again in plain words | [bro](../bro/SKILL.md) |
 | Give agents a scripted way to drive the app | [create-verification-skill](../create-verification-skill/SKILL.md), then [maintain-verification-skill](../maintain-verification-skill/SKILL.md) |
+| Formally verify a race, invariant, or other property tests rarely reach | [create-formal-verification-skill](../create-formal-verification-skill/SKILL.md), then [maintain-formal-verification-skill](../maintain-formal-verification-skill/SKILL.md) after the covered code changes |
 | Open a PR, drive it to merge-ready, or land a stack | the [opening-a-pr](../tstack/playbooks/opening-a-pr.md), [babysit](../tstack/playbooks/babysit.md) or [shipping](../tstack/playbooks/shipping.md) playbook |
 | Run toward a checkable target, or a large change they review later | the [autonomous-run](../tstack/playbooks/autonomous-run.md) or [figure-it-out](../tstack/playbooks/figure-it-out.md) playbook |
 | Work through a queue of changes | the [autopilot-full](../tstack/playbooks/autopilot-full.md) or [autopilot-stack](../tstack/playbooks/autopilot-stack.md) playbook |

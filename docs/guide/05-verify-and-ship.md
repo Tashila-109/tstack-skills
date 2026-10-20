@@ -99,6 +99,27 @@ Apps change and feature maps rot.
 Run `maintain-verification-skill` regularly, such as once a day, so the skill stays true.
 It audits the skill against the app, and ships at most one PR of proven corrections.
 
+## Prove a property with a formal verification skill
+
+A verification skill proves the paths you drive.
+Some bugs live on paths nobody drives: two retries that overlap, a lock that expires mid-write, a state change that arrives out of order.
+For code where such a bug is costly, ask:
+
+```text
+$create-formal-verification-skill the job lease and retry logic. a job must never run twice at once.
+```
+
+With no area named, it picks the strongest target from the code: a promise the code makes, where a break harms users and tests rarely reach the case that breaks it.
+The question picks the tool.
+A bad order of events suits a model checker over a small model of the design, with TLA+ as the default.
+Behavior for every input suits a verifier that runs on the code, and where none runs on your language, the agent tests the real code with generated inputs.
+
+It verifies one property and shows it failing on a broken variant of the code, because a check you have never seen fail proves nothing.
+When the current code already breaks the property, you get the counterexample as steps in your code's terms, and the property stays as stated.
+It writes a project skill that says which code each check covers, the one command that runs it, and the commit where the check last matched the code.
+After merges or refactors in that code, run `maintain-formal-verification-skill`.
+It updates the verification from the code, reruns it, shows each updated check can still fail, and says whether each failure is drift in the verification or a bug in the code.
+
 ## Answer decisions
 
 When a lead needs your call, it writes the question, the options and its recommendation to the task's `decisions/` folder, and asks you in its own thread.

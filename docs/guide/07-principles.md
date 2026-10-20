@@ -35,7 +35,7 @@ The core principles decide how much to build and when to rethink:
 - **Laziness Protocol**: prefer deletion and the smallest change that solves the problem.
 - **Foundational Thinking**: choose the core data structures before writing logic.
 - **Redesign from First Principles**: integrate a new requirement as if it had been there from day one.
-- **Attack the Premise**: question the premise two failed fixes shared.
+- **Attack the Premise**: write down the premise two failed fixes shared and test it directly.
 - **Subtract Before You Add**: remove dead weight before building on it.
 - **Minimize Reader Load**: collapse layers and hidden state a reader must hold.
 - **Outcome-Oriented Execution**: converge on the target design instead of keeping throwaway compatibility.
@@ -55,9 +55,9 @@ The architecture principles decide where state, validation and compatibility liv
 
 The verification principles define what counts as proof:
 - **Prove It Works**: verify the real artifact, not a proxy.
-- **Fix Root Causes**: reproduce and trace to the cause before changing code.
+- **Fix Root Causes**: fix where the system first went wrong; a guard is a fix only for a legitimate state.
 - **Sequence Work into Verifiable Units**: end each small unit in a check before starting the next.
-- **Test Behavior, Not Implementation**: call the code the way its users do and assert a literal expected value.
+- **Test Behavior, Not Implementation**: assert what the code's users can observe, so the test survives a change to the internals.
 - **Explain the Number**: find what limits a measured number before trusting it.
   `benchmark-checklist` turns it into seven questions you answer from real runs.
 
