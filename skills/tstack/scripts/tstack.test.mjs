@@ -473,6 +473,25 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE")]), now, ["build"]), /^BLOCKER failing-checks: lint/);
 });
 
+test("check holds a rework like a fix, unless it is skipped", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "reworking.md"), "1. Rework it.\n   Artifact: `evidence/rework.md`\n");
+	brief(home, "rw", { playbook: "reworking", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "rw");
+	writeFileSync(join(task, "evidence/rework.md"), "Rewrote it myself.\n");
+	assert.throws(() => check(home, "rw", 1), /cites no results\/<name>\.md/);
+	mkdirSync(join(task, "briefs"));
+	mkdirSync(join(task, "results"));
+	writeFileSync(join(task, "briefs/rework.md"), "SKILLS none\n");
+	writeFileSync(join(task, "results/rework.md"), "DONE rewrote\n");
+	writeFileSync(join(task, "evidence/rework.md"), "Brief `briefs/rework.md`, result `results/rework.md`.\n");
+	assert.throws(() => check(home, "rw", 1), /lists the tdd skill/);
+	writeFileSync(join(task, "briefs/rework.md"), "SKILLS tdd\n");
+	check(home, "rw", 1);
+	writeFileSync(join(task, "evidence/rework.md"), "skip: MODERNIZE, no rewrite\n");
+	check(home, "rw", 1);
+});
+
 test("pr-state retries gh only on a failure that can pass on its own", () => {
 	for (const message of ["HTTP 502: Bad Gateway", "HTTP 429", "You have exceeded a secondary rate limit", "read: connection reset by peer", "unexpected EOF", "dial tcp: i/o timeout"])
 		assert.ok(isTransient(message), message);

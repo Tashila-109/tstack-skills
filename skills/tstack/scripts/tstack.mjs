@@ -23,6 +23,8 @@ const SKILL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
 const GRANTED = /^##\s+Answer\s*\n+\s*granted\b/im;
 const DELEGATED = new Set(["evidence/dispatch.md", "evidence/fix.md"]);
+// A step that delegates only on some paths, such as modernize's rework: held like a fix unless it has a skip: line.
+const MAYBE_DELEGATED = new Set(["evidence/rework.md"]);
 const RESULT = /\bresults\/[a-z0-9][a-z0-9.-]*\.md\b/g;
 const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
@@ -242,6 +244,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
+		else if (MAYBE_DELEGATED.has(path) && !SKIPPED.test(text)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
@@ -262,7 +265,7 @@ function delegationGaps(taskDir, path, text) {
 	const cited = [...new Set(prose(text).match(RESULT) ?? [])];
 	if (!cited.length) return ["cites no results/<name>.md: this step delegates, with no skip"];
 	const gaps = cited.filter((r) => !VERDICT.test(readIfFile(insideTask(taskDir, r)))).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
-	if (path === "evidence/fix.md") {
+	if (path !== "evidence/dispatch.md") {
 		const briefs = (prose(text).match(/\bbriefs\/[a-z0-9][a-z0-9.-]*\.md\b/g) ?? []).map((b) => readIfFile(insideTask(taskDir, b)));
 		if (!briefs.some((b) => /\btdd\b/.test(b))) gaps.push("cites no brief under briefs/ that lists the tdd skill");
 	}

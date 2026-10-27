@@ -28,8 +28,7 @@ Bring the base in by merge, so every push fast-forwards the PR's branch.
    Write the disposition, its reason and its evidence to `evidence/disposition.md`.
    For REWORK, write the smallest credible rewrite there too.
    On REWORK or CLOSE, open a decision as [decisions](../references/decisions.md) says and stop until the human answers, because rewriting or closing someone's PR is their call.
-   On an approved REWORK, do the rewrite after step 4's merge, delegated to a worker as [Takeover](takeover.md) step 4 says, with its `evidence/fix.md`.
-   On an approved CLOSE, close the PR with `gh pr close <pr> --comment <reason>`, and mark steps 4 to 6 `skip: closed on the human's word`.
+   On an approved CLOSE, post the reason as a PR comment from a file, as babysit step 8 says, then run `gh pr close <pr>`, and mark steps 4 to 7 `skip: closed on the human's word`.
    Artifact: `evidence/disposition.md`
 4. Bring the base in.
    Fetch the PR head with `git fetch origin pull/<pr>/head`, which also works for a fork.
@@ -40,10 +39,17 @@ Bring the base in by merge, so every push fast-forwards the PR's branch.
    Run the project's checks for the touched area, and tell real failures from ones that already fail on the base.
    Write the before-and-after comparison and the check results to `evidence/update.md`.
    Artifact: `evidence/update.md`
-5. Prove the PR still does what its intent says, on the real surface, as [proof](../references/proof.md) says.
+5. On an approved REWORK, rewrite it.
+   Delegate the rewrite to a worker as [Takeover](takeover.md) step 4 says, with the **tdd** skill under SKILLS, and review its diff yourself.
+   Write `evidence/rework.md`: the brief and result paths, and your review of the diff with anything you sent back.
+   Without a REWORK, write `skip: <disposition>` there instead.
+   Artifact: `evidence/rework.md`
+6. Prove the PR still does what its intent says, on the real surface, as [proof](../references/proof.md) says.
    Artifact: `evidence/verify.md`
-6. Run **Opening a PR**, pushing to the PR's own branch instead of opening a new PR.
-   Push to the head repository from step 1, which is `origin` only when the PR is not from a fork: `git push <head repository URL> HEAD:<PR branch>`.
+7. Run **Opening a PR**, pushing to the PR's own branch instead of opening a new PR.
+   Push to the head repository from step 1, which is `origin` only when the PR is not from a fork.
+   The branch name comes from whoever opened the PR, so check it with `git check-ref-format --branch '<PR branch>'` first, and pass the URL and branch as separate single-quoted arguments: `git push '<head repository URL>' 'HEAD:<PR branch>'`.
+   Refuse a name that holds a quote, and tell the human.
    Leave the PR's title and description as they are unless the human says otherwise, and summarize the update in one PR comment, written as babysit step 8 says.
    When the push is refused because the branch moved, fetch and return to step 2 rather than overwrite new work.
    When you cannot push to that branch, such as a fork that refuses maintainer edits, stop and offer the human the **Takeover** playbook.
