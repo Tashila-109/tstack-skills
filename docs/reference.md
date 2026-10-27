@@ -124,7 +124,7 @@ The lead picks one per task from the [router's intake table](../skills/tstack/SK
 
 | Status | Playbooks |
 | --- | --- |
-| Adapted, so `check` enforces the `Artifact:` paths each names; opening-a-pr names none, and `pr` delivery adds `evidence/babysit.md` | investigation, gardener, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, figure-it-out, opening-a-pr |
+| Adapted, so `check` enforces the `Artifact:` paths each names; opening-a-pr names none, and `pr` delivery adds `evidence/babysit.md` | investigation, gardener, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, takeover, modernize, figure-it-out, opening-a-pr |
 | As written with `Artifact:` lines, so `check` enforces the files they name | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run |
 | As written, so `check` enforces only `report.md` | session-pickup, pause-safely, worktree-cleanup |
 | Run by a coordinator across several tasks | autopilot-full, autopilot-stack |

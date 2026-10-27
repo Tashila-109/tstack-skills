@@ -85,6 +85,8 @@ Read the skill before you recommend it, and give one example prompt.
 | Work through a queue of changes | the [autopilot-full](../tstack/playbooks/autopilot-full.md) or [autopilot-stack](../tstack/playbooks/autopilot-stack.md) playbook |
 | Keep a decision trail for unattended work | [show-me-your-work](../show-me-your-work/SKILL.md) |
 | Hand a full session to a fresh one, or resume or pause work | [handoff](../handoff/SKILL.md), the [session-pickup](../tstack/playbooks/session-pickup.md) or [pause-safely](../tstack/playbooks/pause-safely.md) playbook |
+| Finish someone else's PR, branch or agent thread, or bring an old PR up to date and judge whether it should still land | the [takeover](../tstack/playbooks/takeover.md) or [modernize](../tstack/playbooks/modernize.md) playbook |
+| Carry a task to a merge-ready PR while away, or to a merged one | say "full stop" or "full send" to the lead, as the router's Autonomy section says |
 | Turn what a task taught into skill edits | [reflect](../reflect/SKILL.md) |
 | Stop agents repeating a mistake in this repo | [correct](../correct/SKILL.md) |
 | Write or edit a skill, playbook or brief | [writing-for-agents](../writing-for-agents/SKILL.md) |

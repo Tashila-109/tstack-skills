@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -468,6 +468,16 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, [run("Code Review Gate", "COMPLETED", "ACTION_REQUIRED")]), now), /^WAITING approval: Code Review Gate/);
 	assert.match(prVerdict(pr({}, [run("Code Review Gate", "COMPLETED", "ACTION_REQUIRED"), run("lint", "COMPLETED", "FAILURE")]), now), /^BLOCKER failing-checks: lint \(/);
 	assert.match(prVerdict(pr({}, []), now), /^READY ci-none/);
+	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, []), now, ["build"]), /^WAITING checks: build \(required, not started\)/);
+	assert.match(prVerdict(pr({}, [run("build", "COMPLETED", "SUCCESS")]), now, ["build"]), /^READY \(/);
+	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE")]), now, ["build"]), /^BLOCKER failing-checks: lint/);
+});
+
+test("pr-state retries gh only on a failure that can pass on its own", () => {
+	for (const message of ["HTTP 502: Bad Gateway", "HTTP 429", "API rate limit exceeded", "read: connection reset by peer", "unexpected EOF", "dial tcp: i/o timeout"])
+		assert.ok(isTransient(message), message);
+	for (const message of ["HTTP 404: Not Found", "Could not resolve to a PullRequest with the number of 9", "HTTP 401: Bad credentials"])
+		assert.ok(!isTransient(message), message);
 });
 
 test("every skill's name matches its folder, so each one installs and invokes by that name", () => {
