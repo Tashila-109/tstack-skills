@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -468,6 +468,35 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, [run("Code Review Gate", "COMPLETED", "ACTION_REQUIRED")]), now), /^WAITING approval: Code Review Gate/);
 	assert.match(prVerdict(pr({}, [run("Code Review Gate", "COMPLETED", "ACTION_REQUIRED"), run("lint", "COMPLETED", "FAILURE")]), now), /^BLOCKER failing-checks: lint \(/);
 	assert.match(prVerdict(pr({}, []), now), /^READY ci-none/);
+	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, []), now, ["build"]), /^WAITING checks: build \(required, not started\)/);
+	assert.match(prVerdict(pr({}, [run("build", "COMPLETED", "SUCCESS")]), now, ["build"]), /^READY \(/);
+	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE")]), now, ["build"]), /^BLOCKER failing-checks: lint/);
+});
+
+test("check holds a rework like a fix, unless it is skipped", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "reworking.md"), "1. Rework it.\n   Artifact: `evidence/rework.md`\n");
+	brief(home, "rw", { playbook: "reworking", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "rw");
+	writeFileSync(join(task, "evidence/rework.md"), "Rewrote it myself.\n");
+	assert.throws(() => check(home, "rw", 1), /cites no results\/<name>\.md/);
+	mkdirSync(join(task, "briefs"));
+	mkdirSync(join(task, "results"));
+	writeFileSync(join(task, "briefs/rework.md"), "SKILLS none\n");
+	writeFileSync(join(task, "results/rework.md"), "DONE rewrote\n");
+	writeFileSync(join(task, "evidence/rework.md"), "Brief `briefs/rework.md`, result `results/rework.md`.\n");
+	assert.throws(() => check(home, "rw", 1), /lists the tdd skill/);
+	writeFileSync(join(task, "briefs/rework.md"), "SKILLS tdd\n");
+	check(home, "rw", 1);
+	writeFileSync(join(task, "evidence/rework.md"), "skip: MODERNIZE, no rewrite\n");
+	check(home, "rw", 1);
+});
+
+test("pr-state retries gh only on a failure that can pass on its own", () => {
+	for (const message of ["HTTP 502: Bad Gateway", "HTTP 429", "You have exceeded a secondary rate limit", "read: connection reset by peer", "unexpected EOF", "dial tcp: i/o timeout"])
+		assert.ok(isTransient(message), message);
+	for (const message of ["API rate limit exceeded for user ID 1", "HTTP 404: Not Found", "Could not resolve to a PullRequest with the number of 9", "HTTP 401: Bad credentials"])
+		assert.ok(!isTransient(message), message);
 });
 
 test("every skill's name matches its folder, so each one installs and invokes by that name", () => {

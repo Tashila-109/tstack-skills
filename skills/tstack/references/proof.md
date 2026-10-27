@@ -16,6 +16,15 @@ The project's `verify-*` skill owns how to launch, drive and capture.
 - After a repair, rerun the claims the repair could change.
   Run every claim once on the final head.
 
+## Permission to test
+
+A task under the router's [full stop or full send](../SKILL.md#autonomy) carries the permission for the test methods the proof needs.
+It replaces a project rule that says to ask before a method or to leave testing to the human, such as computer use, browser automation, simulators and devices, running the app or a dev server, and screenshots.
+Rules about how to test still hold, such as the right command, fixture or check.
+The permission covers only this task's proof.
+It never covers production, data deletion, or a tool approval your harness shows.
+Name each method you used in `evidence/verify.md`.
+
 ## Write it
 
 `evidence/verify.md` opens with the head SHA it proves, then one table:

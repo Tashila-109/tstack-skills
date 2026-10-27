@@ -213,6 +213,14 @@ Each principle's leaf is `../principle-<name>/SKILL.md` beside this skill.
 
 **Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going. They never extend to merging or discarding work.
 
+**Full stop and full send.** A task request that says "full stop" or "full send" asks for the task carried to a PR while the human is away.
+It is not a request to stop, as in Lead step 7.
+Deliver by `pr`, babysit to merge-ready, and use the test methods the proof needs without asking first, as [proof](references/proof.md#permission-to-test) says.
+"Full stop" ends at merge-ready.
+"Full send" is also the human's word to merge this task's PR.
+Record it in `<home>/grants.md` as rule 2 says, covering only this task's PR, on the conditions that `check --head` passes and `pr-state` prints `READY` on the head you merge.
+Everything else under **Always stop** still stops.
+
 **No is an acceptable answer.** Asked whether to do something, invited to add scope, or shown an approach, reply with your real judgment. Decline, push back, or say "this doesn't earn its place" when true. A recommendation is a judgment, not a validation. Agreement is not the default, candor over sycophancy. This holds for a lead answering the human or a worker, and for a coordinator answering the human or a lead.
 
 ## Writing the reply
@@ -258,6 +266,8 @@ Take the first row that fits, because rows run from the most specific request to
 | A plan for work that spans phases or stacked PRs, with no build yet. | `multi-phase-plan` | Adapted |
 | A long task to drive to a checkable predicate without stopping ("run until done"). | `autonomous-run` | As written |
 | Work that spans phases, authorized to be planned and built. | `orchestrate` | Adapted |
+| Finishing a PR, branch or agent thread that someone else started, keeping their credit ("take over"). | `takeover` | Adapted |
+| Bringing an old PR up to date with its base, and judging whether it should still land ("modernize", "rebase this PR"). | `modernize` | Adapted |
 | A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), or work the human will review after stepping away, even when a narrower row below fits. | `figure-it-out` | Adapted |
 | A reported defect to reproduce, root-cause, and fix with runtime evidence. | `bug-fix` | Adapted |
 | A behavior-preserving change to structure (rename, extract, inline, dedupe, move). | `refactoring` | Adapted |

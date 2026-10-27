@@ -23,6 +23,8 @@ const SKILL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
 const GRANTED = /^##\s+Answer\s*\n+\s*granted\b/im;
 const DELEGATED = new Set(["evidence/dispatch.md", "evidence/fix.md"]);
+// A step that delegates only on some paths, such as modernize's rework: held like a fix unless it has a skip: line.
+const MAYBE_DELEGATED = new Set(["evidence/rework.md"]);
 const RESULT = /\bresults\/[a-z0-9][a-z0-9.-]*\.md\b/g;
 const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
@@ -242,6 +244,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
+		else if (MAYBE_DELEGATED.has(path) && !SKIPPED.test(text)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
@@ -262,7 +265,7 @@ function delegationGaps(taskDir, path, text) {
 	const cited = [...new Set(prose(text).match(RESULT) ?? [])];
 	if (!cited.length) return ["cites no results/<name>.md: this step delegates, with no skip"];
 	const gaps = cited.filter((r) => !VERDICT.test(readIfFile(insideTask(taskDir, r)))).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
-	if (path === "evidence/fix.md") {
+	if (path !== "evidence/dispatch.md") {
 		const briefs = (prose(text).match(/\bbriefs\/[a-z0-9][a-z0-9.-]*\.md\b/g) ?? []).map((b) => readIfFile(insideTask(taskDir, b)));
 		if (!briefs.some((b) => /\btdd\b/.test(b))) gaps.push("cites no brief under briefs/ that lists the tdd skill");
 	}
@@ -512,7 +515,7 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 const SETTLE_MS = 10 * 60 * 1000;
 const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "STALE"]);
 const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
-  state isDraft mergeable mergeStateStatus reviewDecision headRefOid updatedAt
+  state isDraft baseRefName mergeable mergeStateStatus reviewDecision headRefOid updatedAt
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
     __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
   reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { isResolved } }
@@ -521,7 +524,8 @@ const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(
 } } }`;
 
 // One verdict for a PR from GitHub's own state. WAITING means nothing is wrong yet but it is not ready.
-export function prVerdict(pr, now = Date.now()) {
+// `required` names the base branch's required checks, so one that has not started yet still counts as pending.
+export function prVerdict(pr, now = Date.now(), required = []) {
 	const head = pr.headRefOid?.slice(0, 12) ?? "unknown";
 	const say = (verdict, reason) => `${verdict}${reason ? ` ${reason}` : ""} (head ${head})`;
 	if (pr.state === "MERGED") return say("MERGED");
@@ -543,7 +547,8 @@ export function prVerdict(pr, now = Date.now()) {
 	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved).length;
 	if (open) return say("BLOCKER", `review-threads: ${open} unresolved`);
 	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
-	const pending = checks.filter((c) => c.pending).map((c) => c.name);
+	const reported = new Set(checks.map((c) => c.name));
+	const pending = [...checks.filter((c) => c.pending).map((c) => c.name), ...required.filter((name) => !reported.has(name)).map((name) => `${name} (required, not started)`)];
 	if (pending.length) return say("WAITING", `checks: ${pending.join(", ")}`);
 	const latest = Math.max(
 		...[commit?.committedDate, pr.updatedAt, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
@@ -560,22 +565,61 @@ export function prVerdict(pr, now = Date.now()) {
 	return say("READY");
 }
 
+const TRANSIENT = /HTTP (5\d\d|429)|secondary rate limit|timed? ?out|connection (reset|refused)|\bEOF\b|temporar|could not resolve host|TLS handshake/i;
+
+export const isTransient = (message) => TRANSIENT.test(message);
+
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+// Runs gh, and retries a server error, a secondary rate limit or a network failure four times with backoff.
+// A spent primary rate limit resets within the hour, so it is not retried.
+function gh(args) {
+	for (let attempt = 0; ; attempt++) {
+		try {
+			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+		} catch (err) {
+			const message = String(err.stderr || err.message).trim();
+			if (attempt === 4 || !isTransient(message)) throw new Error(message);
+			sleep(2000 * 2 ** attempt);
+		}
+	}
+}
+
+// The base branch's required checks, from rulesets and from classic branch protection.
+// Reading protection needs admin rights, so a refusal means only that this source is unknown.
+function requiredChecks(base) {
+	const sources = [
+		[`repos/{owner}/{repo}/rules/branches/${base}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
+		[`repos/{owner}/{repo}/branches/${base}/protection/required_status_checks`, ".contexts[]?"],
+	];
+	const names = new Set();
+	for (const [path, jq] of sources) {
+		try {
+			for (const name of gh(["api", path, "--jq", jq]).split("\n")) if (name) names.add(name);
+		} catch {}
+	}
+	return [...names];
+}
+
 export function prState(number, waitSeconds = 0) {
 	if (!/^\d+$/.test(String(number))) throw new Usage(`pr-state takes a PR number: ${number}`);
 	if (!(waitSeconds >= 0 && waitSeconds <= 540)) throw new Usage("--wait must be 0 to 540 seconds, under the 600-second tool cap");
 	const deadline = Date.now() + waitSeconds * 1000;
+	let required;
 	for (;;) {
 		let raw;
 		try {
-			raw = execFileSync("gh", ["api", "graphql", "-F", "owner={owner}", "-F", "repo={repo}", "-F", `n=${number}`, "-f", `query=${PR_QUERY}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+			raw = gh(["api", "graphql", "-F", "owner={owner}", "-F", "repo={repo}", "-F", `n=${number}`, "-f", `query=${PR_QUERY}`]);
 		} catch (err) {
-			throw new Refusal(`gh could not read PR ${number}: ${String(err.stderr ?? err.message).trim()}`);
+			throw new Refusal(`gh could not read PR ${number}: ${err.message}`);
 		}
 		const body = JSON.parse(raw);
 		if (body.errors?.length || !body.data?.repository?.pullRequest) throw new Refusal(`gh could not read PR ${number}: ${JSON.stringify(body.errors ?? body)}`);
-		const verdict = prVerdict(body.data.repository.pullRequest);
+		const pr = body.data.repository.pullRequest;
+		if (pr.state === "OPEN") required ??= requiredChecks(pr.baseRefName);
+		const verdict = prVerdict(pr, Date.now(), required ?? []);
 		if (!verdict.startsWith("WAITING") || Date.now() + 60_000 > deadline) return verdict;
-		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 60_000);
+		sleep(60_000);
 	}
 }
 

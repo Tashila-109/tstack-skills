@@ -14,6 +14,10 @@ A lead opens a decision, and only the human answers it.
 4. When running something could settle the question, such as behavior, output or timing, run it or sketch it with the [Prototype playbook](../playbooks/prototype.md) and let the result decide.
    A read-only investigation answers from its evidence instead.
 
+5. Judge a finding's severity yourself, whatever label the reviewer gave it.
+   Another path, a rare case, a small cost, or compatibility the accepted intent does not need is a Could, unless it touches correctness of the intended case, security, or data.
+   When repairs grew the diff past what the intent needs, cut it back before the next review round.
+
 The implementation worker never decides its own finding.
 Labels such as "correctness", "security" or "required" are evidence about a finding, never authority to widen the task.
 

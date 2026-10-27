@@ -34,7 +34,7 @@ Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed he
 
 **Descriptions.** The PR body is a one-minute briefing, not a lab notebook, for a reviewer who has the diff. It says why the change exists, what it leaves out, what it could break, and how you proved it works. Write short, simple sentences with few identifiers, no walls of text. The body becomes the squash commit body, so keep that commit under about 40 lines. Use `##` headings, not bold lead-ins, in this order, and drop a section with nothing to say:
 
-- `## Why`: the problem and approach, 1–3 short sentences. No SHAs, rebase genealogy, or "based on main" preamble.
+- `## Why`: the problem and approach, 1–3 short sentences. Say the problem as the person who hit it would, not as a list of what changed. No SHAs, rebase genealogy, or "based on main" preamble.
 - `## What changed`: 1–3 short bullets. Name a real symbol or path only when it carries the change. Name both sides of a rename or retarget.
 - `## Scope`: always. 1–3 short items on what it covers and what it deliberately leaves out (a follow-up, a known gap). No symbols, paths, or file-by-file essay.
 - `## Tradeoffs`: only rejected alternatives a reviewer would otherwise ask about. Skip when there was no real choice.
@@ -46,6 +46,9 @@ After the sections, attach videos or screenshots when they prove a claim. Full S
 **Forge.** Use the GitHub CLI, `gh`, for create, edit, view, watch, and merge. Do not require Graphite (`gt`).
 
 **PR tool.** Create, edit, retarget, and mark ready with `gh`, then link the PR to the thread as the runtime reference says, so the runtime tracks it.
+Before you create one, run `gh api "repos/<owner>/<repo>/pulls?head=<owner>:<branch>&state=open"`, and update the PR it lists instead of opening a second.
+Before you create or edit one, check the title and body for secrets and private details.
+When `gh pr create` fails because the GraphQL rate limit is spent, create the PR through REST, which has its own limit: `gh api repos/<owner>/<repo>/pulls -f title=<title> -f head=<branch> -f base=<base> -F body=@<file>`.
 
 **Size and stacks.** Prefer five narrow PRs to one large PR. In tstack a task delivers one PR, so split a large change into several tasks, stacked under [Autopilot-stack](autopilot-stack.md) when they are coupled. A stack is a base-branch chain. The root PR targets trunk. Each child branch starts from its parent's tip and its PR targets the parent branch. Create a child with `gh pr create --base <parent-branch>`, and retarget an existing child with `gh pr edit <pr> --base <parent-branch>`. As a parent merges, move its child onto trunk as [Shipping's Landing](shipping.md#landing) says. Branch from trunk only for independent work. Bring trunk and each parent in by merge, never by rebase, since a rebased pushed branch needs a force-push.
 

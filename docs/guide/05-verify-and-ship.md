@@ -145,6 +145,14 @@ To stop being asked, give the lead a standing grant, such as "merge PRs once the
 The lead writes it to `.tstack/grants.md` in your words, checks its conditions on the exact commit before each merge, and quotes it whenever it uses it.
 Delete the file, or tell the lead, to withdraw it.
 
+To step away from one task, say "full stop" or "full send" in your request, as the [router's Autonomy section](../../skills/tstack/SKILL.md#autonomy) defines.
+"Full stop" has the lead deliver a PR and babysit it to merge-ready without you, using whichever test method its proof needs, even one your project says to ask about first.
+"Full send" does the same and merges the PR once `check` passes and `pr-state` prints `READY`, because the lead records it as a grant for that one PR.
+
+To finish someone else's PR, ask for a takeover, which keeps their commits and credits them in the PR.
+To bring an old PR up to date, ask to modernize it.
+The lead first decides whether the PR should still land, and asks you before it reworks or closes one.
+
 ## Land a stack of PRs
 
 A green check list does not mean a stack is safe to land.
