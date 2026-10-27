@@ -562,19 +562,20 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 	return say("READY");
 }
 
-const TRANSIENT = /HTTP (5\d\d|429)|rate limit|timed? ?out|connection (reset|refused)|\bEOF\b|temporar|could not resolve host|TLS handshake/i;
+const TRANSIENT = /HTTP (5\d\d|429)|secondary rate limit|timed? ?out|connection (reset|refused)|\bEOF\b|temporar|could not resolve host|TLS handshake/i;
 
 export const isTransient = (message) => TRANSIENT.test(message);
 
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
-// Runs gh, and retries a server error, a rate limit or a network failure four times with backoff.
+// Runs gh, and retries a server error, a secondary rate limit or a network failure four times with backoff.
+// A spent primary rate limit resets within the hour, so it is not retried.
 function gh(args) {
 	for (let attempt = 0; ; attempt++) {
 		try {
 			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 		} catch (err) {
-			const message = String(err.stderr ?? err.message).trim();
+			const message = String(err.stderr || err.message).trim();
 			if (attempt === 4 || !isTransient(message)) throw new Error(message);
 			sleep(2000 * 2 ** attempt);
 		}
@@ -612,8 +613,8 @@ export function prState(number, waitSeconds = 0) {
 		const body = JSON.parse(raw);
 		if (body.errors?.length || !body.data?.repository?.pullRequest) throw new Refusal(`gh could not read PR ${number}: ${JSON.stringify(body.errors ?? body)}`);
 		const pr = body.data.repository.pullRequest;
-		required ??= requiredChecks(pr.baseRefName);
-		const verdict = prVerdict(pr, Date.now(), required);
+		if (pr.state === "OPEN") required ??= requiredChecks(pr.baseRefName);
+		const verdict = prVerdict(pr, Date.now(), required ?? []);
 		if (!verdict.startsWith("WAITING") || Date.now() + 60_000 > deadline) return verdict;
 		sleep(60_000);
 	}

@@ -18,7 +18,7 @@ The project's `verify-*` skill owns how to launch, drive and capture.
 
 ## Permission to test
 
-When the human started the task with "full send" or "full stop", that request is the permission for the test methods the proof needs.
+A task under the router's [full stop or full send](../SKILL.md#autonomy) carries the permission for the test methods the proof needs.
 It replaces a project rule that says to ask before a method or to leave testing to the human, such as computer use, browser automation, simulators and devices, running the app or a dev server, and screenshots.
 Rules about how to test still hold, such as the right command, fixture or check.
 The permission covers only this task's proof.

@@ -45,7 +45,10 @@ After the sections, attach videos or screenshots when they prove a claim. Full S
 
 **Forge.** Use the GitHub CLI, `gh`, for create, edit, view, watch, and merge. Do not require Graphite (`gt`).
 
-**PR tool.** Create, edit, retarget, and mark ready with `gh`, then link the PR to the thread as the runtime reference says, so the runtime tracks it. Before you create one, run `gh pr list --head <branch> --state open`, and update the PR it shows instead of opening a second. Before you create or edit one, check the title and body for secrets and private details. When `gh pr create` fails because the GraphQL rate limit is spent, create the PR through REST, which has its own limit: `gh api repos/<owner>/<repo>/pulls -f title=<title> -f head=<branch> -f base=<base> -F body=@<file>`.
+**PR tool.** Create, edit, retarget, and mark ready with `gh`, then link the PR to the thread as the runtime reference says, so the runtime tracks it.
+Before you create one, run `gh api "repos/<owner>/<repo>/pulls?head=<owner>:<branch>&state=open"`, and update the PR it lists instead of opening a second.
+Before you create or edit one, check the title and body for secrets and private details.
+When `gh pr create` fails because the GraphQL rate limit is spent, create the PR through REST, which has its own limit: `gh api repos/<owner>/<repo>/pulls -f title=<title> -f head=<branch> -f base=<base> -F body=@<file>`.
 
 **Size and stacks.** Prefer five narrow PRs to one large PR. In tstack a task delivers one PR, so split a large change into several tasks, stacked under [Autopilot-stack](autopilot-stack.md) when they are coupled. A stack is a base-branch chain. The root PR targets trunk. Each child branch starts from its parent's tip and its PR targets the parent branch. Create a child with `gh pr create --base <parent-branch>`, and retarget an existing child with `gh pr edit <pr> --base <parent-branch>`. As a parent merges, move its child onto trunk as [Shipping's Landing](shipping.md#landing) says. Branch from trunk only for independent work. Bring trunk and each parent in by merge, never by rebase, since a rebased pushed branch needs a force-push.
 

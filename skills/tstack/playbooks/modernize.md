@@ -28,9 +28,12 @@ Bring the base in by merge, so every push fast-forwards the PR's branch.
    Write the disposition, its reason and its evidence to `evidence/disposition.md`.
    For REWORK, write the smallest credible rewrite there too.
    On REWORK or CLOSE, open a decision as [decisions](../references/decisions.md) says and stop until the human answers, because rewriting or closing someone's PR is their call.
+   On an approved REWORK, do the rewrite after step 4's merge, delegated to a worker as [Takeover](takeover.md) step 4 says, with its `evidence/fix.md`.
+   On an approved CLOSE, close the PR with `gh pr close <pr> --comment <reason>`, and mark steps 4 to 6 `skip: closed on the human's word`.
    Artifact: `evidence/disposition.md`
 4. Bring the base in.
-   In your task worktree, start your task branch at the recorded PR head, then merge the fetched base into it.
+   Fetch the PR head with `git fetch origin pull/<pr>/head`, which also works for a fork.
+   Your task branch has no commits of its own yet, so move it to that head with `git reset --hard FETCH_HEAD`, then merge the fetched base into it.
    Resolve each conflict by the PR's intent and the base's newer invariants.
    When a conflict shows a product or architecture disagreement, stop and return to step 3 instead of guessing.
    Compare the PR's patch before and after, `git diff <old merge base>...<old head>` against `git diff <base>...HEAD`, and confirm no intended behavior disappeared and no behavior the base already has came back.
@@ -39,12 +42,13 @@ Bring the base in by merge, so every push fast-forwards the PR's branch.
    Artifact: `evidence/update.md`
 5. Prove the PR still does what its intent says, on the real surface, as [proof](../references/proof.md) says.
    Artifact: `evidence/verify.md`
-6. Run **Opening a PR**, pushing to the PR's own branch with `git push origin HEAD:<PR branch>` instead of opening a new PR.
+6. Run **Opening a PR**, pushing to the PR's own branch instead of opening a new PR.
+   Push to the head repository from step 1, which is `origin` only when the PR is not from a fork: `git push <head repository URL> HEAD:<PR branch>`.
+   Leave the PR's title and description as they are unless the human says otherwise, and summarize the update in one PR comment, written as babysit step 8 says.
    When the push is refused because the branch moved, fetch and return to step 2 rather than overwrite new work.
    When you cannot push to that branch, such as a fork that refuses maintainer edits, stop and offer the human the **Takeover** playbook.
    Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
 
-Never merge the PR here.
-Merging happens only at the router's Finish, on the human's word.
+Merging happens only at the router's Finish.
 
 **Reply:** lead with MODERNIZE, REWORK or CLOSE and the reason, then what changed on the base that matters to this PR, any conflict in intent or that none was found, the update and push, the checks and their results, and what is left for the human. Keep what you observed apart from what you judged, and say what you could not verify.

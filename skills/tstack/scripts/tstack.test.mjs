@@ -474,9 +474,9 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 });
 
 test("pr-state retries gh only on a failure that can pass on its own", () => {
-	for (const message of ["HTTP 502: Bad Gateway", "HTTP 429", "API rate limit exceeded", "read: connection reset by peer", "unexpected EOF", "dial tcp: i/o timeout"])
+	for (const message of ["HTTP 502: Bad Gateway", "HTTP 429", "You have exceeded a secondary rate limit", "read: connection reset by peer", "unexpected EOF", "dial tcp: i/o timeout"])
 		assert.ok(isTransient(message), message);
-	for (const message of ["HTTP 404: Not Found", "Could not resolve to a PullRequest with the number of 9", "HTTP 401: Bad credentials"])
+	for (const message of ["API rate limit exceeded for user ID 1", "HTTP 404: Not Found", "Could not resolve to a PullRequest with the number of 9", "HTTP 401: Bad credentials"])
 		assert.ok(!isTransient(message), message);
 });
 

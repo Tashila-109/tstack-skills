@@ -113,8 +113,6 @@ Record `pass`, `fail` or `could not run` in the aggregate with the evidence path
 `fail` blocks like an accepted Must.
 `could not run` is not a pass and starts no repair: tell the human.
 A Should or Could never opens a repair or a review round on its own.
-A finding about another path, a rare case, a small cost, or compatibility the intent does not need is a Could, whatever label the reviewer gave it.
-When the repairs grew the diff, cut it back before the next round.
 Wording in an architecture or design document is a Should unless it contradicts what the code does.
 Record each one in the aggregate with the reason it stays, or fix it only when the fix is trivial and the lead is writing a Must's repair itself.
 The same rule holds for blocking and non-blocking findings from an external or agent review of a PR head.

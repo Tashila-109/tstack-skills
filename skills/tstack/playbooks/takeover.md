@@ -13,11 +13,12 @@ Never change the original PR or its branch, and never merge or close it, without
    The handoff is context, not proof.
    Write the source's URL, head, base, goal, open findings and contributors to `evidence/inherited.md`.
    Artifact: `evidence/inherited.md`
-2. Check that the goal still belongs on the current base, as steps 2 and 3 of [Modernize](modernize.md) say.
+2. Check that the goal still belongs on the current base, as steps 2 and 3 of [Modernize](modernize.md) say, with `evidence/inherited.md` in place of its `evidence/intent.md`.
    On REWORK or CLOSE, open a decision and stop until the human answers.
    Artifact: `evidence/drift.md`, `evidence/disposition.md`
 3. Import the original commits.
-   In your task worktree, start your task branch at the source head, so its commits keep their authors, then merge the fetched base into it as Modernize step 4 says.
+   Move your task branch to the source head as Modernize step 4 says, so its commits keep their authors, then merge the fetched base into it.
+   For a branch with no PR, fetch it from its remote instead of `pull/<pr>/head`.
    When the human asked to continue in place or to stack on the source, do that instead, and push to the source branch only on their word.
    Write how the branch was built, from which head, to `evidence/update.md`.
    Artifact: `evidence/update.md`
@@ -36,6 +37,7 @@ Never change the original PR or its branch, and never merge or close it, without
 7. Run **Opening a PR**.
    After `## Why`, add a `## Credit` section that links the original PR and names each contributor from step 1.
    End the description with a `Co-authored-by:` trailer for each contributor, because a squash merge keeps only one author.
+   The trailers are its last lines, after any media and any attribution line, or Git does not read them as trailers.
    At the router's Finish, when the project squashes, pass the description to `gh pr merge` with `--body`, so the trailers reach the merge commit.
    A model attribution never stands in for a contributor's credit.
    Artifact: `results/comment-sicko.md`, `evidence/closing-pass.md`, `evidence/reviews/final.md`
