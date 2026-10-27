@@ -89,7 +89,7 @@ for (let i = start; i < raw.length; i++) {
 	if (fence) continue;
 	if (/(?<![\w:])<[^>]+>/.test(text)) fail(n, "unfilled placeholder");
 	const prose = text
-		.replace(/`[^`]*`/g, "`")
+		.replace(/(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)/g, "`")
 		.replace(/!\[[^\]]*\]\([^)]*\)/g, "")
 		.replace(/\]\([^)]*\)/g, "]");
 	if (/[\u2013\u2014]/.test(prose)) fail(n, "long dash");

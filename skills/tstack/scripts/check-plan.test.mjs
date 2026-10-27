@@ -76,3 +76,14 @@ test("fences follow CommonMark: an info string with a backtick opens none, and o
 	assert.equal(ok("```\n```bash\n<placeholder>\n```").status, 0, "a fence with an info string never closes one");
 	assert.notEqual(ok("```js `x`\n<placeholder>").status, 0, "a backtick info string is inline code, not a fence");
 });
+
+test("prose inside a matching multi-backtick code span is not checked, and prose after one is", () => {
+	const ok = (body) => check(`${filledSkeleton()}\n${body}\n`);
+	for (const count of [2, 3, 4]) {
+		const d = "`".repeat(count);
+		const r = ok(`Use ${d}echo \`x\`: \u201cquoted\u201d \u2014 example${d}.`);
+		assert.equal(r.status, 0, r.stderr);
+	}
+	assert.match(ok("Use ``echo `x`: y``. Bad: prose.").stderr, /mid-sentence colon/);
+	assert.match(ok("Use ``unclosed: bad` here.").stderr, /mid-sentence colon/);
+});
