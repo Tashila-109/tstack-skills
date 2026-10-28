@@ -5,7 +5,8 @@ Use this when you run in a T3 Code thread: the `t3-code` MCP tools are available
 This file owns the calls.
 The calls were measured on T3 Code (Nightly), 2026-10-05, and checked against T3's source on 2026-10-28.
 Moving a lead with `t3_worktree_handoff` ran live on 2026-10-14.
-The surface tools, history, PR linking and watching, hold, worker cancellation, worktree-isolated candidates and the heartbeat follow T3's own tool definitions, and have not yet run in a live task.
+On 2026-10-29 these ran live on a trial project: launches with a `clientRequestId`, including a retry that returned the same thread; delegated workers and their completion wakes; a failed seat stopping for the human; worktree-isolated arena candidates; PR linking, watching and unwatching with the `pr-state` loop; and an autopilot-full coordinator that pinned its thread, launched two leads, took their `queue` reports, armed a heartbeat and deleted it by its `scheduledTaskId`, merged under its grant, and archived the leads.
+The surface tools, history, hold and worker cancellation follow T3's own tool definitions, and have not yet run in a live task, and neither has a heartbeat run firing.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
 
