@@ -61,8 +61,6 @@ Answer approvals yourself in that pane.
 Stop the lead's turn in its pane, then tell it what to change.
 The lead stops its workers and makes no commits, pushes or new workers until you tell it to go on.
 To stop an autopilot, tell its coordinator, which holds every lead.
-A prompt that takes over a working agent's turn is [measured](../verification/2026-10-05-phase0-probes.md), and a worker pane closed after its result is [recorded](../verification/2026-10-05-herdr-e2e.md).
-A hold itself has not yet run in a live task.
 
 ## After the merge
 

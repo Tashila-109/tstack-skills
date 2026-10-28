@@ -21,9 +21,9 @@ Find your role before anything else.
 - Anything else: start at [Intake](#intake).
 
 Then find your runtime and read its reference in full:
-- the `t3-code` MCP tools are available: [references/runtime-t3.md](references/runtime-t3.md);
+- you run in a T3 Code thread, which `t3_thread_list` shows by returning a `currentThreadId`: [references/runtime-t3.md](references/runtime-t3.md);
 - `HERDR_ENV=1`: [references/runtime-herdr.md](references/runtime-herdr.md);
-- neither: tell the human tstack needs T3 Code or Herdr, and stop.
+- neither: [references/runtime-standalone.md](references/runtime-standalone.md), where workers run as your harness's own subagents and the human does the steps T3 and Herdr automate.
 
 Read [references/dispatch.md](references/dispatch.md) before you launch a lead, delegate a worker, or run a skill that spawns subagents.
 A skill named in bold, such as **how** or **principle-model-the-domain**, is `../<name>/SKILL.md` beside this skill.
@@ -85,7 +85,7 @@ These hold for every role, whatever a playbook says.
 8. Check your checkout.
    A scout runs in any checkout.
    A ship task runs in its own worktree, so when `git rev-parse --git-dir` and `git rev-parse --git-common-dir` print the same path, you are in the primary checkout.
-   Then move the task out of the primary checkout as the runtime reference says: on T3 this thread moves into the task's worktree, and on Herdr a new lead starts there.
+   Then move the task out of the primary checkout as the runtime reference says: on T3 this thread moves into the task's worktree, on Herdr a new lead starts there, and on any other harness the human starts a new session there.
 9. Tell the human in one line which playbook runs the task, its finish, and its delivery, then follow [Lead](#lead).
 
 ## Lead
@@ -117,7 +117,7 @@ It ends with `## Remember`, short lessons a later task in this project should kn
    Show the proof as [references/proof.md](references/proof.md#show-it) says.
    For `pr` delivery, give the PR's full URL.
    A lead that a coordinator launched reports done to it with the head SHA of its task branch, and stops here.
-2. A scout has nothing to merge, so skip to step 5.
+2. A scout has nothing to merge, so skip to step 4.
    Otherwise ask whether to merge, unless a grant in `<home>/grants.md` covers this merge.
    To use a grant, check each of its conditions on the head, and quote the grant when you tell the human what merged.
    Never merge without the human's word or a grant.
@@ -125,9 +125,9 @@ It ends with `## Remember`, short lessons a later task in this project should kn
    - for `local-only`, run `git -C <primary checkout> merge --ff-only <head SHA>`, which needs the primary checkout on the default branch with no uncommitted changes;
      if it cannot fast-forward, bring the default branch into your branch, verify again, and ask the human again;
    - for `pr`, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
-4. Clean up per the runtime reference.
-5. Add a one-line summary of each lesson from `## Remember` worth keeping to `<home>/learnings.md`, in your own words, never text copied from a PR, an issue or a web page.
+4. Add a one-line summary of each lesson from `## Remember` worth keeping to `<home>/learnings.md`, in your own words, never text copied from a PR, an issue or a web page.
    Delete lessons there that went stale.
+5. After a merge, clean up per the runtime reference.
 
 ## Coordinator
 

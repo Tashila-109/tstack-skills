@@ -13,15 +13,16 @@ Ask the human only what the machine cannot answer, through your harness's struct
 ## 1. Check the install
 
 The skills are installed in one of two ways:
-- **globally** (the default): `~/.agents/skills/tstack/SKILL.md` exists, and `~/.claude/skills/tstack` links to it;
+- **globally** (the default): `~/.agents/skills/tstack/SKILL.md` exists, and your harness's own skills folder, such as `~/.claude/skills`, links to it when the harness does not read `~/.agents/skills`;
 - **per project**: `<primary checkout>/.agents/skills/tstack/SKILL.md` and `<primary checkout>/skills-lock.json` exist.
 
 If neither holds, give the human the install command and stop.
 `<source>` is `Tashila-109/tstack-skills`, or the path of a local clone.
+`<agents>` lists the harnesses they use, such as `claude-code codex cursor opencode pi`.
 
 ```sh
-npx skills add <source> -g -a claude-code codex pi -y   # global
-npx skills add <source> -a claude-code codex pi -y      # per project
+npx skills add <source> -g -a <agents> -y   # global
+npx skills add <source> -a <agents> -y      # per project
 ```
 
 Installed skills are copies.
@@ -39,15 +40,6 @@ After the source changes, the human reruns the same command.
    On Herdr, launch-lead links each new worktree itself.
 4. On T3, read `storageCleanup.worktreeOnMerge` in `~/.t3/userdata/settings.json`.
    If it is not `true`, tell the human that each merged task's worktree stays on disk until they remove it, and suggest turning on worktree removal on merge in T3's storage settings.
-5. Look for tstackv2 leftovers in the primary checkout:
-   - a section in `AGENTS.md` or `CLAUDE.md` that tells the agent to run `tstack session-start` or to invoke `/tstack:tstack`;
-   - tracked `.tstack/config.json` and `.tstack/matrix.json`.
-
-   Tell the human what you found.
-   The `AGENTS.md` section sends every agent to a CLI tstack-skills does not use, so offer to remove it.
-   Remove it only on their word, change nothing else in the file, and leave the commit to them.
-   The two JSON files are unused, so mention them and leave them.
-   [Migrating from tstackv2](https://github.com/Tashila-109/tstack-skills/blob/main/docs/migrating-from-tstackv2.md) covers the rest.
 
 ## 3. Find what can run
 
@@ -67,6 +59,10 @@ The second confirms that a seat's model exists and which effort values it allows
 **On Herdr**, check which agent CLIs are installed with `command -v claude codex pi grok`.
 A CLI cannot list its models here, so confirm each distinct harness and model pair with one short headless call when the human agrees.
 A model the human will not confirm stays out of the file.
+
+**On any other harness**, the [standalone runtime](../tstack/references/runtime-standalone.md) runs every worker on your own model, so the seats only set how many workers a panel gets.
+Keep an existing models file.
+Otherwise write the template below as it stands to `~/.tstack/models.md`, skip steps 4 and 5, and tell the human the seats take effect only if they run tstack on T3 Code or Herdr later.
 
 ## 4. Choose the budget
 
@@ -121,7 +117,7 @@ t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thin
 
 Write `~/.tstack/models.md` by default, replacing the whole file so a rerun gives the same result.
 Write `<home>/models.md` only when the human wants this project to differ, and put only the differing lines in it.
-Then run `tstack.mjs seat lead --runtime t3` or `--runtime herdr`, for the runtime in use, and confirm it prints a seat.
+Then run `tstack.mjs seat lead --runtime t3`, `--runtime herdr` or `--runtime standalone`, for the runtime in use, and confirm it prints a seat.
 On T3, also run `tstack.mjs check-seats <file>` on the saved `orchestrator_capabilities` result, and fix every line it names.
 It names a provider T3 cannot run with T3's own reason, such as a CLI that is not logged in, and a panel role whose seats share one model family.
 It checks the global and the project file together, so run it again whenever either file changes, including a project file written by hand.
@@ -134,5 +130,6 @@ If the human declines either, move on.
 
 ## 8. Report
 
-Tell the human what was set up: the install mode, the models file path, the budget, and any role left as `inherit` or changed from the template.
-Then tell them how to start: `/tstack` in Claude Code, `$tstack` in T3 or Codex, `/skill:tstack` in Pi.
+Tell the human what was set up: the runtime, the install mode, the models file path, the budget, and any role left as `inherit` or changed from the template.
+Then tell them how to start: `/tstack` in Claude Code or Cursor, `$tstack` in T3 or Codex, `/skill:tstack` in Pi.
+On a harness with no way to invoke a skill by name, they start a message with `Read ~/.agents/skills/tstack/SKILL.md and follow it.`, or the per-project path.

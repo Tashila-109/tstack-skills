@@ -54,7 +54,7 @@ Commit it only when the work is ambitious enough that a reviewer needs the trail
 
 ## Audit the log against the transcript
 
-At the end of the run, before handing back, check the log told the truth. Read this run's transcript where the History section of the tstack runtime reference says: [T3](../tstack/references/runtime-t3.md#history) or [Herdr](../tstack/references/runtime-herdr.md#history). Read only this project's history. Other projects' history holds unrelated private chats. Walk this run's rows against what actually happened. Each stretch of them begins at one of this run's `start` rows, or at the first row if this run created the log, and ends at the next `start` row of another run:
+At the end of the run, before handing back, check the log told the truth. Read this run's transcript where the History section of the tstack runtime reference says: [T3](../tstack/references/runtime-t3.md#history), [Herdr](../tstack/references/runtime-herdr.md#history) or [standalone](../tstack/references/runtime-standalone.md#history). Read only this project's history. Other projects' history holds unrelated private chats. Walk this run's rows against what actually happened. Each stretch of them begins at one of this run's `start` rows, or at the first row if this run created the log, and ends at the next `start` row of another run:
 
 - Check that every row maps to a real decision or action.
 - Check that each row's evidence resolves and shows what the row claims.
