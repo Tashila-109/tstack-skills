@@ -55,6 +55,8 @@ Follow each approved row's Routing exactly:
 - Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to `create-skill` and run its draft / test / iterate loop.
 - `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to `create-skill` and run its description-optimization loop.
 - `new skill via create-skill: <kebab-name>`: hand creation to `create-skill`. Do not invent the shape ad hoc.
+- `create-skill` is Cursor's skill-authoring skill.
+  Elsewhere, use your harness's own, or the **writing-for-agents** skill.
 
 If your environment ships a SKILL.md validator, run it on every touched skill before declaring done.
 

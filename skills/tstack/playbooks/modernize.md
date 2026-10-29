@@ -29,6 +29,7 @@ Bring the base in by merge, so every push fast-forwards the PR's branch.
    For REWORK, write the smallest credible rewrite there too.
    On REWORK or CLOSE, open a decision as [decisions](../references/decisions.md) says and stop until the human answers, because rewriting or closing someone's PR is their call.
    On an approved CLOSE, post the reason as a PR comment from a file, as babysit step 8 says, then run `gh pr close <pr>`, and mark steps 4 to 7 `skip: closed on the human's word`.
+   Write the same skip line to `evidence/babysit.md`, and at Finish report the close instead of asking to merge, because nothing is left to merge.
    Artifact: `evidence/disposition.md`
 4. Bring the base in.
    Fetch the PR head with `git fetch origin pull/<pr>/head`, which also works for a fork.

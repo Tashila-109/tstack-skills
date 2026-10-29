@@ -3,7 +3,7 @@
 Use this when `HERDR_ENV=1` and the `t3-code` MCP tools are absent.
 [dispatch.md](dispatch.md) owns the verbs, seats and depth.
 This file owns the calls.
-The calls were measured on Herdr 0.9.3, 2026-10-05.
+The calls were measured on Herdr 0.9.3, 2026-10-05, and `herdr agent list` reporting `cwd` on 0.9.5, 2026-10-30.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
 Every `herdr` command returns JSON.
@@ -39,6 +39,7 @@ A lead uses this to move a ship task out of the primary checkout, a coordinator 
    For a handoff, skip this step: the worktree exists, and the new agent takes the next free name, such as `<id>-lead-2`.
 3. `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <id> --no-focus`, and keep `.result.tab.tab_id` and `.result.root_pane.pane_id`.
 4. `herdr agent start <id>-lead --kind <kind> --pane <pane> -- <args...>`.
+   For `inherit`, start your own harness with your own model and effort, as delegate does.
 5. `herdr agent prompt <id>-lead "<launch block>" --wait --until working --timeout 30000`.
    A coordinator sets `coordinator:` to its agent name, and a lead moving its own task leaves that line out.
 6. A coordinator writes the agent name, tab ID and worktree path to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead prompts it when it reports.
@@ -86,9 +87,14 @@ Start the candidate's pane with `--cwd <path>`.
 Remove the worktree after you have taken what you need from it.
 Design sketches that only write files need no worktree: give each candidate its own directory under `<home>/tasks/<id>/evidence/`.
 
+### Opening a PR
+
+Herdr has no thread to link a PR to.
+Give the human the PR's full URL instead.
+
 ### watch-pr
 
-Run `tstack.mjs pr-state <pr> --wait 540` as a background command, so your harness wakes you when it exits.
+Run `tstack.mjs pr-state <pr number> --wait 540` as a background command, so your harness wakes you when it exits.
 It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
 On `WAITING review-required` or `WAITING approval`, tell the human the PR waits on their review or approval, and stop watching until they reply, because polling cannot clear a gate that waits on a person.
 On any other `WAITING`, run it again; a review bot can take half an hour.
@@ -132,6 +138,18 @@ To release it, wait for it to be idle, then prompt `release <id>:`.
 
 `herdr tab close <tab>`, then run the lead's [After the merge](#after-the-merge) steps 1 and 2 for its worktree and branch.
 
+## Heartbeat
+
+Herdr has no scheduler, so there is no time-based heartbeat.
+Your wakes are a worker finishing, a lead's report, and a background `pr-state` exiting.
+An autonomous run with nothing to wake it keeps working inside its turn.
+Before you end a turn with work left, tell the human what is left and what message continues it.
+
+## Proving on the real surface
+
+Drive a web UI, a CLI or a simulator with the project's `verify-*` skill.
+Save screenshots and recordings into the task's `evidence/` folder, or the path your brief names, and cite that copy.
+
 ## History
 
 Each harness keeps its own session files.
@@ -139,6 +157,11 @@ Where a skill reads chat history or transcripts, read this checkout's:
 - Claude Code: `~/.claude/projects/<checkout path with each / and . turned into ->/`;
 - Pi: `~/.pi/agent/sessions/--<checkout path without its leading /, with each / turned into ->--/`;
 - Codex: the files under `~/.codex/sessions/` whose `cwd` is this checkout.
+
+## Worktrees in use
+
+A worktree is in use while an agent runs in a pane whose working directory is inside it.
+`herdr agent list` shows each agent's `cwd`, so a worktree no agent's `cwd` is inside is free.
 
 ## Worker
 

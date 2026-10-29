@@ -80,7 +80,7 @@ These hold for every role, whatever a playbook says.
    Take the first row that fits.
    A Coordinator's program row makes you its coordinator: follow [references/coordinator.md](references/coordinator.md) instead of the rest of this list.
 5. Derive a checkable finish if the human gave none, such as a command that passes, an output that matches, or an artifact that exists.
-6. Choose delivery: `local-only` unless the human asked for a PR, then `pr`.
+6. Choose delivery: `pr` when the human asked for a PR or the playbook is `modernize` or `takeover`, which deliver through a PR, and `local-only` otherwise.
 7. Pick a short task ID and run `tstack.mjs brief <id> --playbook <name> --goal "..." --finish "..." [--kind scout] [--delivery pr]`.
 8. Check your checkout.
    A scout runs in any checkout.
@@ -152,7 +152,7 @@ A worker applies the ones that need no delegation and names the rest in its resu
 - Nontrivial multi-step → write the throughput checkpoint (Feature step 3).
 - Any prose surface, your reply to the human included → the **unslop** skill. Write the reply per **Writing the reply**. Agent-facing prose also follows the authoring-a-skill playbook.
 - Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill.
-- Before commit → `ponytail-review` when the ponytail plugin is installed. Otherwise remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits yourself.
+- Before commit → remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits.
 - Before review → the **no-comments** skill.
 - Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**, and write the proof as [references/proof.md](references/proof.md) says. On T3, the runtime reference's surface tools drive a web UI or a simulator and record the evidence. For bug fixes, reproduce first on the same surface yourself.
 - Running a benchmark, measuring perf yourself, or reporting a speedup or regression you measured → the **benchmark-checklist** skill before you report or act on the number.

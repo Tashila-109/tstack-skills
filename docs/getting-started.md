@@ -13,7 +13,7 @@ You need:
 - Node.js 20 or newer, with `npx`: check with `node --version`;
 - Git: check with `git --version`;
 - at least one agent harness you are signed in to, such as Claude Code, Codex, Cursor, OpenCode or Pi;
-- optionally T3 Code, or Herdr 0.9.3 or newer, if you want workers on several models and tasks that start themselves.
+- optionally T3 Code, or Herdr (tested on 0.9.3), if you want workers on several models and tasks that start themselves.
 
 ## 1. Install the skills
 
@@ -71,6 +71,9 @@ On T3 and Herdr, setup asks for a budget and shows every role with its model.
 Accept them, or change any model you lack access to.
 On any other harness, every worker runs on your own model, so setup asks nothing about models.
 
+Setup may offer to create verification skills for the project.
+Decline them for this tutorial.
+
 Let the agent run shell commands without approving each one, because the lead runs many small ones.
 In Claude Code that is `claude --permission-mode auto`, and in T3 it is the **Full access** permission mode.
 
@@ -87,7 +90,7 @@ The agent becomes the task's **lead**.
 It tells you in one line which playbook runs the task, the finish it will prove, and how it will deliver.
 Here that is the Bug fix playbook, your finish, and `local-only` delivery, which means a local merge with no pull request.
 
-A ship task never runs in your project's main checkout, so the lead first puts it in its own Git worktree.
+A **ship task**, one that changes the project, never runs in your project's main checkout, so the lead first puts it in its own Git worktree.
 How that looks depends on where you run:
 
 - **Any harness.**
@@ -159,9 +162,9 @@ The lead could not report done until `tstack.mjs check` passed on this folder.
 
 | What you see | What to do |
 | --- | --- |
-| `/tstack` is not found | Rerun the install with your harness in `-a`, then restart the agent. On any harness, `Read ~/.agents/skills/tstack/SKILL.md and follow it.` always works. |
+| `/tstack` is not found | Rerun the install with your harness in `-a`, then restart the agent. On any harness, `Read ~/.agents/skills/tstack/SKILL.md and follow it.` always works, or `.agents/skills/tstack/SKILL.md` for a per-project install. |
 | The lead says there is no models file | Run the setup skill from step 3. |
-| A seat would not launch, on T3 or Herdr | The lead stops and asks you. Sign in to that provider, or rerun setup and pick a model you have. |
+| A seat, the model a role runs on, would not launch on T3 or Herdr | The lead stops and asks you. Sign in to that provider, or rerun setup and pick a model you have. |
 | The new session can't write to the project | Start it with `--add-dir <project>`, as the lead's command shows, so it may write the task records and commit. |
 | The lead keeps asking to approve commands | Turn on your harness's auto or full-access mode for this session. |
 | Merge fails to fast-forward | `main` moved, or has uncommitted changes. The lead brings `main` into its branch, verifies again, and asks you again. |
@@ -185,10 +188,11 @@ On T3, setup asks you to add a project action that does this for every new workt
 
 tstack spends extra tokens on workers and review panels, which is the price of the rigor.
 To spend fewer:
-- Rerun setup and pick a smaller budget.
+- On any harness without T3 or Herdr, every worker runs on your lead's model, so pick a cheaper model in your harness.
+- On T3 or Herdr, rerun setup and pick a smaller budget.
   `unlimited` runs every seat at `max`, `large` at `xhigh`, `medium` at `high`, and `small` at `medium`.
-- Set a role to `inherit`, so it runs on the caller's own model.
-- Shorten a panel in `~/.tstack/models.md`, because each seat runs one agent.
+- On T3 or Herdr, set a role to `inherit`, so it runs on the caller's own model.
+- Shorten a panel, a role with several seats such as `review`, in `~/.tstack/models.md`, because each seat runs one agent.
 - Save tstack for work that needs rigor.
   A small, obvious edit does not.
 

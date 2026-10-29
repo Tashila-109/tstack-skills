@@ -29,7 +29,8 @@ Each is under the MIT License, and its notice is kept here as that license requi
 
 ### Lauren Tan
 
-Most playbooks, engineering skills and principles adapt an upstream skill set by Lauren Tan.
+Most playbooks and the 24 `principle-*` skills adapt an upstream skill set by Lauren Tan.
+So do these skills: architect, arena, benchmark-checklist, blast-radius, bro, correct, create-formal-verification-skill, create-verification-skill, figure-it-out, how, in-your-own-words, interrogate, ketchup, maintain-formal-verification-skill, maintain-verification-skill, no-comments, recall, reflect, sharpen, show-me-your-work, swarm, tdd, technical-writing, tstack-help, typescript-best-practices, unslop and why.
 
 ```text
 MIT License

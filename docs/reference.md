@@ -41,7 +41,7 @@ Eight skills that agents may invoke on their own have no such file: `codebase-de
 | `<project>/.tstack/tasks/<id>/brief.md` | `tstack.mjs brief` | The goal, the finish, the steps, and the learnings. |
 | `<project>/.tstack/tasks/<id>/lead.txt` | coordinator | An autopilot lead's T3 thread ID, or its Herdr tab and worktree. |
 | `<project>/.tstack/tasks/<id>/launch.md` | lead, on the standalone runtime | The launch block you send as the first message of the task's new session. |
-| `<project>/.tstack/tasks/<id>/inbox.md` | another task's lead, on the standalone runtime | Messages for this task's lead, which you tell it to read. |
+| `<project>/.tstack/tasks/<id>/notify-<other id>.md` | the lead, on the standalone runtime | A message for another task's lead, which you tell that lead to read. |
 | `<project>/.tstack/tasks/<id>/heartbeat.txt` | lead, on T3 | The ID of the scheduled task the lead armed as its heartbeat. |
 | `<project>/.tstack/tasks/<id>/evidence/` | lead | One file per `Artifact:` line, any other proof the lead keeps, and `handoff-N.md` when the lead hands off to a fresh session. |
 | `<project>/.tstack/tasks/<id>/briefs/<name>.md` | lead | Each worker's brief. |
@@ -65,7 +65,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 | `check <id> [--through <step>] [--head <sha>]` | Refuses a task ID that is not a plain name and a step below 1. Refuses until every artifact frozen for the task, and every artifact its playbook names, exists, is not blank, and is not a link to a file outside the task directory. An artifact under `decisions/` also needs a `granted` answer, and `evidence/verify.md` must cite a non-empty file under `evidence/` or hold a `skip:` line. A review aggregate past round 3 needs an answered `review-<label>` decision for each further three rounds. A document a granted decision cites by SHA-256 must still match that hash in its latest granted decision, and a spec path and hash recorded in `evidence/check-plan.md` must still match. Without `--through`, it also requires `report.md`, with `pr` delivery `evidence/babysit.md`, and a result with a `DONE`, `BLOCKED` or `FAILED` line for every brief under `briefs/`. `report.md` needs `## Remember` and `## Follow-ups` headings and no long dash. `evidence/dispatch.md` and `evidence/fix.md` must cite a `results/<name>.md` with a verdict line, and `fix.md` a brief that lists `tdd`. A grant counts only outside a code block, and `evidence/check-plan.md` must end in `0 problems`. With `--head`, `evidence/verify.md` and `evidence/reviews/final.md` must each name a commit with the same tree as that SHA, run from the task's checkout. |
 | `seat <role> --runtime t3\|herdr\|standalone [--cross <model>]` | Prints one JSON line per seat: a T3 target, a Herdr kind with its launch flags, or on standalone `inherit` with the configured seat. With `--cross`, prints only the first seat whose model family differs from `<model>`'s, such as `gpt` for `claude-opus-5-5`. |
 | `check-seats <file>` | Checks every seat in the models files against a saved T3 `orchestrator_capabilities` result: the instance can run child tasks, with T3's reason when it cannot, the model is advertised, and the effort value is offered. Names the advertised ID when only a provider prefix differs. Also refuses a role the tstack-setup template has with no line, a role it does not know, a seat listed twice in a role, and a panel role (`architect runners`, `arena runners`, `arena cross-judge pool`, `interrogate reviewers`, `review`) with fewer than two model families. |
-| `pr-state <pr> [--wait <seconds>]` | Prints one verdict for a PR from GitHub's own state: `READY`, `WAITING` with checks running, mergeability GitHub has not computed yet, a review bot's ten-minute settle or a required review, `BLOCKER` with a draft, conflicts, failing checks, unresolved threads (outdated ones too), requested changes, a base ahead, a branch rule GitHub does not name, or over 100 checks or threads, or `MERGED` or `CLOSED`. `READY ci-none` means no checks reported. With `--wait`, up to 540 seconds, it rereads every minute while the verdict is `WAITING`. |
+| `pr-state <pr number> [--wait <seconds>]` | Prints one verdict for a PR from GitHub's own state: `READY`, `WAITING` with checks running, mergeability GitHub has not computed yet, a review bot's ten-minute settle or a required review, `BLOCKER` with a draft, conflicts, failing checks, unresolved threads (outdated ones too), requested changes, a base ahead, a branch rule GitHub does not name, or over 100 checks or threads, or `MERGED` or `CLOSED`. `READY ci-none` means no checks reported. With `--wait`, up to 540 seconds, it rereads every minute while the verdict is `WAITING`. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag `/skills-lock.json` and each per-project skill path, to `.git/info/exclude`. |
 | `link-skills <worktree>` | Links a per-project install into a linked worktree. |
 
@@ -82,7 +82,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
   The model ID is the harness's own, so a Pi model is `provider/model`.
   The `@effort` part is optional.
   It counts as an effort only when it names one: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`, `ultracode` or `ultrathink`.
-- The harness is `claude`, `codex`, `pi` or `grok`.
+- The harness is usually `claude`, `codex`, `pi` or `grok`, and on T3 it may be any name the `t3 instances` line defines.
   `grok` is Grok Build, for worker seats, and the `t3 instances` line maps it to T3's Grok provider.
 - `inherit` runs the role on the caller's own harness and model.
   On the standalone runtime every seat does, so the seats only set how many workers a panel gets.
@@ -135,6 +135,8 @@ The lead picks one per task from the [router's intake table](../skills/tstack/SK
 | Run by a coordinator across several tasks | autopilot-full, autopilot-stack |
 
 ## Skills
+
+Ask `tstack-help` what a skill does and when to use it.
 
 | Group | Skills |
 | --- | --- |

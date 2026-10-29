@@ -448,6 +448,10 @@ test("check --head refuses proof and review that name no commit with the head's 
 	assert.equal(check(home, "hd", undefined, same, dir), "ok hd: 1 required file present", "an empty commit keeps the tree");
 	assert.throws(() => check(home, "hd", undefined, two, dir), /evidence\/verify\.md names no commit with the same tree/);
 	assert.throws(() => check(home, "hd", undefined, "nothex", dir), /--head must be a commit SHA/);
+	writeFileSync(join(task, "evidence/verify.md"), "skip: closed on the human's word\n");
+	assert.equal(check(home, "hd", undefined, two, dir), "ok hd: 1 required file present", "a skipped step names no head");
+	writeFileSync(join(task, "evidence/verify.md"), `skip: browser check, no UI\nHead ${one.slice(0, 12)}\n`);
+	assert.throws(() => check(home, "hd", undefined, two, dir), /evidence\/verify\.md names no commit with the same tree/, "a skip line does not excuse stale proof beside it");
 });
 
 test("pr-state turns GitHub's state into one verdict, waiting for checks and review bots to settle", () => {

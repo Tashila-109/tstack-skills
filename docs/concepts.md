@@ -31,10 +31,10 @@ The router's [Rules](../skills/tstack/SKILL.md#rules) section owns the exact wor
 
 ## Why every step leaves a file
 
-tstack's predecessor measured how often its leads used the skills their playbooks named.
-Across 38 tasks, leads almost never ran `how`, `architect`, `arena`, `interrogate` or `tdd`.
+Earlier versions of this workflow tracked how often leads used the skills their playbooks named.
+Leads almost never ran `how`, `architect`, `arena`, `interrogate` or `tdd` on their own.
 When loading a skill became a checked step, leads loaded the skill and threw the text away.
-Router reminders that were not tied to a step fired in none of 8 tasks.
+Router reminders that were not tied to a step were ignored.
 
 Two things did hold:
 - a skill whose whole job ran in another agent, such as a two-reviewer review or a worker told to write the failing test first;
@@ -76,4 +76,4 @@ The playbooks, the engineering skills and the 24 principles are adapted from an 
 They keep their names, and mostly their wording, so you can steer an agent by a principle's name.
 tstack replaces the Cursor-only parts: the sticky mode, the subagent wrapper and the model rule.
 
-The roles, the rules and the task records come from tstack's own history.
+The roles, the rules and the task records come from running earlier versions of this workflow.

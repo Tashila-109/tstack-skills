@@ -10,7 +10,8 @@ This page fixes both: prototypes answer the open questions, a README sets the ta
 
 `architect` grounds itself in the code with `how`, then runs `arena` to sketch competing designs.
 Each sketch starts from how a caller would use the code, then names the types, signatures and module map.
-The runners come from your `architect runners` seats, so three different model families sketch independently.
+The runners come from your `architect runners` seats, so on T3 and Herdr three different model families sketch independently.
+On [any other harness](../runtimes/any-harness.md) they all run on your lead's model, and the lead says so.
 The lead picks one, writes the candidates and the pick to `evidence/design.md`, and the workers build from that file.
 
 To see the design before any code is written, say so when you start the task:

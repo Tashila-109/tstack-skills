@@ -11,17 +11,18 @@ skills/tstack/              the router: roles, rules, intake table, principles i
   references/               dispatch rules, the coordinator, the T3, Herdr and standalone runtimes, the worker preamble
   scripts/                  tstack.mjs (home, brief, check, seat, check-seats, pr-state, exclude, link-skills) and check-plan.mjs, with tests beside them
 skills/tstack-setup/        project setup and the models file template
-skills/<name>/              every other skill; agents/openai.yaml keeps Codex from invoking it on its own
+skills/<name>/              every other skill; agents/openai.yaml, on each skill marked disable-model-invocation, keeps Codex from invoking it on its own
 docs/                       getting started, the guide, runtime guides, concepts and reference
 LICENSE.md                  the MIT license and the third-party notices
+SECURITY.md                 what to report and how
 ```
 
 ## Rules
 
 - Never name the upstream projects this skill set came from, in any file, file name, branch or commit message.
   Say "upstream" when you must refer to them.
-  Keep the third-party notices in `LICENSE.md` as they are: their licenses require them.
-  The maintainer's local Git hooks refuse a commit whose files or message name them.
+  `LICENSE.md` names them in its third-party notices, which their licenses require, so keep those as they are.
+  A skill adapted from a new source gets its notice there.
 - Scripts own facts and agents own judgment.
   A rule that can be checked exactly belongs in `tstack.mjs`, not in more skill text.
 - One owner per rule.
@@ -36,7 +37,8 @@ LICENSE.md                  the MIT license and the third-party notices
 ## Checks
 
 - `node --test skills/tstack/scripts/*.test.mjs` must pass, and so must `bun test ./skills/tstack/scripts/`.
-- After editing a skill, reinstall from this checkout to try it: `npx skills add "$PWD" -g -a claude-code codex pi -y`.
+- After editing a skill, install it from this checkout to try it: `npx skills add "$PWD" -g -a <your agents> -y`.
+  This replaces your global copies, so drop `-g` and run it inside a test project to keep them.
 - A claim that something works on a runtime names the date and version it was measured on, in that runtime's reference, not only in a commit message.
 
 ## Git

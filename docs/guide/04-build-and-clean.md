@@ -74,5 +74,6 @@ Bug fix, Feature, Refactoring, Figure it out and Orchestrate end with Opening a 
 The lead records each changed file's verdict in `closing-pass.md`.
 
 Then one reviewer from another model family reads the final diff before anything is pushed or merged.
-A Claude lead gets the GPT seat from your `review` line, and a GPT lead gets the Claude seat.
+On T3 and Herdr, a Claude lead gets the GPT seat from your `review` line, and a GPT lead gets the Claude seat.
+On [any other harness](../runtimes/any-harness.md) the reviewer runs on your lead's model, and the lead records it as a same-family review.
 The lead decides each finding, repairs what blocks, and has the new head reviewed again.

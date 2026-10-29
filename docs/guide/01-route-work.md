@@ -3,7 +3,10 @@
 You open one thread or pane per task and give its lead a goal and a way to check it.
 The lead picks a playbook and runs the task.
 This page shows how to open the thread, what a good request looks like, and how little of one you need.
-Not sure which skill or playbook fits? Run `tstack-help`.
+Not sure which skill or playbook fits? Ask `tstack-help`.
+
+The examples in this guide start with `$tstack`, the form Codex and T3 use.
+In Claude Code or Cursor, type `/tstack` instead, and in Pi `/skill:tstack`, as the [invocations table](../reference.md#invocations) shows.
 
 ## One thread per task
 
@@ -64,7 +67,7 @@ Correct it there, and it costs one message instead of one wrong fix.
    A change to the project is a ship task.
    A question is a scout task, whose deliverable is a report and never a PR.
 2. It picks the playbook from the intake table in the router, taking the first row that fits.
-3. It derives a checkable finish if you gave none, and picks the delivery: `local-only` unless you asked for a PR.
+3. It derives a checkable finish if you gave none, and picks the delivery: usually `local-only`, or `pr` when you asked for one, as the router's [Intake](../../skills/tstack/SKILL.md#intake) says.
 4. It writes the brief with `tstack.mjs brief`, which freezes the playbook's steps and the files each step must leave.
 5. It tells you in one line which playbook, finish and delivery it chose, then runs the playbook.
 

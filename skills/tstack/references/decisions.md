@@ -93,7 +93,7 @@ Record the human's words as they wrote them.
 
 A lead that a coordinator launched sends the coordinator `decision <id>: <name>: <one-line question>` with the report verb instead of asking the human, and ends its turn after starting its ungated work.
 The coordinator reads the decision file and its evidence, asks the human as [Ask the human](#ask-the-human) says, keeping the lead's options and naming the lead's recommendation, and appends the answer.
-It then sends the lead `answer <id>: <name>: <the decision and the human's words>` with the runtime's send, in `queue` mode on T3.
+It then sends the lead `answer <id>: <name>: <the decision and the human's words>` as the runtime reference's Talking to a lead says, in `queue` mode on T3.
 
 ## Tool approvals
 
