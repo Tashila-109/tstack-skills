@@ -1,6 +1,6 @@
 # tstack on any other harness
 
-This guide shows how tstack runs in an agent harness without T3 Code or Herdr, such as Claude Code, Codex, Cursor, OpenCode or Gemini CLI on their own.
+This guide shows how tstack runs in an agent harness without T3 Code or Herdr, such as Claude Code, Codex, Cursor, OpenCode or Pi on their own.
 tstack calls this the standalone runtime.
 [runtime-standalone.md](../../skills/tstack/references/runtime-standalone.md) owns the exact steps the agents follow.
 
@@ -44,9 +44,10 @@ Make one with `git worktree add`, or use your harness's own worktree mode, and i
 
 ## Choose models
 
-Setup still writes `~/.tstack/models.md`, but on this runtime every worker runs on the model your lead runs on.
+Setup still writes `~/.tstack/models.md`, with every seat set to `inherit`, because on this runtime every worker runs on the model your lead runs on.
 To choose that model, pick it in your harness.
-The seats only set how many workers a panel gets, and take full effect if you later run tstack on T3 Code or Herdr.
+The seats only set how many workers a panel gets.
+If you later run tstack on T3 Code or Herdr, run the setup skill there first so it can confirm a model for each role.
 
 ## Check on a lead
 

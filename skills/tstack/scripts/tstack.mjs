@@ -263,7 +263,7 @@ function proofGaps(taskDir, text) {
 
 function delegationGaps(taskDir, path, text) {
 	const cited = [...new Set(prose(text).match(RESULT) ?? [])];
-	if (!cited.length) return ["cites no results/<name>.md: this step delegates, with no skip"];
+	if (!cited.length) return [`cites no results/<name>.md: this step delegates${DELEGATED.has(path) ? ", and a skip: line does not excuse it" : " unless it holds a skip: line"}`];
 	const gaps = cited.filter((r) => !VERDICT.test(readIfFile(insideTask(taskDir, r)))).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
 	if (path !== "evidence/dispatch.md") {
 		const briefs = (prose(text).match(/\bbriefs\/[a-z0-9][a-z0-9.-]*\.md\b/g) ?? []).map((b) => readIfFile(insideTask(taskDir, b)));
@@ -281,6 +281,7 @@ function reportGaps(text) {
 }
 
 // Each review or proof must name a commit whose tree is the head's, so a later commit cannot ride on old evidence.
+// A file that only records a skipped step, such as a closed PR's verify, holds a skip: line and names no commit.
 function headGaps(taskDir, head, cwd) {
 	const tree = (rev) => {
 		try {
@@ -293,7 +294,12 @@ function headGaps(taskDir, head, cwd) {
 	if (!want) throw new Refusal(`--head must be a commit SHA in ${cwd}: ${head}`);
 	return [PROOF, "evidence/reviews/final.md"]
 		.filter((path) => existsSync(join(taskDir, path)))
-		.filter((path) => ![...new Set(readFileSync(join(taskDir, path), "utf8").match(/\b[0-9a-f]{7,40}\b/g) ?? [])].some((sha) => tree(sha) === want))
+		.filter((path) => {
+			const text = readFileSync(join(taskDir, path), "utf8");
+			const shas = [...new Set(text.match(/\b[0-9a-f]{7,40}\b/g) ?? [])];
+			if (!shas.length && SKIPPED.test(text)) return false;
+			return !shas.some((sha) => tree(sha) === want);
+		})
 		.map((path) => `${path} names no commit with the same tree as ${head}: verify or review again on this head`);
 }
 
@@ -620,8 +626,9 @@ export function prState(number, waitSeconds = 0) {
 		const pr = body.data.repository.pullRequest;
 		if (pr.state === "OPEN") required ??= requiredChecks(pr.baseRefName);
 		const verdict = prVerdict(pr, Date.now(), required ?? []);
-		if (!verdict.startsWith("WAITING") || Date.now() + 60_000 > deadline) return verdict;
-		sleep(60_000);
+		const left = deadline - Date.now();
+		if (!verdict.startsWith("WAITING") || left <= 0) return verdict;
+		sleep(Math.min(60_000, left));
 	}
 }
 

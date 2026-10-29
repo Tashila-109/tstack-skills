@@ -1,6 +1,6 @@
 # Recipes and pitfalls
 
-Requests worth copying, then the mistakes the first real runs made.
+Requests worth copying, then the mistakes that are easy to make.
 Swap in your own paths and finish conditions.
 
 ## Recipes
@@ -85,7 +85,7 @@ A fix written from one bad session tends to overfit that session.
 Ask which skill fits, without starting work:
 
 ```text
-/tstack-help how do I get a lead to show me its design before it writes code?
+$tstack-help how do I get a lead to show me its design before it writes code?
 ```
 
 You get an answer, a prompt to send, and a link to the source.
@@ -107,10 +107,10 @@ where does this stand?
 
 - **Reusing a project that already has tstack history.**
   A lead reads `.tstack/learnings.md`, and lessons from older tasks can steer a new one.
-  For a clean trial, use a fresh project.
+  To try tstack without that history, use a fresh project.
 - **A provider that is installed but not signed in where the runtime runs it.**
-  On T3, a Grok worker failed because T3's own Grok provider was signed out, though the Grok CLI worked in a terminal.
-  The lead stopped and asked instead of switching models.
+  On T3, a worker fails when T3's own provider for its model is signed out, even if that CLI works in a terminal.
+  The lead stops and asks instead of switching models.
   Sign in under T3's provider settings, then answer the decision.
 - **Typing into a busy agent on Herdr.**
   A prompt sent to an agent mid-turn takes over that turn.

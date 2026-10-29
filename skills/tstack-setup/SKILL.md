@@ -60,9 +60,12 @@ The second confirms that a seat's model exists and which effort values it allows
 A CLI cannot list its models here, so confirm each distinct harness and model pair with one short headless call when the human agrees.
 A model the human will not confirm stays out of the file.
 
-**On any other harness**, the [standalone runtime](../tstack/references/runtime-standalone.md) runs every worker on your own model, so the seats only set how many workers a panel gets.
-Keep an existing models file.
-Otherwise write the template below as it stands to `~/.tstack/models.md`, skip steps 4 and 5, and tell the human the seats take effect only if they run tstack on T3 Code or Herdr later.
+**On any other harness**, the [standalone runtime](../tstack/references/runtime-standalone.md) runs every worker on your own model, so a seat only sets how many workers a panel gets.
+Nothing here can confirm a model, so write no model names.
+If a models file exists, keep it, run `tstack.mjs seat "<role>" --runtime standalone` for each role in the template below, and add each role it reports missing as its template line with every seat replaced by `inherit`.
+Otherwise write the template to `~/.tstack/models.md` with every seat replaced by `inherit`, keeping each panel's number of seats, and without the `t3 instances` line.
+Skip steps 4 and 5.
+Tell the human to run tstack-setup again on T3 Code or Herdr before using tstack there, so it can confirm real seats.
 
 ## 4. Choose the budget
 

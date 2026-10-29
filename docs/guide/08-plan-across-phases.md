@@ -40,8 +40,8 @@ You rarely call these yourself.
 
 | Gate | What you approve | Where it is |
 | --- | --- | --- |
-| Design | The problem, the scope, the alternatives, the chosen approach and the acceptance criteria | `docs/<branch>/design.md` |
-| Spec | The phases in order, who owns which paths, and how each phase is verified | `docs/<branch>/spec.md` |
+| Design | The problem, the scope, the alternatives, the chosen approach and the acceptance criteria | `docs/<branch>/design.md`, or the task folder when the project keeps planning docs out of Git |
+| Spec | The phases in order, who owns which paths, and how each phase is verified | `docs/<branch>/spec.md`, or the task folder |
 | Implement | Starting the build, on the approved spec | Orchestrate only |
 
 The lead brings each gate to you in its thread, with its summary.

@@ -3,7 +3,9 @@
 Use this when you do not run in a T3 Code thread and `HERDR_ENV` is not `1`: any other agent harness, such as Claude Code, Codex, Cursor, OpenCode, Gemini CLI or Pi on its own.
 [dispatch.md](dispatch.md) owns the verbs, seats and depth.
 This file owns the calls.
-Written on 2026-10-28 from the T3 and Herdr references, and not yet run in a live task.
+Written on 2026-10-28 from the T3 and Herdr references.
+On 2026-10-30, Claude Code 2.1.312 ran the getting-started tutorial live: setup writing `inherit` seats, intake's launch-lead into a new session, a bug fix with subagent workers and a same-family final review, `check --head`, the merge and cleanup.
+Not yet run live: watch-pr, a candidate's own checkout, notify, and any harness other than Claude Code.
 
 There is no orchestrator here.
 Nothing starts an agent for you, and nothing wakes you except the human's next message and your own tool results.
@@ -53,7 +55,7 @@ A coordinator never runs here.
 ### report, notify and hold
 
 A coordinator never runs here, so report and hold do not apply.
-To notify another task's lead, write the message to `<home>/tasks/<other id>/inbox.md`, starting `from <your task id> lead:`, and ask the human to tell that lead to read it.
+To notify another task's lead, write the message to `<home>/tasks/<your id>/notify-<other id>.md`, starting `from <your task id> lead:`, and ask the human to tell that lead to read it.
 
 ### delegate
 
@@ -74,7 +76,7 @@ To stop a running worker, use your harness's own stop for that subagent.
 ### A candidate that needs its own checkout
 
 Arena and swarm candidates that must build or run code need their own worktree.
-Run `git worktree add <home>/worktrees/<id>-<name> -b <your task branch>-<name>` from your task worktree, so the candidate starts from your commits, and `tstack.mjs link-skills <that path>` if the skills are installed per project.
+Run `git worktree add ~/.tstack/worktrees/<project>/<id>-<name> -b <your task branch>-<name>` from your task worktree, so the candidate starts from your commits, and `tstack.mjs link-skills <that path>` if the skills are installed per project.
 Its brief's SCOPE names that absolute path as its checkout, and tells it to run every command there and edit files by absolute path.
 Record `git status --porcelain` in your own worktree before, and confirm it is unchanged after you collect.
 Remove the worktree once you have taken what you need, and keep its branch.
@@ -87,10 +89,10 @@ Give the human the PR's full URL instead.
 
 ### watch-pr
 
-Run `tstack.mjs pr-state <pr> --wait <seconds>`, at most 540.
+Run `tstack.mjs pr-state <pr number> --wait <seconds>`, at most 540.
 Run it in the background when your harness wakes you as a background command exits.
 Otherwise run it in the foreground, with `--wait` at least a minute below your shell tool's timeout, such as `--wait 540` under a 10-minute cap or `--wait 60` under a 2-minute one.
-It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
+It checks the PR once a minute and returns as soon as the verdict is anything but `WAITING`, or when the wait runs out.
 On `WAITING review-required` or `WAITING approval`, tell the human the PR waits on their review or approval, and end your turn, because polling cannot clear a gate that waits on a person.
 Their next message wakes you.
 On any other `WAITING`, run it again; a review bot can take half an hour.

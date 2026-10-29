@@ -91,6 +91,7 @@ Not sure which skill or playbook fits? Ask `/tstack-help`, `$tstack-help` in Cod
 
 [AGENTS.md](AGENTS.md) has the repository's layout, rules and checks.
 Run the script tests with `node --test skills/tstack/scripts/*.test.mjs`.
+Report security problems privately, as [SECURITY.md](SECURITY.md) says.
 
 ## License
 

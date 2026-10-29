@@ -131,7 +131,7 @@ T3 ignores comments from the GitHub account it reads with, and only a top-level 
 So watch-pr on T3 pairs the watch with a `pr-state` loop inside your turn:
 
 1. Handle the review threads already on the PR.
-2. Run `tstack.mjs pr-state <pr> --wait 540`, with your shell's own timeout above 540 seconds and under the 600-second tool cap.
+2. Run `tstack.mjs pr-state <pr number> --wait 540`, with your shell's own timeout above 540 seconds and under the 600-second tool cap.
    It returns as soon as the verdict is anything but `WAITING`, or after nine minutes.
 3. Act on the verdict as the babysit playbook says.
    After any `WAITING` other than `review-required` or `approval`, and after every push, go back to step 2 in the same turn.
