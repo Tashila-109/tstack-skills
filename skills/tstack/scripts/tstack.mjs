@@ -4,7 +4,7 @@
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>] [--head <sha>]
-//   node tstack.mjs seat <role> --runtime t3|herdr [--cross <model>]
+//   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--cross <model>]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
 //   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
 //   node tstack.mjs exclude [--project-skills]
@@ -419,6 +419,7 @@ function family(model) {
 }
 
 export function seat(models, role, runtime, cross) {
+	if (!["t3", "herdr", "standalone"].includes(runtime)) throw new Usage(`--runtime must be t3, herdr or standalone: ${runtime}`);
 	const key = role.trim().toLowerCase();
 	const value = models.get(key) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
 	if (!value) throw new Refusal(`no line for role "${role}" in the models file; run tstack-setup to write it`);
@@ -457,7 +458,8 @@ export function seat(models, role, runtime, cross) {
 				args: ["--model", parsed.model, ...(parsed.effort ? flags.effort(parsed.effort) : []), ...autonomy],
 			};
 		}
-		throw new Usage(`--runtime must be t3 or herdr: ${runtime}`);
+		// No orchestrator: every seat runs on the caller's own model, and the configured seat is kept so the lead can name what it could not honor.
+		return { inherit: true, configured: `${parsed.harness}/${parsed.model}${parsed.effort ? `@${parsed.effort}` : ""}` };
 	});
 }
 

@@ -10,7 +10,7 @@ You open one thread or pane for each task and talk to that task's lead there.
 The lead does the intake itself: it classifies the ask, picks a playbook, and derives a checkable finish.
 It then runs the task in its own Git worktree and hands scoped jobs to workers.
 
-Your list of threads or tabs is your task list.
+Your list of threads, tabs or sessions is your task list.
 T3's sidebar and Herdr's tabs show every task, so tstack keeps no backlog of its own.
 
 There are three roles: the lead, a coordinator, and workers.
@@ -33,7 +33,7 @@ The router's [Rules](../skills/tstack/SKILL.md#rules) section owns the exact wor
 
 tstack's predecessor measured how often its leads used the skills their playbooks named.
 Across 38 tasks, leads almost never ran `how`, `architect`, `arena`, `interrogate` or `tdd`.
-When loading a skill became a checked step, leads loaded the skill and threw the text away, such as with `tstack skill how >/dev/null`.
+When loading a skill became a checked step, leads loaded the skill and threw the text away.
 Router reminders that were not tied to a step fired in none of 8 tasks.
 
 Two things did hold:
@@ -43,7 +43,7 @@ Two things did hold:
 So tstack builds playbooks around those two shapes.
 Each step that runs a skill names an `Artifact:` file, such as `evidence/mechanism.md`, and the next step reads it.
 `tstack.mjs check` refuses a task while any of those files is missing or blank, before the lead may report done.
-Skills that spawn subagents, such as `how` with its explorers, run those subagents as real workers on the models you chose.
+Skills that spawn subagents, such as `how` with its explorers, run those subagents as real workers: on T3 and Herdr on the models you chose, and on any other harness on the lead's model.
 
 A file proves a step happened.
 It does not prove the step was done well.
@@ -60,9 +60,11 @@ It never runs your work on a model you did not choose.
 
 ## Runtimes
 
-tstack needs something that can start agents and carry messages between them.
+tstack works best with something that can start agents and carry messages between them.
 On T3 Code, each task is a thread in its own worktree, and workers are T3 child tasks that wake their lead when they finish.
 On Herdr, each task is a tab, and workers get panes beside their lead.
+On any other harness, the standalone runtime runs workers as the harness's own subagents on the lead's model, and you start each task's session yourself.
+The playbooks, artifacts and checks are the same on all three.
 
 The skills say what to do in runtime-neutral verbs, such as launch-lead and delegate.
 Each runtime has one reference that maps those verbs to its own calls.

@@ -144,4 +144,3 @@ where does this stand?
   The lead asks; answer it.
 - **Reading only the report.**
   The task folder holds the evidence behind every claim: the repro, the mechanism, the red and green runs, and each reviewer's findings.
-  [Measuring a live task](../verification/README.md#measuring-a-live-task) shows how to check a run.

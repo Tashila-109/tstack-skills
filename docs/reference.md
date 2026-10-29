@@ -7,11 +7,12 @@ The router, [skills/tstack/SKILL.md](../skills/tstack/SKILL.md), owns how agents
 
 | Harness | Setup | Start a task |
 | --- | --- | --- |
-| Claude Code | `/tstack-setup` | `/tstack` |
+| Claude Code, Cursor | `/tstack-setup` | `/tstack` |
 | Codex, or any T3 thread | `$tstack-setup` | `$tstack` |
 | Pi | `/skill:tstack-setup` | `/skill:tstack` |
+| Any other harness | `Read ~/.agents/skills/tstack-setup/SKILL.md and follow it.` | `Read ~/.agents/skills/tstack/SKILL.md and follow it.`, then your request |
 
-You invoke tstack in the thread or pane you open for a task, and that agent becomes the task's lead.
+You invoke tstack in the thread, pane or session you open for a task, and that agent becomes the task's lead.
 Workers, and leads that a coordinator or a move or handoff starts, never need an invocation.
 Their first message is a `tstack launch` block naming their role, and they read the router by its path.
 
@@ -19,7 +20,7 @@ Their first message is a `tstack launch` block naming their role, and they read 
 
 | Mode | Command | Where the skills land | Worktrees |
 | --- | --- | --- | --- |
-| Global (default) | `npx skills add Tashila-109/tstack-skills -g -a claude-code codex pi -y` | `~/.agents/skills`, linked from `~/.claude/skills` and `~/.pi/agent/skills` | Every worktree sees them. |
+| Global (default) | `npx skills add Tashila-109/tstack-skills -g -a <agents> -y`, such as `-a claude-code codex cursor opencode pi` | `~/.agents/skills`, linked from each harness's own folder, such as `~/.claude/skills` and `~/.pi/agent/skills` | Every worktree sees them. |
 | Per project | the same, without `-g`, run in the project | `.agents/skills`, `.claude/skills`, `.pi/skills`, and `skills-lock.json` | `tstack.mjs link-skills` links them into each new worktree. |
 
 Installs are copies.
@@ -39,6 +40,9 @@ Eight skills that agents may invoke on their own have no such file: `codebase-de
 | `<project>/.tstack/tasks/<id>/task.json` | `tstack.mjs brief` | The frozen playbook steps and the artifacts each step must write. |
 | `<project>/.tstack/tasks/<id>/brief.md` | `tstack.mjs brief` | The goal, the finish, the steps, and the learnings. |
 | `<project>/.tstack/tasks/<id>/lead.txt` | coordinator | An autopilot lead's T3 thread ID, or its Herdr tab and worktree. |
+| `<project>/.tstack/tasks/<id>/launch.md` | lead, on the standalone runtime | The launch block you send as the first message of the task's new session. |
+| `<project>/.tstack/tasks/<id>/inbox.md` | another task's lead, on the standalone runtime | Messages for this task's lead, which you tell it to read. |
+| `<project>/.tstack/tasks/<id>/heartbeat.txt` | lead, on T3 | The ID of the scheduled task the lead armed as its heartbeat. |
 | `<project>/.tstack/tasks/<id>/evidence/` | lead | One file per `Artifact:` line, any other proof the lead keeps, and `handoff-N.md` when the lead hands off to a fresh session. |
 | `<project>/.tstack/tasks/<id>/briefs/<name>.md` | lead | Each worker's brief. |
 | `<project>/.tstack/tasks/<id>/results/<name>.md` | worker | Each worker's result. |
@@ -59,7 +63,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 | `home` | Prints `<primary checkout>/.tstack`, from any checkout of the project. |
 | `brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship\|scout] [--delivery local-only\|pr]` | Creates the task directory with `task.json` and `brief.md`. Refuses an existing task ID. |
 | `check <id> [--through <step>] [--head <sha>]` | Refuses a task ID that is not a plain name and a step below 1. Refuses until every artifact frozen for the task, and every artifact its playbook names, exists, is not blank, and is not a link to a file outside the task directory. An artifact under `decisions/` also needs a `granted` answer, and `evidence/verify.md` must cite a non-empty file under `evidence/` or hold a `skip:` line. A review aggregate past round 3 needs an answered `review-<label>` decision for each further three rounds. A document a granted decision cites by SHA-256 must still match that hash in its latest granted decision, and a spec path and hash recorded in `evidence/check-plan.md` must still match. Without `--through`, it also requires `report.md`, with `pr` delivery `evidence/babysit.md`, and a result with a `DONE`, `BLOCKED` or `FAILED` line for every brief under `briefs/`. `report.md` needs `## Remember` and `## Follow-ups` headings and no long dash. `evidence/dispatch.md` and `evidence/fix.md` must cite a `results/<name>.md` with a verdict line, and `fix.md` a brief that lists `tdd`. A grant counts only outside a code block, and `evidence/check-plan.md` must end in `0 problems`. With `--head`, `evidence/verify.md` and `evidence/reviews/final.md` must each name a commit with the same tree as that SHA, run from the task's checkout. |
-| `seat <role> --runtime t3\|herdr [--cross <model>]` | Prints one JSON line per seat: a T3 target, or a Herdr kind with its launch flags. With `--cross`, prints only the first seat whose model family differs from `<model>`'s, such as `gpt` for `claude-opus-5-5`. |
+| `seat <role> --runtime t3\|herdr\|standalone [--cross <model>]` | Prints one JSON line per seat: a T3 target, a Herdr kind with its launch flags, or on standalone `inherit` with the configured seat. With `--cross`, prints only the first seat whose model family differs from `<model>`'s, such as `gpt` for `claude-opus-5-5`. |
 | `check-seats <file>` | Checks every seat in the models files against a saved T3 `orchestrator_capabilities` result: the instance can run child tasks, with T3's reason when it cannot, the model is advertised, and the effort value is offered. Names the advertised ID when only a provider prefix differs. Also refuses a role the tstack-setup template has with no line, a role it does not know, a seat listed twice in a role, and a panel role (`architect runners`, `arena runners`, `arena cross-judge pool`, `interrogate reviewers`, `review`) with fewer than two model families. |
 | `pr-state <pr> [--wait <seconds>]` | Prints one verdict for a PR from GitHub's own state: `READY`, `WAITING` with checks running, mergeability GitHub has not computed yet, a review bot's ten-minute settle or a required review, `BLOCKER` with a draft, conflicts, failing checks, unresolved threads (outdated ones too), requested changes, a base ahead, a branch rule GitHub does not name, or over 100 checks or threads, or `MERGED` or `CLOSED`. `READY ci-none` means no checks reported. With `--wait`, up to 540 seconds, it rereads every minute while the verdict is `WAITING`. |
 | `exclude [--project-skills]` | Adds `/.tstack/`, and with the flag `/skills-lock.json` and each per-project skill path, to `.git/info/exclude`. |
@@ -81,6 +85,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 - The harness is `claude`, `codex`, `pi` or `grok`.
   `grok` is Grok Build, for worker seats, and the `t3 instances` line maps it to T3's Grok provider.
 - `inherit` runs the role on the caller's own harness and model.
+  On the standalone runtime every seat does, so the seats only set how many workers a panel gets.
 - A list of seats is a panel, with one agent per seat.
 - One line can name several roles, comma-separated, and each role still gets its own seat call.
 - `lead <playbook>` overrides `lead` for one playbook.
@@ -89,7 +94,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 
 | Role | Used by |
 | --- | --- |
-| `lead` | leads that launch-lead starts: a move out of the primary checkout on Herdr, a handoff, or a coordinator's queue item |
+| `lead` | leads that launch-lead starts on T3 or Herdr: a move out of the primary checkout on Herdr, a handoff, or a coordinator's queue item |
 | `feature`, `refactoring`, `bug-fix`, `perf-issue`, `hillclimb` | the playbook of that name, for its code-writing workers |
 | `judgment and prose`, `hardest tasks` | any playbook, for judgment-heavy work or the hardest changes |
 | `how explorer`, `how explainer` | the how skill |
@@ -109,13 +114,13 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 
 | Verb | Who | Does |
 | --- | --- | --- |
-| launch-lead | a lead handing off, a lead moving a ship task on Herdr, or a coordinator | Starts a lead in a new worktree on `task/<id>`, or in the task's existing worktree for a handoff. On T3 a lead moves its own task by moving its thread instead. |
+| launch-lead | a lead handing off, a lead moving a ship task on Herdr or standalone, or a coordinator | Starts a lead in a new worktree on `task/<id>`, or in the task's existing worktree for a handoff. On T3 a lead moves its own task by moving its thread instead. On standalone, the lead makes the worktree and you start the new session. |
 | delegate | lead | Starts a worker on a seat with a written brief. |
 | collect | lead | Reads a finished worker's result. |
 | report | a coordinator's lead | Messages the coordinator without interrupting it. |
 | notify | lead | Messages another task's lead without interrupting it, such as a hold before a plan amendment. The receiver acts only on the granted decision it names. |
 | decide | lead | Writes a decision file and asks you in its thread. A coordinator's lead sends it to the coordinator. |
-| watch-pr | lead | Waits for the PR's next verdict from `tstack.mjs pr-state`. On T3, a PR that waits on your review also gets T3's PR watch. |
+| watch-pr | lead | Waits for the PR's next verdict from `tstack.mjs pr-state`. On T3, the lead also arms T3's PR watch when it opens the PR. |
 | hold | coordinator | Stops a lead's turn at once on your stop, until you release it. A lead you talk to is held by your own stop. |
 
 ## Playbooks

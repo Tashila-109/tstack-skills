@@ -2,8 +2,7 @@
 
 Read this before you launch a lead, delegate a worker, or run a skill that spawns subagents.
 It owns the verbs, seats, depth, and how to read skill text written for Cursor.
-The runtime reference owns the exact calls: [runtime-t3.md](runtime-t3.md) when the `t3-code` MCP tools are present, [runtime-herdr.md](runtime-herdr.md) when `HERDR_ENV=1`.
-If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
+The runtime reference owns the exact calls: [runtime-t3.md](runtime-t3.md) in a T3 Code thread, [runtime-herdr.md](runtime-herdr.md) when `HERDR_ENV=1`, and [runtime-standalone.md](runtime-standalone.md) on any other harness.
 
 `tstack.mjs` below means `node <tstack skill directory>/scripts/tstack.mjs`.
 
@@ -11,11 +10,11 @@ If neither applies, stop and tell the human that tstack needs T3 Code or Herdr.
 
 | Verb | Who | What it does |
 | --- | --- | --- |
-| launch-lead | a lead handing off its task or moving it on Herdr, or a coordinator | Start a lead with the launch block below as its first message, in a new worktree, or in the task's existing worktree for a handoff. |
+| launch-lead | a lead handing off its task or moving it on Herdr or standalone, or a coordinator | Start a lead with the launch block below as its first message, in a new worktree, or in the task's existing worktree for a handoff. |
 | delegate | lead, or a skill the lead runs | Start a worker on a seat with a written brief. Launch every independent worker before you wait on any. |
 | collect | lead | Read a finished worker's result file and verdict. |
 | report | a coordinator's lead | Send the coordinator a message without interrupting it. |
-| notify | lead | Send another task's lead a message without interrupting it, such as a hold before a plan amendment or the granted change after it. Find its thread or agent in that task's `lead.txt`, or ask the human. Start the message with `from <your task id> lead:`. |
+| notify | lead | Send another task's lead a message without interrupting it, such as a hold before a plan amendment or the granted change after it. Find its thread or agent in that task's `lead.txt`, or ask the human; on standalone, follow its reference. Start the message with `from <your task id> lead:`. |
 | decide | lead | Write a decision file and put it to the human, as [decisions.md](decisions.md) says. |
 | watch-pr | lead | Wait for the PR's next verdict from `tstack.mjs pr-state`, which reads checks, review threads, conflicts and the base, without a sleep loop of your own. |
 | hold | coordinator | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for the coordinator's release. A lead the human talks to is held by the human's own stop. |
@@ -31,7 +30,7 @@ task: <id>
 home: <primary checkout>/.tstack
 brief: <home>/tasks/<id>/brief.md
 coordinator: <the coordinator's T3 thread id or Herdr agent name; leave the line out for a lead the human talks to>
-runtime: t3 | herdr
+runtime: t3 | herdr | standalone
 router: <path to the tstack skill's SKILL.md>
 
 Read the router file in full, then follow its Lead section.
@@ -48,7 +47,7 @@ A list of seats is a panel, with one agent per seat.
 `lead <playbook>` falls back to `lead`.
 `herdr args <harness>` lines, which replace a harness's autonomy flags on Herdr, are read only from `~/.tstack/models.md`. A project's file that sets one is refused, because a cloned repository must not choose the flags an agent launches with.
 
-Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr`.
+Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr|standalone`.
 It prints one JSON line per seat, in the shape the runtime reference passes on.
 Never hand-assemble a model ID, an effort option, or launch flags.
 
@@ -61,6 +60,7 @@ When a seat fails to launch, because the provider is down, logged out, or lacks 
 - a panel continues with the seats that launched, and the result names each dropout.
 
 Never run a seat on a different model than the one configured without the human's word.
+The standalone runtime is the one exception: every seat there runs on the caller's own model, as [its reference](runtime-standalone.md#facts-to-rely-on) says.
 
 ## Depth
 

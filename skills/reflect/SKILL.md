@@ -12,7 +12,7 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
 
 ## 1. Locate the active transcript
 
-Before fanning out, find this conversation's transcript where the History section of the tstack runtime reference says: [T3](../tstack/references/runtime-t3.md#history) or [Herdr](../tstack/references/runtime-herdr.md#history). Read only the active project's history. Reading every project's history crosses workspace boundaries and reads private chats from unrelated projects.
+Before fanning out, find this conversation's transcript where the History section of the tstack runtime reference says: [T3](../tstack/references/runtime-t3.md#history), [Herdr](../tstack/references/runtime-herdr.md#history) or [standalone](../tstack/references/runtime-standalone.md#history). Read only the active project's history. Reading every project's history crosses workspace boundaries and reads private chats from unrelated projects.
 
 For each candidate, read the first JSONL line. Take the file whose `message.content[0].text` contains the conversation's opening user prompt. If none matches, pass a tight digest of the session instead.
 

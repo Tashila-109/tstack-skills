@@ -40,7 +40,8 @@ It builds a measurement harness first and proves the harness can see the change,
 
 With PR delivery, the lead opens the PR ready and babysits it to merge-ready before it reports done.
 It reads the PR's state with `tstack.mjs pr-state`, which waits for running checks and gives review bots ten minutes to post after the last push, comment or review.
-When the PR waits only on your review, the lead on T3 arms `watch_pull_request` and ends its turn, so your review wakes it.
+On T3, the lead also arms T3's PR watch when it opens the PR, so when the PR waits only on your review, it ends its turn and your review wakes it.
+On any other harness, the lead tells you the PR waits on your review, and your next message wakes it.
 
 It fixes conflicts first, then review threads, then CI.
 It reruns a failed check once, and a second identical failure counts as a real failure.
@@ -50,7 +51,9 @@ When the PR is merge-ready, the lead asks you whether to merge, unless a grant o
 ## A queue of changes
 
 An autopilot runs several tasks from one thread, so it has a coordinator.
-Open a thread in the primary checkout, which on T3 means **Current checkout** mode with Full access, pin it so T3 never settles it, and ask for the autopilot.
+Open a thread in the primary checkout, which on T3 means **Current checkout** mode with Full access, and ask for the autopilot.
+The coordinator pins its own thread so T3 never settles it.
+Autopilots need T3 Code or Herdr, because only they can start and hold leads for you.
 Pick the one that matches who lands the work.
 
 ```text

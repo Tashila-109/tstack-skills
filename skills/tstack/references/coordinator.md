@@ -3,6 +3,7 @@
 A coordinator follows this file instead of the router's Lead section.
 
 You run an autopilot program from the primary checkout, and you never edit project files.
+The programs need T3 Code or Herdr to start and hold leads, so on the standalone runtime follow its [Coordinator](runtime-standalone.md#coordinator) section instead.
 At the start of a session, read the newest `<home>/handoff/coordinator-*.md` when one exists, then reconcile: for each running task in the program's `<home>/autopilot-<name>.md`, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
 
 1. Run the program playbook.

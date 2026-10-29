@@ -68,11 +68,11 @@ Workers never hand off: each gets a fresh context per brief, and unfinished work
 ## Relaunching a lead
 
 Start a fresh lead on the same worktree and branch, once the old lead's turn has ended or, for your own handoff, as your last action.
-Use the runtime's launch-lead for a handoff: [T3](../tstack/references/runtime-t3.md#launch-lead) or [Herdr](../tstack/references/runtime-herdr.md#launch-lead).
+Use the runtime's launch-lead for a handoff: [T3](../tstack/references/runtime-t3.md#launch-lead), [Herdr](../tstack/references/runtime-herdr.md#launch-lead) or [standalone](../tstack/references/runtime-standalone.md#launch-lead).
 
 `git worktree list` shows the worktree and its branch.
 Add one line under the launch block: `Pick up from <path to the handoff file>, following the session-pickup playbook.`
-For your own handoff, leave the launch block's `coordinator:` line out, and tell the human which thread or tab to continue in.
+For your own handoff, leave the launch block's `coordinator:` line out, and tell the human which thread, tab or session to continue in.
 A coordinator archives the old thread on T3 or closes the old tab on Herdr, and updates `<home>/tasks/<id>/lead.txt` with the new thread or tab.
 
 ## For a coordinator: handing off the coordinator

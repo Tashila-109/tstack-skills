@@ -1,65 +1,76 @@
 # tstack-skills
 
-tstack runs coding work the way a small, careful team does.
-You open one thread or pane per task and talk to that task's **lead**.
-The lead works in its own Git worktree, follows a playbook for that kind of work, such as a bug fix or a feature, and hands scoped jobs to **workers** on the models you chose.
-Every skill-bearing step leaves a file the next step reads, so the rigor is checked, not assumed.
-Only you authorize a merge.
+Agent skills that make your coding agent work like a small, careful engineering team.
 
-tstack-skills is the whole workflow as plain agent skills.
-It runs on two runtimes:
-- **[T3 Code](https://t3.codes)**, where each task is a thread in its own worktree, and workers are T3 child tasks;
-- **[Herdr](https://herdr.dev)**, where each task is a tab, and workers get panes beside the lead.
+You describe a task and how you will know it is done.
+A **lead** agent picks the right playbook, such as a bug fix, a feature or a refactor, and runs it in its own Git worktree.
+It hands scoped jobs to **worker** agents, checks their work, and asks you before anything merges.
+Every step leaves an evidence file that the next step reads, and a script refuses to call the task done while one is missing.
+So the rigor is checked, not assumed.
 
-Leads and workers run on Claude Code, Codex or Pi, and workers can also run on Grok Build.
-
-## Requirements
-
-- Node.js 20 or newer, with `npx`.
-- Git, and the GitHub CLI `gh` if you want tasks delivered as pull requests.
-- T3 Code, or Herdr 0.9.3 or newer.
-- At least one agent CLI, signed in: Claude Code, Codex or Pi.
-  Grok Build is optional, for worker seats.
-
-## Install
-
-Install every skill globally from this repository:
-
-```sh
-npx skills add Tashila-109/tstack-skills -g -a claude-code codex pi -y
+```text
+/tstack users see "Hello, undefined" when they pass a name. Repro first, then fix it.
+Done means `node greet.mjs Ada` prints "Hello, Ada".
 ```
 
-The repository is private, so `npx skills` clones it with your own Git credentials.
+The lead reproduces the bug, traces the cause, has a worker write a failing test and the fix, gets it reviewed, and comes back with the proof and one question: merge it?
 
-This copies the skills to `~/.agents/skills`, which Codex and Pi read, and links them from `~/.claude/skills` and `~/.pi/agent/skills`.
-Every project and every worktree then sees them.
-To update, run the same command again, because installed skills are copies.
+## What you get
 
-To install into one project only, run the command from that project without `-g`.
-[Getting started](docs/getting-started.md#install-into-one-project) covers what that changes.
+- **Playbooks for each kind of work.**
+  Bug fix, feature, refactoring, investigation, performance, prototype, opening and babysitting a PR, multi-phase plans, and more.
+  The lead picks one at intake and tells you which.
+- **Skills behind the steps.**
+  Exploring code (`how`, `why`), design bakeoffs (`architect`, `arena`), adversarial review (`interrogate`, `two-axis-review`), test-first fixes (`tdd`), and 24 engineering principles you can steer by name.
+- **Evidence you can read.**
+  Each task keeps its brief, the repro, the mechanism, the red and green test runs, each reviewer's findings, and a final report in `.tstack/tasks/<id>/`.
+- **You stay in charge.**
+  Nothing merges, deploys or gets deleted without your word.
 
-## Start
+## Where it runs
 
-In your project, start your agent and run the setup skill once:
+tstack works in any agent harness that loads skills.
+An orchestrator adds automation on top.
+
+| Runtime | Workers run as | Tasks start | Best for |
+| --- | --- | --- | --- |
+| **Any harness**: Claude Code, Codex, Cursor, OpenCode, Pi and others | Your harness's own subagents, on your lead's model | You open a session per task; the lead makes the worktree and tells you where | Trying tstack, or working in the tool you already use |
+| **[T3 Code](https://t3.codes)** | T3 child tasks, on the model each role names, waking the lead when done | You open a thread in **New worktree** mode | Running several tasks at once with a sidebar of threads |
+| **[Herdr](https://herdr.dev)** | Agent panes beside the lead, on the model each role names | You start a pane; the lead opens a tab per task | Terminal-first work across Claude Code, Codex and Pi |
+
+[What changes without an orchestrator](docs/runtimes/any-harness.md#what-you-keep-and-what-you-lose) lists the trade-offs.
+
+## Quick start
+
+You need Node.js 20 or newer, Git, and at least one agent harness you are signed in to.
+Install the GitHub CLI `gh` if you want tasks delivered as pull requests.
+
+**1. Install the skills globally**, choosing the harnesses you use:
+
+```sh
+npx skills add Tashila-109/tstack-skills -g -a claude-code codex cursor opencode pi -y
+```
+
+Leave out `-a ... -y` to pick harnesses from a list.
+
+**2. Set up a project.**
+Start your agent in a Git repository with at least one commit, and run the setup skill once:
 
 | Harness | Setup | Start a task |
 | --- | --- | --- |
-| Claude Code | `/tstack-setup` | `/tstack` |
-| Codex, or any thread in T3 | `$tstack-setup` | `$tstack` |
+| Claude Code, Cursor | `/tstack-setup` | `/tstack` |
+| Codex, or any T3 thread | `$tstack-setup` | `$tstack` |
 | Pi | `/skill:tstack-setup` | `/skill:tstack` |
+| Anything else | `Read ~/.agents/skills/tstack-setup/SKILL.md and follow it.` | `Read ~/.agents/skills/tstack/SKILL.md and follow it.`, then your request |
 
-Then open a thread or pane for the task, and tell its lead what you want and how you will know it is done.
-On T3, open the thread in **New worktree** mode, then send:
+**3. Start a task** with your goal and how you will know it is done.
+The lead tells you which playbook it chose and where to continue.
 
-```text
-$tstack users see "Hello, undefined" when they pass a name. Repro first, then fix it. Done means `node greet.mjs Ada` prints "Hello, Ada".
-```
+[Getting started](docs/getting-started.md) walks through a first task end to end in about 15 minutes.
 
-## Read further
+## Documentation
 
-Not sure which skill or playbook fits? Run `tstack-help`.
-
-- [Getting started](docs/getting-started.md): install, set up a scratch project, and run one task end to end on T3 and on Herdr.
+- [Getting started](docs/getting-started.md): install, fix a bug in a practice project, and read what the lead left behind.
 - The guide:
   [start a task](docs/guide/01-route-work.md),
   [understand the code](docs/guide/02-understand.md),
@@ -70,11 +81,17 @@ Not sure which skill or playbook fits? Run `tstack-help`.
   [steer by principle](docs/guide/07-principles.md),
   [plan across phases](docs/guide/08-plan-across-phases.md), and
   [recipes and pitfalls](docs/guide/09-recipes-and-pitfalls.md).
-- [Concepts](docs/concepts.md) and [Reference](docs/reference.md): why the workflow works this way, and its files, commands, models file and skill list.
-- [T3 Code](docs/runtimes/t3.md) and [Herdr](docs/runtimes/herdr.md): what each runtime shows you, where a task starts, and how to check on a lead.
-- [Migrating from tstackv2](docs/migrating-from-tstackv2.md): move a project tstackv2 set up onto tstack-skills.
-- [Plan](PLAN.md): the design decisions and the build phases.
+- Runtimes: [any harness](docs/runtimes/any-harness.md), [T3 Code](docs/runtimes/t3.md) and [Herdr](docs/runtimes/herdr.md).
+- [Concepts](docs/concepts.md): why the workflow is built this way.
+- [Reference](docs/reference.md): files, commands, the models file and every skill.
+
+Not sure which skill or playbook fits? Ask `/tstack-help`, `$tstack-help` in Codex, or `/skill:tstack-help` in Pi.
+
+## Contributing
+
+[AGENTS.md](AGENTS.md) has the repository's layout, rules and checks.
+Run the script tests with `node --test skills/tstack/scripts/*.test.mjs`.
 
 ## License
 
-The skills under `skills/` include third-party text under the MIT license; the notices are in [LICENSES/](LICENSES/).
+MIT, in [LICENSE.md](LICENSE.md), which also holds the notices for the third-party MIT text these skills adapt.

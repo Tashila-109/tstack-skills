@@ -68,7 +68,7 @@ test("check refuses until every frozen artifact and the report exist", () => {
 	assert.throws(() => check(home, "demo", 1), /is a link to outside the task directory/);
 });
 
-test("seat resolves roles to T3 targets and Herdr launch flags", () => {
+test("seat resolves roles to T3 targets, Herdr launch flags and standalone inherits", () => {
 	const models = parseModels(`# budget: large
 lead: claude/claude-opus-5-5@high
 feature, refactoring: pi/openai/gpt-5.5@high
@@ -88,6 +88,14 @@ herdr args pi: --no-session`);
 	]);
 	assert.deepEqual(seat(models, "feature", "herdr"), [{ kind: "pi", args: ["--model", "openai/gpt-5.5", "--thinking", "high", "--no-session"] }]);
 	assert.throws(() => seat(models, "swarm workers", "t3"), /run tstack-setup/);
+	assert.deepEqual(seat(models, "architect runners", "standalone"), [
+		{ inherit: true, configured: "claude/claude-opus-5-5@high" },
+		{ inherit: true, configured: "codex/gpt-6.1-sol" },
+		{ inherit: true },
+	]);
+	assert.deepEqual(seat(models, "architect runners", "standalone", "claude-opus-5-5"), [{ inherit: true, configured: "codex/gpt-6.1-sol" }]);
+	assert.throws(() => seat(models, "architect runners", undefined), /--runtime must be/);
+	assert.throws(() => seat(models, "lead", "bogus"), /--runtime must be/);
 	assert.throws(() => seat(parseModels("lead: grok/grok-4.7@high"), "lead", "t3"), /no T3 instance for harness grok/);
 });
 

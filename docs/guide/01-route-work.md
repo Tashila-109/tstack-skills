@@ -15,8 +15,10 @@ When you change subject, open a new thread instead of steering the last one.
   T3 names the branch, and the thread runs on the model you picked in the composer.
 - **On Herdr**, open a pane, start your harness, and invoke tstack with your request.
   A ship task started at the project root moves into its own tab, and the lead tells you which one to continue in.
+- **On any other harness**, start your agent in the project and invoke tstack with your request.
+  A ship task started at the project root gets its own worktree, and the lead tells you the folder to start a new session in and the message to send there.
 
-[T3 Code](../runtimes/t3.md) and [Herdr](../runtimes/herdr.md) cover each runtime.
+[T3 Code](../runtimes/t3.md), [Herdr](../runtimes/herdr.md) and [any other harness](../runtimes/any-harness.md) cover each runtime.
 
 ## Say the goal and the check
 
