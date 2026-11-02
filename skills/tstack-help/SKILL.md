@@ -57,6 +57,8 @@ Read the skill before you recommend it, and give one example prompt.
 | Catch up on their own recent work on a topic | [recall](../recall/SKILL.md) |
 | Catch up on what changed in this thread since their last message, in plain words and small visuals, with every item waiting on them decidable from the reply alone | [ketchup](../ketchup/SKILL.md) |
 | Get a prompt rewritten deeper, not bigger, before sending it; it returns the prompt and does not do the task | [sharpen](../sharpen/SKILL.md) |
+| Draw a system, a data flow, a request path or a data model, from the code or as a design | [chart](../chart/SKILL.md), or the [charting](../tstack/playbooks/charting.md) playbook for charts a second agent checks |
+| See a chart, a comparison, a before and after or an evidence page inline in a T3 thread | [t3-visual](../t3-visual/SKILL.md) |
 | Get findings with no code change | the [investigation](../tstack/playbooks/investigation.md) playbook |
 | Diagnose a live symptom, or a captured profile, with no fix yet | [runtime-forensics](../tstack/playbooks/runtime-forensics.md) or [trace-forensics](../tstack/playbooks/trace-forensics.md) |
 | Find what a small diff could break outside itself | [blast-radius](../blast-radius/SKILL.md) |

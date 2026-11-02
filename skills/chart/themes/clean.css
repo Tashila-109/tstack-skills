@@ -1,0 +1,37 @@
+.pele {
+  --pele-bg: #ffffff;
+  --pele-fg: #1d2433;
+  --pele-muted: #5b6475;
+  --pele-line: #5b6475;
+  --pele-surface: #f4f6fa;
+  --pele-surface-alt: #e9edf4;
+  --pele-border: #b8c0cc;
+  --pele-accent: #2f6fde;
+  background: var(--pele-bg);
+}
+.pele .focus > :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--pele-accent) !important;
+  stroke-width: 2.5px !important;
+}
+.pele .external > :is(rect, path, polygon, circle, ellipse) {
+  fill: var(--pele-surface-alt) !important;
+}
+.pele .external text {
+  fill: var(--pele-muted) !important;
+}
+.pele .proposed > :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--pele-accent) !important;
+  stroke-dasharray: 6 4 !important;
+}
+@media (prefers-color-scheme: dark) {
+  .pele {
+    --pele-bg: #14171c;
+    --pele-fg: #e6e9ef;
+    --pele-muted: #9aa3b2;
+    --pele-line: #8b94a3;
+    --pele-surface: #1e232b;
+    --pele-surface-alt: #262c36;
+    --pele-border: #4a5261;
+    --pele-accent: #6ea1ff;
+  }
+}

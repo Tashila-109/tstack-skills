@@ -1,0 +1,24 @@
+.pele {
+  --pele-bg: var(--background);
+  --pele-fg: var(--foreground);
+  --pele-muted: var(--muted-foreground);
+  --pele-line: var(--muted-foreground);
+  --pele-surface: var(--card);
+  --pele-surface-alt: var(--secondary);
+  --pele-border: var(--border);
+  --pele-accent: var(--primary);
+}
+.pele .focus > :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--pele-accent) !important;
+  stroke-width: 2.5px !important;
+}
+.pele .external > :is(rect, path, polygon, circle, ellipse) {
+  fill: var(--pele-surface-alt) !important;
+}
+.pele .external text {
+  fill: var(--pele-muted) !important;
+}
+.pele .proposed > :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--pele-accent) !important;
+  stroke-dasharray: 6 4 !important;
+}
