@@ -55,7 +55,15 @@ Keep function and variable names out of labels unless the reader works in that c
 Three classes mark meaning, and every theme draws them:
 - `focus` is the part the question is about;
 - `external` is a system the project does not own, such as a payment provider;
-- `proposed` is a part that is not built yet; also add `classDef proposed stroke-dasharray: 6 4`, so that viewers without the theme still show it dashed.
+- `proposed` is a part that is not built yet.
+
+A viewer that draws the `mermaid` block without a theme, such as GitHub, needs a `classDef` for each class the chart uses, and the themes override them:
+
+```text
+classDef focus stroke-width:3px
+classDef external fill:#e9edf4,color:#5b6475
+classDef proposed stroke-dasharray: 6 4
+```
 
 Give a box a class with `class <id> proposed` in a flowchart, a state chart or an ER chart, and with `cssClass "<id>" proposed` in a class chart.
 Sequence, C4 and architecture charts take no classes, so end a proposed part's label with "(proposed)" there.
@@ -101,7 +109,8 @@ On T3, also run `render` with `--theme t3`, which writes `<name>.html`, a page i
 ## 8. Keep it in the repo
 
 When the human asks for a chart in the repo, put the `.mmd` and its SVG in `docs/diagrams/`, unless the project keeps diagrams elsewhere.
-After step 6, add `%% synced: <commit hash>` below the `chart:` line, naming the commit whose code you proved the chart against, as `git rev-parse HEAD` prints it.
+After step 6, commit every cited file, and confirm that `git status --short -- <cited paths>` prints nothing, so the commit holds the code you proved.
+Then add `%% synced: <commit hash>` below the `chart:` line, naming that commit as `git rev-parse HEAD` prints it.
 `chart.mjs stale <chart.mmd>...` then names each cited file that differs from that commit, committed or not, and each new file in a cited folder.
 When it does, prove the chart again against the new code, fix it, and move `synced:` forward.
 
