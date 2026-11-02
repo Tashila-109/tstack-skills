@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -227,17 +227,23 @@ flowchart LR
 	);
 });
 
-test("resolveCite refuses a link out of the root and a line in an empty file, and allows a folder named ..x", () => {
+test("resolveCite refuses a citation through a link, a line in an empty file, and allows a folder named ..x", () => {
 	const dir = scratch();
 	symlinkSync("/etc/hosts", join(dir, "src", "out.ts"));
+	symlinkSync("api.ts", join(dir, "src", "link.ts"));
+	mkdirSync(join(dir, "lib"));
+	writeFileSync(join(dir, "lib", "real.ts"), "one\n");
+	symlinkSync("../lib", join(dir, "src", "alias"));
 	writeFileSync(join(dir, "src", "empty.ts"), "");
 	mkdirSync(join(dir, "..x"));
 	writeFileSync(join(dir, "..x", "a.ts"), "one\n");
-	const file = chart(dir, "a.mmd", "%% chart: code\nflowchart LR\n  %% src: src/out.ts\n  A --> B\n  %% src: src/empty.ts:1\n  B --> C\n  %% src: ..x/a.ts:1\n  C --> D\n");
+	const file = chart(dir, "a.mmd", "%% chart: code\nflowchart LR\n  %% src: src/out.ts\n  A --> B\n  %% src: src/empty.ts:1\n  B --> C\n  %% src: ..x/a.ts:1\n  C --> D\n  %% src: src/link.ts:1, src/alias/real.ts\n  D --> E\n");
 	assert.throws(
 		() => check([file], dir, fakePele),
 		(err) =>
 			/src\/out\.ts is a link to a path outside/.test(err.message) &&
+			/src\/link\.ts:1 goes through a link: cite src\/api\.ts instead/.test(err.message) &&
+			/src\/alias\/real\.ts goes through a link: cite lib\/real\.ts instead/.test(err.message) &&
 			/src\/empty\.ts:1 is past the end of src\/empty\.ts, which has 0 lines/.test(err.message) &&
 			!/\.\.x/.test(err.message),
 	);
@@ -320,20 +326,6 @@ test("stale counts an untracked file in a cited folder, refuses a moving synced 
 	assert.match(stale([folder], dir), /fresh/);
 	writeFileSync(join(dir, "src", "new.ts"), "x\n");
 	assert.throws(() => stale([folder], dir), /stale .*folder\.mmd[\s\S]*src\/new\.ts/);
-	symlinkSync("api.ts", join(dir, "src", "link.ts"));
-	execFileSync("git", ["-C", dir, "add", "."]);
-	execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "link"]);
-	const linkSha = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-	const linked = chart(dir, "linked.mmd", `%% synced: ${linkSha}\n%% chart: code\nflowchart LR\n  %% src: src/link.ts:1\n  A --> B\n`);
-	assert.match(stale([linked], dir), /fresh/);
-	writeFileSync(join(dir, "src", "api.ts"), "changed\n");
-	assert.throws(() => stale([linked], dir), /stale .*linked\.mmd[\s\S]*src\/api\.ts/);
-	execFileSync("git", ["-C", dir, "checkout", "-q", "--", "src/api.ts"]);
-	assert.match(stale([linked], dir), /fresh/);
-	rmSync(join(dir, "src", "api.ts"));
-	assert.throws(() => stale([linked], dir), /stale .*linked\.mmd[\s\S]*src\/api\.ts/);
-	execFileSync("git", ["-C", dir, "checkout", "-q", "--", "src/api.ts"]);
-	assert.match(stale([linked], dir), /fresh/);
 	assert.throws(() => stale([chart(dir, "head.mmd", `%% synced: HEAD\n${CODE}`)], dir), /names HEAD, which moves/);
 	assert.throws(() => stale([chart(dir, "away.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ../x.ts\n  A --> B\n`)], dir), /cites paths outside .*\.\.\/x\.ts/);
 	assert.throws(
@@ -377,26 +369,3 @@ test("the command line refuses unknown commands, unknown flags and a missing roo
 	assert.throws(() => check([chart(dir, "bad.mmd", "%% chart: design\nflowchart LR\n  A -->\n")], dir, pele), /Pele cannot draw it/);
 });
 
-test("stale follows a chain of links to a deleted target, a link in a cited path's folder, and a folder that became a file", () => {
-	const dir = scratch();
-	mkdirSync(join(dir, "lib"));
-	writeFileSync(join(dir, "lib", "real.ts"), "one\n");
-	symlinkSync("../lib", join(dir, "src", "alias"));
-	symlinkSync("api.ts", join(dir, "src", "hop.ts"));
-	symlinkSync("hop.ts", join(dir, "src", "chain.ts"));
-	execFileSync("git", ["-C", dir, "add", "."]);
-	execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "links"]);
-	const sha = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-	const cites = (src) => chart(dir, `${src.replace(/\W/g, "-")}.mmd`, `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ${src}\n  A --> B\n`);
-	const chained = cites("src/chain.ts");
-	const aliased = cites("src/alias/real.ts");
-	assert.match(stale([chained, aliased], dir), /fresh[\s\S]*fresh/);
-	writeFileSync(join(dir, "lib", "real.ts"), "two\n");
-	assert.throws(() => stale([aliased], dir), /stale [\s\S]*lib\/real\.ts/);
-	rmSync(join(dir, "src", "api.ts"));
-	assert.throws(() => stale([chained], dir), /stale [\s\S]*src\/api\.ts/);
-	const inFolder = cites("src/db.ts");
-	rmSync(join(dir, "src"), { recursive: true });
-	writeFileSync(join(dir, "src"), "now a file\n");
-	assert.throws(() => stale([inFolder], dir), (err) => err instanceof Refusal && /src\/db\.ts/.test(err.message));
-});

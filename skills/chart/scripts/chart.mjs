@@ -14,7 +14,7 @@
 // Exit 0 on success, 1 on a refusal (the reason is on stderr), 2 on a usage error, 3 on anything unexpected.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -132,7 +132,9 @@ export function resolveCite(cite, root) {
 	const full = resolve(root, path);
 	if (isAbsolute(path) || outside(full, root)) return `${cite} is outside ${root}`;
 	if (!existsSync(full)) return `${cite} does not exist under ${root}`;
-	if (outside(realpathSync(full), root)) return `${cite} is a link to a path outside ${root}`;
+	// Git tracks a link, not what it points to, so a citation through a link could change without stale seeing it.
+	const real = realpathSync(full);
+	if (real !== full) return outside(real, root) ? `${cite} is a link to a path outside ${root}` : `${cite} goes through a link: cite ${relative(root, real)} instead`;
 	if (start === undefined) return null;
 	if (statSync(full).isDirectory()) return `${cite} is a folder, so it takes no line number`;
 	const content = readFileSync(full, "utf8");
@@ -259,23 +261,6 @@ function git(root, args) {
 	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
-// The path a cited path finally names, following links even when the last target is gone.
-function finalTarget(full) {
-	const seen = new Set();
-	for (let path = full; ; ) {
-		if (existsSync(path)) return realpathSync(path);
-		let link;
-		try {
-			link = lstatSync(path).isSymbolicLink();
-		} catch {
-			return path;
-		}
-		if (!link || seen.has(path)) return path;
-		seen.add(path);
-		path = resolve(dirname(path), readlinkSync(path));
-	}
-}
-
 // A chart is stale when a cited path differs from the synced commit in the checkout, committed or not, or holds a new untracked file.
 export function stale(files, root) {
 	const fresh = [];
@@ -302,11 +287,9 @@ export function stale(files, root) {
 			refused.push(`${file}: cites paths outside ${root}: ${away.join(", ")}`);
 			continue;
 		}
-		// A cited path read through a link changes when the link's target does, so Git checks the target's path too.
-		const targets = cited.map((p) => relative(root, finalTarget(resolve(root, p)))).filter((rel) => !outside(resolve(root, rel), root));
-		const paths = [...new Set([...cited, ...targets])];
-		const changed = paths.length
-			? [...new Set([...git(root, ["diff", "--name-only", chart.synced, "--", ...paths]).split("\n"), ...git(root, ["ls-files", "--others", "--exclude-standard", "--", ...paths]).split("\n")].filter(Boolean))]
+		// check refuses a citation through a link, so each cited path is the file or folder Git tracks.
+		const changed = cited.length
+			? [...new Set([...git(root, ["diff", "--name-only", chart.synced, "--", ...cited]).split("\n"), ...git(root, ["ls-files", "--others", "--exclude-standard", "--", ...cited]).split("\n")].filter(Boolean))]
 			: [];
 		if (changed.length) refused.push(`stale ${file}: changed since ${chart.synced}:\n${changed.map((p) => `  ${p}`).join("\n")}`);
 		else fresh.push(`fresh ${file}: no cited path changed since ${chart.synced}`);

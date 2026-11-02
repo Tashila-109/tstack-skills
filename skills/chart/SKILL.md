@@ -42,6 +42,7 @@ In a code chart, put a comment directly above every line that draws a box or an 
 - `%% new: <reason>` marks a box or arrow that is proposed and not built yet, and the chart draws each proposed box as proposed, as the classes below say.
 
 Paths start from the repo root.
+Cite the real file or folder, not a link to it, because Git tracks a link and not what it points to.
 Cite the line that does the thing, such as the call that sends the message, not an import or a comment.
 For a box, cite the line that defines it, or that creates or writes it when it is a file or a store.
 A line in a skill or a doc is a fair citation for a step that a person or an agent follows.
@@ -80,7 +81,7 @@ To teach a flow with three or more parts, draw a short series where each chart a
 
 Run `chart.mjs check <chart.mmd>... --root <repo root>`.
 It lists each chart's problems in line order.
-It refuses a chart with no `chart:` line, a box or arrow in a code chart with no citation, a citation to a path or line that does not exist or that links outside the repo, and Mermaid that Pele cannot draw.
+It refuses a chart with no `chart:` line, a box or arrow in a code chart with no citation, a citation to a path or line that does not exist or that goes through a link, and Mermaid that Pele cannot draw.
 Fix each line it names.
 Never delete a citation or mark a built part `new:` to get past it.
 The step is done when the check prints `ok` for every chart.

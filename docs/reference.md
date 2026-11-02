@@ -73,7 +73,7 @@ It needs Node 20 or newer, or Bun, and no packages.
 It prints one summary line per phase and the problem count, and exits 1 when there is a problem.
 
 The chart skill's `scripts/chart.mjs` has three commands, each taking one or more `.mmd` files and `--root`, the folder that citations start from:
-- `check` refuses a chart with no `%% chart: code` or `%% chart: design` line, a box or arrow in a code chart with no `%% src:` or `%% new:` comment above it, a citation to a path or line that does not exist or that links outside the root, and Mermaid that Pele cannot draw, and it counts the arrows Pele draws and says when a chart has more than 20;
+- `check` refuses a chart with no `%% chart: code` or `%% chart: design` line, a box or arrow in a code chart with no `%% src:` or `%% new:` comment above it, a citation to a path or line that does not exist or that goes through a link, and Mermaid that Pele cannot draw, and it counts the arrows Pele draws and says when a chart has more than 20;
 - `render [--theme clean|blueprint|t3|<file.css>]` runs the same checks, then writes a themed SVG next to each chart, or with `t3` an HTML page for T3's `html_render`;
 - `stale` names each cited file that differs from the chart's `%% synced:` commit, committed or not, and each new untracked file under a cited folder.
 
