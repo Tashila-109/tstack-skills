@@ -309,6 +309,14 @@ test("stale counts an untracked file in a cited folder, refuses a moving synced 
 	assert.match(stale([folder], dir), /fresh/);
 	writeFileSync(join(dir, "src", "new.ts"), "x\n");
 	assert.throws(() => stale([folder], dir), /stale .*folder\.mmd[\s\S]*src\/new\.ts/);
+	symlinkSync("api.ts", join(dir, "src", "link.ts"));
+	execFileSync("git", ["-C", dir, "add", "."]);
+	execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "link"]);
+	const linkSha = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+	const linked = chart(dir, "linked.mmd", `%% synced: ${linkSha}\n%% chart: code\nflowchart LR\n  %% src: src/link.ts:1\n  A --> B\n`);
+	assert.match(stale([linked], dir), /fresh/);
+	writeFileSync(join(dir, "src", "api.ts"), "changed\n");
+	assert.throws(() => stale([linked], dir), /stale .*linked\.mmd[\s\S]*src\/api\.ts/);
 	assert.throws(() => stale([chart(dir, "head.mmd", `%% synced: HEAD\n${CODE}`)], dir), /names HEAD, which moves/);
 	assert.throws(() => stale([chart(dir, "away.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ../x.ts\n  A --> B\n`)], dir), /cites paths outside .*\.\.\/x\.ts/);
 	assert.throws(
@@ -332,7 +340,8 @@ test("the command line refuses unknown commands, unknown flags and a missing roo
 	assert.match(nogit.out, /not inside a Git checkout/);
 });
 
-test("the real Pele checks and draws every diagram type a chart uses", { skip: !existsSync(PELE_ENTRY) && "pele@1.9.0 is not in the cache; run chart.mjs once to install it" }, async () => {
+// Bun ignores the skip option, so pick test.skip by hand when Pele is not cached.
+(existsSync(PELE_ENTRY) ? test : test.skip)("the real Pele checks and draws every diagram type a chart uses", async () => {
 	process.env.PELE ??= PELE_ENTRY;
 	const pele = await loadPele();
 	const dir = scratch();

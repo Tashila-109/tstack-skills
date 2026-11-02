@@ -14,7 +14,7 @@
 // Exit 0 on success, 1 on a refusal (the reason is on stderr), 2 on a usage error, 3 on anything unexpected.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -279,12 +279,15 @@ export function stale(files, root) {
 			refused.push(`${file}: ${chart.synced} is not a commit in ${root}`);
 			continue;
 		}
-		const paths = [...new Set(chart.cites.map(({ cite }) => cite.match(CITE)[1]))];
-		const away = paths.filter((p) => isAbsolute(p) || outside(resolve(root, p), root));
+		const cited = [...new Set(chart.cites.map(({ cite }) => cite.match(CITE)[1]))];
+		const away = cited.filter((p) => isAbsolute(p) || outside(resolve(root, p), root));
 		if (away.length) {
 			refused.push(`${file}: cites paths outside ${root}: ${away.join(", ")}`);
 			continue;
 		}
+		// A cited link changes when its target does, so check the target's path as well as the link's.
+		const targets = cited.map((p) => resolve(root, p)).filter((full) => existsSync(full) && lstatSync(full).isSymbolicLink());
+		const paths = [...new Set([...cited, ...targets.map((full) => relative(root, realpathSync(full))).filter((rel) => !outside(resolve(root, rel), root))])];
 		const changed = paths.length
 			? [...new Set([...git(root, ["diff", "--name-only", chart.synced, "--", ...paths]).split("\n"), ...git(root, ["ls-files", "--others", "--exclude-standard", "--", ...paths]).split("\n")].filter(Boolean))]
 			: [];
