@@ -259,6 +259,23 @@ function git(root, args) {
 	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
+// The path a cited path finally names, following links even when the last target is gone.
+function finalTarget(full) {
+	const seen = new Set();
+	for (let path = full; ; ) {
+		if (existsSync(path)) return realpathSync(path);
+		let link;
+		try {
+			link = lstatSync(path).isSymbolicLink();
+		} catch {
+			return path;
+		}
+		if (!link || seen.has(path)) return path;
+		seen.add(path);
+		path = resolve(dirname(path), readlinkSync(path));
+	}
+}
+
 // A chart is stale when a cited path differs from the synced commit in the checkout, committed or not, or holds a new untracked file.
 export function stale(files, root) {
 	const fresh = [];
@@ -285,11 +302,9 @@ export function stale(files, root) {
 			refused.push(`${file}: cites paths outside ${root}: ${away.join(", ")}`);
 			continue;
 		}
-		// A cited link changes when its target does, so check the target's path as well as the link's.
-		// A link whose target is gone still names that target, so read it rather than resolve it.
-		const links = cited.map((p) => resolve(root, p)).filter((full) => lstatSync(full, { throwIfNoEntry: false })?.isSymbolicLink());
-		const targetOf = (full) => (existsSync(full) ? realpathSync(full) : resolve(dirname(full), readlinkSync(full)));
-		const paths = [...new Set([...cited, ...links.map((full) => relative(root, targetOf(full))).filter((rel) => !outside(resolve(root, rel), root))])];
+		// A cited path read through a link changes when the link's target does, so Git checks the target's path too.
+		const targets = cited.map((p) => relative(root, finalTarget(resolve(root, p)))).filter((rel) => !outside(resolve(root, rel), root));
+		const paths = [...new Set([...cited, ...targets])];
 		const changed = paths.length
 			? [...new Set([...git(root, ["diff", "--name-only", chart.synced, "--", ...paths]).split("\n"), ...git(root, ["ls-files", "--others", "--exclude-standard", "--", ...paths]).split("\n")].filter(Boolean))]
 			: [];

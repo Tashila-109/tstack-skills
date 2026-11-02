@@ -332,6 +332,8 @@ test("stale counts an untracked file in a cited folder, refuses a moving synced 
 	assert.match(stale([linked], dir), /fresh/);
 	rmSync(join(dir, "src", "api.ts"));
 	assert.throws(() => stale([linked], dir), /stale .*linked\.mmd[\s\S]*src\/api\.ts/);
+	execFileSync("git", ["-C", dir, "checkout", "-q", "--", "src/api.ts"]);
+	assert.match(stale([linked], dir), /fresh/);
 	assert.throws(() => stale([chart(dir, "head.mmd", `%% synced: HEAD\n${CODE}`)], dir), /names HEAD, which moves/);
 	assert.throws(() => stale([chart(dir, "away.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ../x.ts\n  A --> B\n`)], dir), /cites paths outside .*\.\.\/x\.ts/);
 	assert.throws(
@@ -373,4 +375,28 @@ test("the command line refuses unknown commands, unknown flags and a missing roo
 	assert.match(render(files, dir, pele), /state\.svg/);
 	assert.match(readFileSync(join(dir, "flow.svg"), "utf8"), /class="pele-node[^"]*proposed"/);
 	assert.throws(() => check([chart(dir, "bad.mmd", "%% chart: design\nflowchart LR\n  A -->\n")], dir, pele), /Pele cannot draw it/);
+});
+
+test("stale follows a chain of links to a deleted target, a link in a cited path's folder, and a folder that became a file", () => {
+	const dir = scratch();
+	mkdirSync(join(dir, "lib"));
+	writeFileSync(join(dir, "lib", "real.ts"), "one\n");
+	symlinkSync("../lib", join(dir, "src", "alias"));
+	symlinkSync("api.ts", join(dir, "src", "hop.ts"));
+	symlinkSync("hop.ts", join(dir, "src", "chain.ts"));
+	execFileSync("git", ["-C", dir, "add", "."]);
+	execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "links"]);
+	const sha = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+	const cites = (src) => chart(dir, `${src.replace(/\W/g, "-")}.mmd`, `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ${src}\n  A --> B\n`);
+	const chained = cites("src/chain.ts");
+	const aliased = cites("src/alias/real.ts");
+	assert.match(stale([chained, aliased], dir), /fresh[\s\S]*fresh/);
+	writeFileSync(join(dir, "lib", "real.ts"), "two\n");
+	assert.throws(() => stale([aliased], dir), /stale [\s\S]*lib\/real\.ts/);
+	rmSync(join(dir, "src", "api.ts"));
+	assert.throws(() => stale([chained], dir), /stale [\s\S]*src\/api\.ts/);
+	const inFolder = cites("src/db.ts");
+	rmSync(join(dir, "src"), { recursive: true });
+	writeFileSync(join(dir, "src"), "now a file\n");
+	assert.throws(() => stale([inFolder], dir), (err) => err instanceof Refusal && /src\/db\.ts/.test(err.message));
 });
