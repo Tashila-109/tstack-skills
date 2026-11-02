@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -75,6 +75,17 @@ test("parseChart takes the kind, the diagram type, and the citation above each s
 		[
 			[4, ["src/api.ts:2"], false],
 			[6, [], true],
+		],
+	);
+});
+
+test("parseChart drops a citation when another comment comes between it and its line", () => {
+	const parsed = parseChart("%% chart: code\nflowchart LR\n  %% src: src/api.ts\n  %% the database\n  A --> B\n  %% src: src/api.ts\n  %% new: a cache\n  B --> C\n");
+	assert.deepEqual(
+		parsed.statements.map((s) => [s.text, s.cites, s.isNew]),
+		[
+			["A --> B", [], false],
+			["B --> C", ["src/api.ts"], true],
 		],
 	);
 });
@@ -316,6 +327,10 @@ test("stale counts an untracked file in a cited folder, refuses a moving synced 
 	const linked = chart(dir, "linked.mmd", `%% synced: ${linkSha}\n%% chart: code\nflowchart LR\n  %% src: src/link.ts:1\n  A --> B\n`);
 	assert.match(stale([linked], dir), /fresh/);
 	writeFileSync(join(dir, "src", "api.ts"), "changed\n");
+	assert.throws(() => stale([linked], dir), /stale .*linked\.mmd[\s\S]*src\/api\.ts/);
+	execFileSync("git", ["-C", dir, "checkout", "-q", "--", "src/api.ts"]);
+	assert.match(stale([linked], dir), /fresh/);
+	rmSync(join(dir, "src", "api.ts"));
 	assert.throws(() => stale([linked], dir), /stale .*linked\.mmd[\s\S]*src\/api\.ts/);
 	assert.throws(() => stale([chart(dir, "head.mmd", `%% synced: HEAD\n${CODE}`)], dir), /names HEAD, which moves/);
 	assert.throws(() => stale([chart(dir, "away.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ../x.ts\n  A --> B\n`)], dir), /cites paths outside .*\.\.\/x\.ts/);

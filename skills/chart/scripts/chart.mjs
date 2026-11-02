@@ -14,7 +14,7 @@
 // Exit 0 on success, 1 on a refusal (the reason is on stderr), 2 on a usage error, 3 on anything unexpected.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -89,7 +89,7 @@ export function parseChart(text) {
 			} else if (added) {
 				if (!added[1].trim()) problems.push(`line ${line}: new: needs a reason, such as "new: cache for the session lookups"`);
 				pending.isNew = true;
-			}
+			} else reset();
 			return;
 		}
 		if (!type) {
@@ -286,8 +286,10 @@ export function stale(files, root) {
 			continue;
 		}
 		// A cited link changes when its target does, so check the target's path as well as the link's.
-		const targets = cited.map((p) => resolve(root, p)).filter((full) => existsSync(full) && lstatSync(full).isSymbolicLink());
-		const paths = [...new Set([...cited, ...targets.map((full) => relative(root, realpathSync(full))).filter((rel) => !outside(resolve(root, rel), root))])];
+		// A link whose target is gone still names that target, so read it rather than resolve it.
+		const links = cited.map((p) => resolve(root, p)).filter((full) => lstatSync(full, { throwIfNoEntry: false })?.isSymbolicLink());
+		const targetOf = (full) => (existsSync(full) ? realpathSync(full) : resolve(dirname(full), readlinkSync(full)));
+		const paths = [...new Set([...cited, ...links.map((full) => relative(root, targetOf(full))).filter((rel) => !outside(resolve(root, rel), root))])];
 		const changed = paths.length
 			? [...new Set([...git(root, ["diff", "--name-only", chart.synced, "--", ...paths]).split("\n"), ...git(root, ["ls-files", "--others", "--exclude-standard", "--", ...paths]).split("\n")].filter(Boolean))]
 			: [];
