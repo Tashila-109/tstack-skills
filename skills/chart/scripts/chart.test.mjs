@@ -326,6 +326,8 @@ test("stale counts an untracked file in a cited folder, refuses a moving synced 
 	assert.match(stale([folder], dir), /fresh/);
 	writeFileSync(join(dir, "src", "new.ts"), "x\n");
 	assert.throws(() => stale([folder], dir), /stale .*folder\.mmd[\s\S]*src\/new\.ts/);
+	symlinkSync("api.ts", join(dir, "src", "link.ts"));
+	assert.throws(() => stale([chart(dir, "link.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: src/link.ts\n  A --> B\n`)], dir), /cites paths through a link.*src\/link\.ts/);
 	assert.throws(() => stale([chart(dir, "head.mmd", `%% synced: HEAD\n${CODE}`)], dir), /names HEAD, which moves/);
 	assert.throws(() => stale([chart(dir, "away.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: ../x.ts\n  A --> B\n`)], dir), /cites paths outside .*\.\.\/x\.ts/);
 	assert.throws(
@@ -369,3 +371,18 @@ test("the command line refuses unknown commands, unknown flags and a missing roo
 	assert.throws(() => check([chart(dir, "bad.mmd", "%% chart: design\nflowchart LR\n  A -->\n")], dir, pele), /Pele cannot draw it/);
 });
 
+
+test("stale reads a cited path literally, so brackets in a file name match only that file", () => {
+	const dir = scratch();
+	mkdirSync(join(dir, "pages"));
+	writeFileSync(join(dir, "pages", "[id].tsx"), "one\n");
+	writeFileSync(join(dir, "pages", "i.tsx"), "one\n");
+	execFileSync("git", ["-C", dir, "add", "."]);
+	execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "pages"]);
+	const sha = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+	const file = chart(dir, "page.mmd", `%% synced: ${sha}\n%% chart: code\nflowchart LR\n  %% src: pages/[id].tsx:1\n  A --> B\n`);
+	writeFileSync(join(dir, "pages", "i.tsx"), "two\n");
+	assert.match(stale([file], dir), /fresh/);
+	writeFileSync(join(dir, "pages", "[id].tsx"), "two\n");
+	assert.throws(() => stale([file], dir), /stale [\s\S]*pages\/\[id\]\.tsx/);
+});

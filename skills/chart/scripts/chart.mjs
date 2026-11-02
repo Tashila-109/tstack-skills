@@ -287,9 +287,14 @@ export function stale(files, root) {
 			refused.push(`${file}: cites paths outside ${root}: ${away.join(", ")}`);
 			continue;
 		}
+		const linked = cited.filter((p) => existsSync(resolve(root, p)) && realpathSync(resolve(root, p)) !== resolve(root, p));
+		if (linked.length) {
+			refused.push(`${file}: cites paths through a link, which Git does not follow, so run check and cite the real paths: ${linked.join(", ")}`);
+			continue;
+		}
 		// check refuses a citation through a link, so each cited path is the file or folder Git tracks.
 		const changed = cited.length
-			? [...new Set([...git(root, ["diff", "--name-only", chart.synced, "--", ...cited]).split("\n"), ...git(root, ["ls-files", "--others", "--exclude-standard", "--", ...cited]).split("\n")].filter(Boolean))]
+			? [...new Set([...git(root, ["--literal-pathspecs", "diff", "--name-only", chart.synced, "--", ...cited]).split("\n"), ...git(root, ["--literal-pathspecs", "ls-files", "--others", "--exclude-standard", "--", ...cited]).split("\n")].filter(Boolean))]
 			: [];
 		if (changed.length) refused.push(`stale ${file}: changed since ${chart.synced}:\n${changed.map((p) => `  ${p}`).join("\n")}`);
 		else fresh.push(`fresh ${file}: no cited path changed since ${chart.synced}`);
