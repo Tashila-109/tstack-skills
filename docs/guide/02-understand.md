@@ -1,7 +1,7 @@
 # Understand the code before changing it
 
 Editing code you don't understand is how subtle regressions ship.
-Four skills help: `how` explains what the code does now, `why` digs up the reasons it is shaped that way, `explain` blends both into one explanation, and `recall` rebuilds your own recent context on a topic.
+Five skills help: `how` explains what the code does now, `why` digs up the reasons it is shaped that way, `explain` blends both into one explanation, `chart` draws it, and `recall` rebuilds your own recent context on a topic.
 
 Ask for any of them in a new thread, and the lead briefs a scout task on the Investigation playbook:
 
@@ -65,6 +65,19 @@ An agent that has to explain its work must read the code and back each claim wit
 
 `explain` is one explanation in this session.
 To learn a topic over several sessions, with a workspace that keeps your lessons, use `teach`.
+
+## Draw it with chart
+
+```text
+$tstack draw how an upload moves from the API to storage, as a data flow chart.
+```
+
+`chart` draws a Mermaid chart in which each box and arrow cites the file and line that make it true.
+`chart.mjs check` refuses a chart with a missing or broken citation, and the Charting playbook has a reviewer who did not draw the chart read every citation.
+It renders the chart to SVG in a clean light and dark theme, or in blueprint blue, and you can ask for any other look.
+On T3, the `t3-visual` skill shows the chart inline in the thread, in the thread's own colors.
+For a system that is not built yet, ask for a design chart, which marks each proposed part.
+Ask for the charts in the repo, and `chart.mjs stale` later tells an agent which charts the code has moved past.
 
 ## Rebuild your context with recall
 

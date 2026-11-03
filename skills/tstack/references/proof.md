@@ -51,6 +51,6 @@ Then list what no agent could prove, such as native key delivery or a system dia
 ## Show it
 
 At Finish, show the human the table and its images, not a path to them.
-- On T3, publish `verify.md` with its images inlined as a page with `html_render`.
+- On T3, publish `verify.md` with its images inlined as a page, following the [t3-visual skill](../../t3-visual/SKILL.md).
 - With `pr` delivery, the PR's `## Verification` bullets come from the table, and the screenshots go in the PR body when the forge accepts them.
 - Elsewhere, put the table in the reply and give the absolute path of `evidence/proof/`.

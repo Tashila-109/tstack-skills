@@ -1,0 +1,29 @@
+.pele {
+  --pele-bg: #0f3a6b;
+  --pele-fg: #eef5ff;
+  --pele-muted: #a9c4e8;
+  --pele-line: #dbe9ff;
+  --pele-surface: #134780;
+  --pele-surface-alt: #1a5596;
+  --pele-border: #cfe1ff;
+  --pele-accent: #ffd166;
+  background-color: var(--pele-bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.pele .focus > :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--pele-accent) !important;
+  stroke-width: 2.5px !important;
+}
+.pele .external > :is(rect, path, polygon, circle, ellipse) {
+  fill: transparent !important;
+}
+.pele .external text {
+  fill: var(--pele-muted) !important;
+}
+.pele .proposed > :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--pele-accent) !important;
+  stroke-dasharray: 6 4 !important;
+}

@@ -6,6 +6,7 @@ This file owns the calls.
 The calls were measured on T3 Code (Nightly), 2026-10-05, and checked against T3's source on 2026-10-28.
 Moving a lead with `t3_worktree_handoff` ran live on 2026-10-14.
 On 2026-10-29 these ran live on a trial project: launches with a `clientRequestId`, including a retry that returned the same thread; delegated workers and their completion wakes; a failed seat stopping for the human; worktree-isolated arena candidates; PR linking, watching and unwatching with the `pr-state` loop; and an autopilot-full coordinator that pinned its thread, launched two leads, took their `queue` reports, armed a heartbeat and deleted it by its `scheduledTaskId`, merged under its grant, and archived the leads.
+On 2026-11-01, on T3 Code 0.1.6-nightly.20261031, `html_preview` drew a chart page from `chart.mjs render --theme t3` in the thread's dark and light colors with no console errors, and `html_render` showed it.
 The surface tools, history, hold and worker cancellation follow T3's own tool definitions, and have not yet run in a live task, and neither has a heartbeat run firing.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
@@ -195,6 +196,10 @@ An error saying the capability is unavailable means that access is off, so use t
   Drive it with that command, and call `device_close` when you are done.
 - Evidence: `preview_snapshot` with `save: true` returns a screenshot's path, `preview_recording_stop` returns the path of the recording `preview_recording_start` began, and `agent-device screenshot <path>` saves a simulator's screen.
   Copy each file into the task's `evidence/` folder, or the path your brief names, and cite that copy.
+
+## Showing a visual
+
+To show a chart, a comparison or an evidence page in a thread, follow the [t3-visual skill](../../t3-visual/SKILL.md), which owns `html_preview` and `html_render`.
 
 ## History
 

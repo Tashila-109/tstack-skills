@@ -26,7 +26,7 @@ Their first message is a `tstack launch` block naming their role, and they read 
 Installs are copies.
 Rerun the command after the source changes.
 Every skill marked `disable-model-invocation: true` carries `agents/openai.yaml` with `allow_implicit_invocation: false`, so Codex loads it only when asked.
-Eight skills that agents may invoke on their own have no such file: `codebase-design`, `domain-modeling`, `grilling`, `handoff`, `to-spec`, `to-tickets`, `two-axis-review` and `writing-for-agents`.
+Ten skills that agents may invoke on their own have no such file: `chart`, `codebase-design`, `domain-modeling`, `grilling`, `handoff`, `t3-visual`, `to-spec`, `to-tickets`, `two-axis-review` and `writing-for-agents`.
 
 ## Files
 
@@ -71,6 +71,14 @@ It needs Node 20 or newer, or Bun, and no packages.
 
 `scripts/check-plan.mjs <spec.md>` checks a multi-phase spec's structure: its sections in order, and unit, live and performance boxes in every phase, with a regression lane against trunk.
 It prints one summary line per phase and the problem count, and exits 1 when there is a problem.
+
+The chart skill's `scripts/chart.mjs` has three commands, each taking one or more `.mmd` files and `--root`, the folder that citations start from:
+- `check` refuses a chart with no `%% chart: code` or `%% chart: design` line, a box or arrow in a code chart with no `%% src:` or `%% new:` comment above it, a citation to a path or line that does not exist or that goes through a link, and Mermaid that Pele cannot draw, and it counts the arrows Pele draws and says when a chart has more than 20;
+- `render [--theme clean|blueprint|t3|<file.css>]` runs the same checks, then writes a themed SVG next to each chart, or with `t3` an HTML page for T3's `html_render`;
+- `stale` names each cited file that differs from the chart's `%% synced:` commit, committed or not, and each new untracked file under a cited folder.
+
+It needs Node 20 or newer, or Bun, and npm on first use, when it installs `pele@1.9.0` into `~/.tstack/cache`.
+Set `PELE` to the path of a `pele.js` to use another copy.
 
 Exit codes are 0 for success, 1 for a refusal with its reason on stderr, 2 for a usage error, and 3 for anything unexpected.
 
@@ -129,7 +137,7 @@ The lead picks one per task from the [router's intake table](../skills/tstack/SK
 
 | Status | Playbooks |
 | --- | --- |
-| Adapted, so `check` enforces the `Artifact:` paths each names; opening-a-pr names none, and `pr` delivery adds `evidence/babysit.md` | investigation, gardener, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, takeover, modernize, figure-it-out, opening-a-pr |
+| Adapted, so `check` enforces the `Artifact:` paths each names; opening-a-pr names none, and `pr` delivery adds `evidence/babysit.md` | investigation, gardener, charting, multi-phase-plan, orchestrate, babysit, shipping, bug-fix, feature, refactoring, takeover, modernize, figure-it-out, opening-a-pr |
 | As written with `Artifact:` lines, so `check` enforces the files they name | runtime-forensics, trace-forensics, prototype, visual-parity, eval, authoring-a-skill, hillclimb, perf-issue, autonomous-run |
 | As written, so `check` enforces only `report.md` | session-pickup, pause-safely, worktree-cleanup |
 | Run by a coordinator across several tasks | autopilot-full, autopilot-stack |
@@ -141,12 +149,12 @@ Ask `tstack-help` what a skill does and when to use it.
 | Group | Skills |
 | --- | --- |
 | Router and setup | `tstack`, `tstack-setup`, `tstack-help` |
-| Understand | `how`, `why`, `explain`, `recall`, `teach`, `in-your-own-words`, `ketchup`, `sharpen` |
+| Understand | `how`, `why`, `explain`, `chart`, `recall`, `teach`, `in-your-own-words`, `ketchup`, `sharpen` |
 | Plan | `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets` |
 | Design | `architect`, `arena`, `swarm`, `interrogate`, `figure-it-out` |
 | Build and clean | `tdd`, `no-comments`, `unslop`, `technical-writing`, `typescript-best-practices`, `blast-radius`, `benchmark-checklist` |
 | Review and verify | `two-axis-review`, `thermo-review`, `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `create-verification-skill`, `maintain-verification-skill`, `create-formal-verification-skill`, `maintain-formal-verification-skill` |
-| Record and improve | `show-me-your-work`, `handoff`, `reflect`, `correct`, `bro`, `writing-for-agents` |
+| Record and improve | `show-me-your-work`, `t3-visual`, `handoff`, `reflect`, `correct`, `bro`, `writing-for-agents` |
 | Principles | 24 `principle-*` skills, indexed in the router |
 
 Two close calls:
