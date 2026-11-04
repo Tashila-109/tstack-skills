@@ -100,12 +100,13 @@ The step is done when every part of every code chart holds.
 Run `chart.mjs render <chart.mmd>... --root <repo root> --theme clean`.
 It checks again, then writes each SVG next to its `.mmd` file.
 `clean` follows the viewer's light or dark setting, `blueprint` draws white lines on blueprint blue, and `t3` takes a T3 thread's colors.
-The SVG takes the chart's file name, so to render a second theme, copy the `.mmd` under another name first.
+The SVG takes the chart's file name, so to render a second SVG theme, copy the `.mmd` under another name first.
+The `t3` page is `<name>.html`, so it needs no copy.
 For another look, copy `themes/clean.css`, change its `--pele-*` variables as https://pele.run/theming lists them, and pass the new file to `--theme`.
 Keep Pele's default font, because Pele sizes each box for that font and a wider font can overflow it.
 
 Show each chart to the reader as a `mermaid` code block, and give the SVG path.
-On T3, also run `render` with `--theme t3`, which writes `<name>.html`, a page in the thread's own colors, and show that page with the [t3-visual skill](../t3-visual/SKILL.md).
+On T3, also run `render` with `--theme t3`, which writes `<name>.html`, a page in the thread's own colors where a chart wider than the thread scrolls sideways, and show that page with the [t3-visual skill](../t3-visual/SKILL.md).
 
 ## 8. Keep it in the repo
 

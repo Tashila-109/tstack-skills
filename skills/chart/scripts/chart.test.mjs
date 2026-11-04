@@ -298,9 +298,9 @@ test("render with the t3 theme writes a page whose colors come from the T3 threa
 	const dir = scratch();
 	assert.match(render([chart(dir, "flow.mmd", CODE)], dir, fakePele, "t3"), /wrote .*flow\.html/);
 	const page = readFileSync(join(dir, "flow.html"), "utf8");
-	assert.match(page, /^<!doctype html>\n<html><head><meta charset="utf-8"><\/head><body><svg[^>]*><style>/);
+	assert.match(page, /^<!doctype html>\n<html><head><meta charset="utf-8"><style>\.pele\{max-width:none!important\}<\/style><\/head><body><div style="overflow-x:auto"><svg[^>]*><style>/);
 	assert.match(page, /--pele-fg: var\(--foreground\)/);
-	assert.match(page, /<\/svg><\/body><\/html>\n$/);
+	assert.match(page, /<\/svg><\/div><\/body><\/html>\n$/);
 	assert.equal(existsSync(join(dir, "flow.svg")), false);
 });
 
