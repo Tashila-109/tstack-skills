@@ -7,7 +7,7 @@ The calls were measured on T3 Code (Nightly), 2026-10-05, and checked against T3
 Moving a lead with `t3_worktree_handoff` ran live on 2026-10-14.
 On 2026-10-29 these ran live on a trial project: launches with a `clientRequestId`, including a retry that returned the same thread; delegated workers and their completion wakes; a failed seat stopping for the human; worktree-isolated arena candidates; PR linking, watching and unwatching with the `pr-state` loop; and an autopilot-full coordinator that pinned its thread, launched two leads, took their `queue` reports, armed a heartbeat and deleted it by its `scheduledTaskId`, merged under its grant, and archived the leads.
 On 2026-11-01, on T3 Code 0.1.6-nightly.20261031, `html_preview` drew a chart page from `chart.mjs render --theme t3` in the thread's dark and light colors with no console errors, and `html_render` showed it.
-On 2026-11-03 a lead ran the charting playbook live on a trial project. It ran `chart.mjs check`, a verify worker reviewed the citations, the lead rendered and showed the `--theme t3` page, and a chart committed in a PR passed `stale` until a cited file changed.
+On 2026-11-03, on T3 Code 0.1.7-nightly.20261103.4119, a lead ran the charting playbook live on a trial project. It ran `chart.mjs check`, a verify worker reviewed the citations, the lead rendered and showed the `--theme t3` page, and a chart committed in a PR passed `stale` until a cited file changed.
 The surface tools, history, hold and worker cancellation follow T3's own tool definitions, and have not yet run in a live task, and neither has a heartbeat run firing.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
