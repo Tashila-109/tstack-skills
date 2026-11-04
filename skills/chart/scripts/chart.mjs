@@ -240,13 +240,16 @@ export function styled(svg, css) {
 	return `${open[0]}<style><![CDATA[\n${css}]]></style>${svg.slice(open[0].length)}`;
 }
 
+// A chart wider than the thread keeps its full size and scrolls sideways, since shrinking it to fit makes its text too small to read.
+const PAGE_HEAD = '<!doctype html>\n<html><head><meta charset="utf-8"><style>.pele{max-width:none!important}</style></head><body><div style="overflow-x:auto">';
+
 export function render(files, root, pele, theme = "clean") {
 	const css = themeCss(theme);
 	const page = theme === "t3";
 	const outputs = checkAll(files, root, pele).map(({ svg }, i) => {
 		const out = join(dirname(files[i]), `${basename(files[i], extname(files[i]))}.${page ? "html" : "svg"}`);
 		const themed = styled(svg, css);
-		return [out, page ? `<!doctype html>\n<html><head><meta charset="utf-8"></head><body>${themed}</body></html>\n` : `${themed}\n`];
+		return [out, page ? `${PAGE_HEAD}${themed}</div></body></html>\n` : `${themed}\n`];
 	});
 	const seen = new Set();
 	for (const [out] of outputs) {

@@ -81,6 +81,7 @@ Quote the spec line behind each finding, and report three kinds:
 2. Behavior the scope adds that no source asked for.
 3. Requirements that look implemented but work wrongly.
 
+In a tstack task, a finish step that comes after the review, such as opening, babysitting or merging the PR, is outside the scope, so never report it as missing.
 For a `doc` scope, the second kind includes choices the document makes that its sources left open for someone else, and the third includes contradictions of a settled decision.
 Where the grill settled something, the grill wins over any later document.
 
