@@ -125,4 +125,5 @@ After three complete rounds with an accepted Must still open, open a `question` 
 Wait for the human's answer before another repair or round 4.
 Each answered `review-<label>` decision allows three more rounds, and the next one is named `review-<label>-2`, then `review-<label>-3`.
 `tstack.mjs check` refuses a task whose aggregate names a round past what its answered decisions allow.
+It reads the round, and for `--head` the head, only from a first line in exactly that `Head <sha>, round <n>` shape.
 Record the repair series, round number, each earlier round's head and accepted Musts, and any checkpoint decision in the aggregate.

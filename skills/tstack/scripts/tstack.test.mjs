@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -369,16 +369,20 @@ test("check refuses a review past three rounds per answered checkpoint decision"
 	writeFileSync(join(task, "report.md"), REPORT);
 	mkdirSync(join(task, "evidence/reviews"));
 	mkdirSync(join(task, "decisions"));
-	writeFileSync(join(task, "evidence/reviews/m3-spec.md"), "Head abc, round 9 brief\n");
-	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head abc, round 3\n");
+	writeFileSync(join(task, "evidence/reviews/m3-spec.md"), "Head abc1234, round 9 brief\n");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Reviewed by a worker.\n\nHead abc1234, round 9\n");
+	assert.throws(() => check(home, "rounds"), /reviews\/m3\.md does not open with "Head <sha>, round <n>"/, "a round below line 1 is not missed");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "skip: nothing changed since the last review\n");
 	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
-	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head def, round 4\n");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head abc1234, round 3\n");
+	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head def5678, round 4\n");
 	assert.throws(() => check(home, "rounds"), /review m3 is at round 4, past 3: .*decisions\/review-m3\.md/);
 	writeFileSync(join(task, "decisions/review-m3.md"), "# Keep going?\n\n## Answer\n\n");
 	assert.throws(() => check(home, "rounds"), /round 4/, "an unanswered decision is no checkpoint");
 	writeFileSync(join(task, "decisions/review-m3.md"), "# Keep going?\n\n## Answer\n\nanswered\nyes, two more, 2026-10-12\n");
 	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
-	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head 123, round 7\n");
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head 1234567, round 7\n");
 	assert.throws(() => check(home, "rounds"), /past 6: .*decisions\/review-m3-2\.md/);
 	writeFileSync(join(task, "decisions/review-m3-2.md"), "## Answer\n\ngranted\ngo on, 2026-10-12\n");
 	assert.equal(check(home, "rounds"), "ok rounds: 1 required file present");
@@ -431,11 +435,19 @@ test("check holds the report's shape and a delegating step's worker results", ()
 	writeFileSync(join(task, "results/fix.md"), "changed a.js\n");
 	writeFileSync(join(task, "evidence/fix.md"), "Brief `briefs/fix.md`, result `results/fix.md`. Diff reviewed.\n");
 	assert.throws(() => check(home, "fx", 1), /cites results\/fix\.md, which has no DONE/);
-	writeFileSync(join(task, "results/fix.md"), "changed a.js\nDONE fixed\n");
-	assert.equal(check(home, "fx", 1), "ok fx: 1 required file present");
+	writeFileSync(join(task, "results/fix.md"), "changed a.js\nFAILED the worker gave up\n");
+	assert.throws(() => check(home, "fx", 1), /cites no result that ends DONE/);
+	writeFileSync(join(task, "results/fix.md"), "DONE first pass\nFAILED the rerun broke\n");
+	assert.throws(() => check(home, "fx", 1), /cites no result that ends DONE/, "the last verdict line counts");
+	writeFileSync(join(task, "briefs/fix-2.md"), "SKILLS tdd\n");
+	writeFileSync(join(task, "results/fix-2.md"), "changed a.js\nDONE fixed\n");
+	writeFileSync(join(task, "evidence/fix.md"), "Brief `briefs/fix.md`, result `results/fix.md`, then `briefs/fix-2.md`, result `results/fix-2.md`.\n");
+	assert.equal(check(home, "fx", 1), "ok fx: 1 required file present", "a retry that ends DONE is enough");
 	writeFileSync(join(task, "briefs/fix.md"), "SKILLS none\n");
+	writeFileSync(join(task, "briefs/fix-2.md"), "SKILLS none\n");
 	assert.throws(() => check(home, "fx", 1), /lists the tdd skill/);
 	writeFileSync(join(task, "briefs/fix.md"), "SKILLS tdd\n");
+	writeFileSync(join(task, "briefs/fix-2.md"), "SKILLS tdd\n");
 	writeFileSync(join(task, "report.md"), "done \u2014 shipped\n\n## Remember\n");
 	assert.throws(() => check(home, "fx"), /no ## Follow-ups heading[\s\S]*long dash/);
 	writeFileSync(join(task, "report.md"), REPORT);
@@ -483,7 +495,25 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE"), run("test", "IN_PROGRESS", null)]), now), /^BLOCKER failing-checks: lint/);
 	assert.match(prVerdict(pr({}, [run("test", "IN_PROGRESS", null)]), now), /^WAITING checks: test/);
 	assert.match(prVerdict(pr({}, [{ __typename: "StatusContext", context: "ci/legacy", state: "PENDING" }]), now), /^WAITING checks: ci\/legacy/);
-	assert.match(prVerdict(pr({ reviewThreads: { nodes: [{ isResolved: false }, { isResolved: true }] } }), now), /^BLOCKER review-threads: 1 unresolved/);
+	assert.match(
+		prVerdict(pr({ reviewThreads: { nodes: [{ id: "PRRT_a", isResolved: false, path: "a.js", line: 3 }, { id: "PRRT_b", isResolved: false, path: "b.md", line: null }, { isResolved: true }] } }), now),
+		/^BLOCKER review-threads: 2 unresolved: PRRT_a a\.js:3, PRRT_b b\.md \(head/,
+	);
+	assert.match(
+		prVerdict(pr({ reviewThreads: { nodes: [{ id: "PRRT_a", isResolved: false, path: "a.js", line: 3 }] }, commits: { nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: [{ __typename: "CheckRun", name: "ci", status: "COMPLETED", conclusion: "FAILURE" }] } } } }] } }), now),
+		/^BLOCKER failing-checks: ci; review-threads: 1 unresolved: PRRT_a a\.js:3 /,
+		"threads come first in babysit's order, so a failing check still lists them",
+	);
+	assert.match(
+		prVerdict(pr({ mergeable: "CONFLICTING", reviewThreads: { nodes: [{ id: "PRRT_a", isResolved: false, path: "a.js", line: 3 }] } }), now),
+		/^BLOCKER conflicts: merge the base branch in; review-threads: 1 unresolved: PRRT_a a\.js:3 \(head/,
+		"a threads-only pass gets the IDs without fixing the conflict",
+	);
+	assert.match(
+		prVerdict(pr({ isDraft: true, reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [{ id: "PRRT_a", isResolved: true }] } }), now),
+		/^BLOCKER draft: mark it ready; review-threads: 0 unresolved in the first 100, and more to read on GitHub \(head/,
+		"an early blocker says when threads were cut off",
+	);
 	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
 	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
 	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");
@@ -551,6 +581,12 @@ test("a granted close lets a task end with skipped delegating steps and a denied
 	assert.equal(check(home, "cl"), "ok cl: 3 required files present");
 	writeFileSync(join(task, "report.md"), "skip: closed\n");
 	assert.throws(() => check(home, "cl"), /report\.md has no ## Remember heading/, "a closed task still reports");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "evidence/reviews"));
+	writeFileSync(join(task, "evidence/reviews/final.md"), "Standards reviewer started.\nskip: closed, see decisions/close.md\n");
+	assert.equal(check(home, "cl"), "ok cl: 3 required files present", "a closed task's half-written review may carry its skip line below the start");
+	rmSync(join(task, "decisions/close.md"));
+	assert.throws(() => check(home, "cl"), /reviews\/final\.md does not open with/, "outside a close it may not");
 });
 
 test("a gate denied and granted again under its next name counts, and a closed task may skip its plan check", () => {
@@ -619,4 +655,103 @@ test("check --head holds a closed task to a commit SHA but not to proof of that 
 	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
 	assert.equal(check(home, "ch", undefined, two, dir), "ok ch: 1 required file present");
 	assert.throws(() => check(home, "ch", undefined, "nothex", dir), /--head must be a commit SHA/);
+});
+
+test("check refuses a proof table row whose verdict is failed", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "proving.md"), "1. Prove it.\n   Artifact: `evidence/verify.md`\n");
+	brief(home, "pf", { playbook: "proving", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "pf");
+	mkdirSync(join(task, "evidence/proof"));
+	writeFileSync(join(task, "evidence/proof/run.txt"), "ok\n");
+	const table = (verdict) => `| Claim | Action | Evidence | Verdict |\n| --- | --- | --- | --- |\n| Saves the note | Save it | \`evidence/proof/run.txt\` | ${verdict} |\n`;
+	writeFileSync(join(task, "evidence/verify.md"), table("failed"));
+	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves the note/);
+	writeFileSync(join(task, "evidence/verify.md"), "Claim | Action | Evidence | Verdict\n--- | --- | --- | ---\nSaves the note | Save it | `evidence/proof/run.txt` | failed\n");
+	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves the note/, "a row without outer pipes counts");
+	writeFileSync(join(task, "evidence/verify.md"), `Status options: \`passed\` | \`failed\`\n\n${table("passed")}`);
+	assert.equal(check(home, "pf", 1), "ok pf: 1 required file present", "a prose line with pipes is no claim");
+	writeFileSync(join(task, "evidence/verify.md"), "| Claim | Evidence | Verdict | Notes |\n| --- | --- | --- | --- |\n| Saves the note | `evidence/proof/run.txt` | failed | retry later |\n");
+	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves the note/, "the Verdict column counts, not the last one");
+	writeFileSync(join(task, "evidence/verify.md"), "| Claim | Evidence | Verdict |\n| - | - | - |\n| Saves A \\| B | `evidence/proof/run.txt` | failed |\n");
+	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves A \\\| B/, "a one-hyphen separator and an escaped pipe both count");
+	for (const verdict of ["**failed**", "`failed`", "_Failed_"]) {
+		writeFileSync(join(task, "evidence/verify.md"), table(verdict));
+		assert.throws(() => check(home, "pf", 1), /has a failed claim/, `${verdict} counts as failed`);
+	}
+	writeFileSync(join(task, "evidence/verify.md"), `${table("failed")}\nskip: no screenshot\n`);
+	assert.throws(() => check(home, "pf", 1), /has a failed claim/, "a skip line does not hide a failed row");
+	writeFileSync(join(task, "evidence/verify.md"), table("passed"));
+	assert.equal(check(home, "pf", 1), "ok pf: 1 required file present");
+});
+
+test("check --head on pr delivery wants pr-state's READY or MERGED line for the head, and reviews name it on line 1", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+	writeFileSync(join(dir, "a.txt"), "1\n");
+	git("add", "a.txt");
+	git("commit", "-q", "-m", "one");
+	const one = git("rev-parse", "HEAD");
+	writeFileSync(join(dir, "a.txt"), "2\n");
+	git("commit", "-q", "-am", "two");
+	const two = git("rev-parse", "HEAD");
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "prh", { playbook: "plain", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
+	const task = join(home, "tasks", "prh");
+	writeFileSync(join(task, "report.md"), REPORT);
+	writeFileSync(join(task, "evidence/babysit.md"), "drive mode, all green\n");
+	assert.throws(() => check(home, "prh", undefined, two, dir), /babysit\.md.s latest pr-state line for \w+ is missing/);
+	writeFileSync(join(task, "evidence/babysit.md"), `READY (head ${one.slice(0, 12)})\n`);
+	assert.throws(() => check(home, "prh", undefined, two, dir), /is missing, not READY or MERGED/, "an older head's READY does not count");
+	writeFileSync(join(task, "evidence/babysit.md"), `WAITING checks: ci (head ${two.slice(0, 12)})\nskip: no screenshot\n`);
+	assert.throws(() => check(home, "prh", undefined, two, dir), /latest pr-state line for \w+ is WAITING/, "a stray skip line waives nothing");
+	writeFileSync(join(task, "evidence/babysit.md"), `READY (head ${two.slice(0, 12)})\nBLOCKER review-threads: 1 unresolved (head ${two.slice(0, 12)})\n`);
+	assert.throws(() => check(home, "prh", undefined, two, dir), /is BLOCKER, not READY or MERGED/, "the newest verdict for the head counts");
+	writeFileSync(join(task, "evidence/babysit.md"), `WAITING checks: ci (head ${two.slice(0, 12)})\nREADY (head ${two.slice(0, 12)})\n`);
+	assert.equal(check(home, "prh", undefined, two, dir), "ok prh: 2 required files present");
+	mkdirSync(join(task, "evidence/reviews"));
+	writeFileSync(join(task, "evidence/reviews/final.md"), `Base ${two}\n\nHead ${one.slice(0, 7)}, round 1\n`);
+	assert.throws(() => check(home, "prh", undefined, two, dir), /final\.md names no commit[\s\S]*final\.md does not open with "Head <sha>, round <n>"/);
+	writeFileSync(join(task, "evidence/reviews/final.md"), `Reviewed ${one}\n\nskip: the docs axis, nothing to read\n`);
+	assert.throws(() => check(home, "prh", undefined, two, dir), /final\.md names no commit[\s\S]*final\.md does not open/, "a skip note inside a review is no skipped review");
+	writeFileSync(join(task, "evidence/reviews/final.md"), `Head ${two.slice(0, 7)}, round 1\n\nBase ${one}\n`);
+	assert.equal(check(home, "prh", undefined, two, dir), "ok prh: 2 required files present");
+});
+
+test("check refuses a committed document that changed after the commit its grant names", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+	mkdirSync(join(dir, "docs/feat"), { recursive: true });
+	writeFileSync(join(dir, "docs/feat/design.md"), "v1\n");
+	git("add", "docs");
+	git("commit", "-q", "-m", "design");
+	const granted = git("rev-parse", "HEAD");
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "cd", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "cd");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), `# Approve?\n\nSubject: \`docs/feat/design.md\` at ${granted.slice(0, 12)}\n\n## Answer\n\ngranted\nyes, 2026-11-12\n`);
+	assert.equal(check(home, "cd", undefined, undefined, dir), "ok cd: 1 required file present");
+	writeFileSync(join(dir, "docs/feat/design.md"), "v2\n");
+	assert.throws(() => check(home, "cd", undefined, undefined, dir), /docs\/feat\/design\.md changed after decisions\/design\.md granted it/, "an uncommitted edit counts");
+	git("commit", "-q", "-am", "rewrite");
+	assert.throws(() => check(home, "cd", undefined, undefined, dir), /changed after decisions\/design\.md granted it/, "so does a committed one");
+	writeFileSync(join(dir, "docs/feat/[draft].md"), "v1\n");
+	writeFileSync(join(dir, "docs/feat/d.md"), "v1\n");
+	git("add", "docs");
+	git("commit", "-q", "-m", "draft");
+	writeFileSync(join(task, "decisions/design.md"), `Subject: \`docs/feat/[draft].md\` at ${git("rev-parse", "HEAD")}\n\n## Answer\n\ngranted\nyes\n`);
+	writeFileSync(join(dir, "docs/feat/d.md"), "v2\n");
+	assert.equal(check(home, "cd", undefined, undefined, dir), "ok cd: 1 required file present", "a glob character in the path matches only that file");
+	writeFileSync(join(task, "decisions/design.md"), "Subject: `docs/feat/design.md` at HEAD\n\n## Answer\n\ngranted\nyes\n");
+	assert.throws(() => check(home, "cd", undefined, undefined, dir), /names its document at HEAD: write the commit SHA/);
+	writeFileSync(join(task, "decisions/design.md"), `Subject: \`docs/feat/design.md\` at 0000000\n\n## Answer\n\ngranted\nyes\n`);
+	assert.throws(() => check(home, "cd", undefined, undefined, dir), /at 0000000, which this checkout does not hold/);
+});
+
+test("every command refuses a flag it does not take", () => {
+	assert.throws(() => main(["brief", "t1", "--playbook", "plain", "--goal", "g", "--finish", "f", "--deliver", "pr"]), /brief takes no --deliver; its flags are --playbook, --goal, --finish, --kind, --delivery/);
+	assert.throws(() => main(["check", "t1", "--trough", "1"]), /check takes no --trough/);
+	assert.throws(() => main(["home", "--verbose", "1"]), /home takes no --verbose; its flags are none/);
 });

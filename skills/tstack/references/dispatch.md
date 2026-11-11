@@ -129,6 +129,7 @@ Do not pass on what the worker said.
 A second opinion is the same brief on a different model, and agreement is high signal.
 
 `tstack.mjs check` refuses a task while a brief under `briefs/` has no result with a verdict line.
+It also refuses a delegating step, `evidence/dispatch.md` or `evidence/fix.md`, until at least one result it cites ends `DONE`.
 A worker you cancel, or a brief you never sent, still gets a result: `FAILED <why it never finished>`.
 
 Give new work to a fresh worker with consolidated scope: the original brief, every later direction, and the previous result.

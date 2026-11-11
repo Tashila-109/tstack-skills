@@ -4,19 +4,19 @@
 
 1. **Verify every PR independently.** Delegate one worker per PR on the `verify` seat, not batched, each exercising the real surface with the project's verification skill against the PR's parent versus its head. Each writes its proof in its result as [proof](../references/proof.md) says, returns `PASS`, `PASS+NOTES` or `FAIL`, and posts that verdict on its own PR with `gh pr comment`. Safe means a verdict from an agent that did not write the code. CI green is not a verdict, and an approving bot review is not a verdict.
 2. **Find the contiguous verified run rooted at the bottom.** Walk up from the lowest unmerged PR and stop at the first one without a passing verdict, where both `PASS` and `PASS+NOTES` pass. A verified PR sitting above an unverified one is not landable. Name the ceiling as a PR number and say what breaks the chain.
-3. **Record what each verdict describes.** For each verified PR, record the verdict's head SHA, its base SHA, and the stable `git patch-id` of its base-to-head diff: `git diff <base>...<head> | git patch-id --stable`. A later rebase or base change can invalidate a verdict without touching a check, and Landing compares against this record before each PR lands.
+3. **Record what each verdict describes.** For each verified PR, record the verdict's head SHA, its base SHA, and the verbatim `git patch-id` of its base-to-head diff: `git diff <base>...<head> | git patch-id --verbatim`, which keeps whitespace, so a change inside a string still counts. A later rebase or base change can invalidate a verdict without touching a check, and Landing compares against this record before each PR lands.
    Write `evidence/verdicts.md`: one row per PR, bottom to top, with its number and URL, verdict, verifier, head SHA, base SHA and patch-id, then the ceiling.
    Artifact: `evidence/verdicts.md`
 4. **Report the run.** Tell the human the verified run, the ceiling, what breaks the chain, and what verifying the next PR would take, and ask whether to land the run.
 
 ## Landing
 
-Land only on the human's explicit word to land these PRs, or under an autopilot grant that covers them, and only the run in the task's `evidence/verdicts.md`.
+Land only on the human's explicit word to land these PRs, or under an autopilot grant that covers them, and only the run in the task's `evidence/verdicts.md`, or under an autopilot, the audits recorded in its queue file.
 Land one PR at a time, bottom first:
 
 - **Move a child onto the default branch once its parent merges.** If the bottom PR targets its parent branch and the parent has merged, retarget it with `gh pr edit <pr> --base <default>`, then bring the merge result in with `gh pr update-branch <pr>`, which merges and never force-pushes, so the PR holds only its own patch.
   Apart from this move and the update the merge-result test below calls for, nobody changes a branch or base while the run lands, because a merge lands whatever its branch and base hold at that moment, verdict or not.
-- **Re-check the verdict still describes the patch.** Fetch, then compare the PR's current `git diff <base>...<head> | git patch-id --stable` with the recorded one. When they differ, stop: the verdict no longer covers the patch, so brief a new Shipping task for the rest.
+- **Re-check the verdict still describes the patch.** Fetch, then compare the PR's current `git diff <base>...<head> | git patch-id --verbatim` with the recorded one. When they differ, stop: the verdict no longer covers the patch, so brief a new Shipping task for the rest.
 - **Test the merge result, not every move of the default branch.** Fetch, and ask whether the default branch's changes since the PR's base can affect the patch, because updating for every move never ends.
   Bring the default branch in with `gh pr update-branch <pr>`, re-check the patch and wait for its checks when the code that would land was never tested together: a conflict, a file both sides changed, or a change to which checks run for the PR.
   A lockfile both sides changed needs no update when a frozen install passes on a local merge of the two, because that install tests the lockfile that would land.

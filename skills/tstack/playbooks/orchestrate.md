@@ -17,12 +17,13 @@ Open a todo list for the steps below. Keep skipped steps with a reason.
    It covers the problem, alternatives, choice, boundaries and acceptance criteria.
    No implementation yet.
    Review it as [Multi-phase plan](multi-phase-plan.md) step 2 says, then commit it or record its hash.
+   Artifact: `evidence/reviews/design.md`
 3. **Design gate.** Open the `design` gate, a `design-approval` decision on `design.md` at its commit or hash, and wait for the human's answer.
    Reversible preparation cannot bypass this gate.
    Artifact: `decisions/design.md`
 4. **Spec.** Delegate a worker to read the approved design and write `spec.md` beside it. Keep ordered phases, owned paths, dependencies, data contracts and verification in this one file. Use the skeleton and the checker from [Multi-phase plan](multi-phase-plan.md), and save the checker's clean output to `evidence/check-plan.md`. No tickets, per-phase document tree or separate orchestration database.
    Review it as [Multi-phase plan](multi-phase-plan.md) step 3 says, then commit it or record its hash.
-   Artifact: `evidence/check-plan.md`
+   Artifact: `evidence/reviews/spec.md`, `evidence/check-plan.md`
 5. **Spec and implement gates.** Read the spec, open the `spec` gate, a `spec-approval` decision on `spec.md` at its commit or hash, and wait for the human's answer.
    Then open the `implement` gate, an `implement-authorization` decision on the granted spec, and wait for its answer before any pilot or implementation.
    Artifact: `decisions/spec.md`, `decisions/implement.md`
