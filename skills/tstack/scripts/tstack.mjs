@@ -262,12 +262,12 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 function latestDecision(taskDir, path, text) {
 	const name = path.match(/^decisions\/([a-z0-9][a-z0-9-]*?)\.md$/)?.[1];
 	const dir = join(taskDir, "decisions");
-	if (!name || !existsSync(dir)) return text;
+	if (!name || !existsSync(dir) || !text.trim()) return text;
 	const later = readdirSync(dir)
 		.map((f) => ({ f, n: Number(f.match(new RegExp(`^${name}-(\\d+)\\.md$`))?.[1] ?? 0) }))
 		.filter((d) => d.n > 1)
 		.sort((a, b) => b.n - a.n)[0];
-	return later ? readIfFile(join(dir, later.f)) : text;
+	return later ? readIfFile(insideTask(taskDir, `decisions/${later.f}`)) : text;
 }
 
 function proofGaps(taskDir, text) {
@@ -378,10 +378,11 @@ function staleGaps(taskDir, closed) {
 	}
 	const checked = join(taskDir, "evidence", "check-plan.md");
 	const spec = existsSync(checked) ? readFileSync(checked, "utf8").match(CHECKED_SPEC) : null;
-	if (spec && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
-		gaps.push(`evidence/check-plan.md checked an older ${spec[1]}: run check-plan.mjs again and save its output`);
 	const run = readIfFile(checked);
-	if (existsSync(checked) && !(closed && SKIPPED.test(run)) && !/^\d+ phase sections?, 0 problems$/m.test(run))
+	const skippedRun = closed && SKIPPED.test(run);
+	if (spec && !skippedRun && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
+		gaps.push(`evidence/check-plan.md checked an older ${spec[1]}: run check-plan.mjs again and save its output`);
+	if (existsSync(checked) && !skippedRun && !/^\d+ phase sections?, 0 problems$/m.test(run))
 		gaps.push("evidence/check-plan.md is not a clean check-plan.mjs run: fix every problem and save the output that ends in 0 problems");
 	return gaps;
 }
