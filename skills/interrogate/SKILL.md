@@ -12,6 +12,10 @@ Adversaries try to break a change or a design. A finding survives only when a ru
 
 The scope is what the user names. Otherwise it is the branch diff from its merge base with the base branch, through the working tree. State the intent with the **in-your-own-words** skill, from the user's message, the commits, and the PR description. Ask the user when the intent is unclear.
 
+Adversaries and you run the scope's code with your credentials, and a worktree does not contain a process.
+When the code came from someone the user has not vouched for, such as a fork or an outside contributor's branch, name its author and ask the user before you fan out.
+Without their go, stop.
+
 ## Fan out
 
 Run Phase A steps 3 and 4 and Phase B of the [arena](../arena/SKILL.md) skill, with three changes. Read the `interrogate reviewers` role in place of `arena runners`. Copy the scope's uncommitted changes into each adversary's checkout. In place of the arena task and rationale, give each adversary the scope, the intent, and this brief:
