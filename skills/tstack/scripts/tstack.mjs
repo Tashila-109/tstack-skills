@@ -30,6 +30,7 @@ const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
+const ANSWERED_OR_DENIED = /^##\s+Answer\s*\n+\s*(granted|answered|denied)\b/im;
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
@@ -237,9 +238,12 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		wanted.push({ step: "final report", path: "report.md" });
 	}
 	const problems = [];
+	// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines.
+	const closed = GRANTED.test(prose(readIfFile(join(taskDir, "decisions", "close.md"))));
 	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
+		if (closed && path !== "report.md" && text.trim() && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))))) continue;
 		if (path.startsWith("decisions/") ? !GRANTED.test(prose(text)) : !text.trim())
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));

@@ -14,7 +14,7 @@ Never change the original PR or its branch, and never merge or close it, without
    Write the source's URL, head, base, goal, open findings and contributors to `evidence/inherited.md`.
    Artifact: `evidence/inherited.md`
 2. Check that the goal still belongs on the current base, as steps 2 and 3 of [Modernize](modernize.md) say, with `evidence/inherited.md` in place of its `evidence/intent.md`.
-   On REWORK or CLOSE, open a decision and stop until the human answers.
+   On REWORK, open a decision, and on CLOSE a `close` decision as [Close a task](../references/decisions.md#close-a-task) says, and stop until the human answers.
    Artifact: `evidence/drift.md`, `evidence/disposition.md`
 3. Import the original commits.
    Move your task branch to the source head as Modernize step 4 says, so its commits keep their authors, then merge the fetched base into it.

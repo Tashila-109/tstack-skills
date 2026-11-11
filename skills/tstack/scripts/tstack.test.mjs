@@ -534,3 +534,21 @@ test("every skill's name matches its folder, so each one installs and invokes by
 		assert.equal(name, dir);
 	}
 });
+
+test("a granted close lets a task end with skipped delegating steps and a denied gate", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "gated-fix.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n2. Fix it.\n   Artifact: `evidence/fix.md`\n");
+	brief(home, "cl", { playbook: "gated-fix", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "cl");
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\n## Answer\n\ndenied\nnot this way, 2026-11-12\n");
+	writeFileSync(join(task, "evidence/fix.md"), "skip: closed, see decisions/close.md\n");
+	writeFileSync(join(task, "report.md"), REPORT);
+	assert.throws(() => check(home, "cl"), /decisions\/design\.md with a granted answer[\s\S]*a skip: line does not excuse it/);
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\nKind: close\n");
+	assert.throws(() => check(home, "cl"), /a skip: line does not excuse it/, "an unanswered close is no close");
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\nKind: close\n\n## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	assert.equal(check(home, "cl"), "ok cl: 3 required files present");
+	writeFileSync(join(task, "report.md"), "skip: closed\n");
+	assert.throws(() => check(home, "cl"), /report\.md has no ## Remember heading/, "a closed task still reports");
+});

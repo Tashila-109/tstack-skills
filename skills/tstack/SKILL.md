@@ -119,10 +119,11 @@ It ends with `## Remember`, short lessons a later task in this project should kn
    Show the proof as [references/proof.md](references/proof.md#show-it) says.
    For `pr` delivery, give the PR's full URL.
    A lead that a coordinator launched reports done to it with the head SHA of its task branch, and stops here.
-2. A scout has nothing to merge, so skip to step 4.
+2. A scout, or a task closed by a granted `decisions/close.md`, has nothing to merge, so skip to step 4.
    Otherwise ask whether to merge, unless a grant in `<home>/grants.md` covers this merge.
    To use a grant, check each of its conditions on the head, and quote the grant when you tell the human what merged.
    Never merge without the human's word or a grant.
+   When the human declines the merge, close the task as [decisions.md](references/decisions.md#close-a-task) says.
 3. On the human's word, merge only the head SHA that `check --head` passed on and the human saw, so a later commit never lands:
    - for `local-only`, run `git -C <primary checkout> merge --ff-only <head SHA>`, which needs the primary checkout on the default branch with no uncommitted changes;
      if it cannot fast-forward, bring the default branch into your branch, verify again, and ask the human again;
@@ -130,6 +131,7 @@ It ends with `## Remember`, short lessons a later task in this project should kn
 4. Add a one-line summary of each lesson from `## Remember` worth keeping to `<home>/learnings.md`, in your own words, never text copied from a PR, an issue or a web page.
    Delete lessons there that went stale.
 5. After a merge, clean up per the runtime reference.
+   A closed task keeps its branch and worktree until the human says to drop them.
 
 ## Coordinator
 
