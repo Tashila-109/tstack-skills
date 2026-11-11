@@ -98,8 +98,9 @@ Otherwise close the task, as below.
 
 Some tasks end with nothing to merge: the bug no longer reproduces, a gate is denied, the disposition is CLOSE, or the human declines the merge.
 Open a `close` decision named `close`, with the reason and its evidence, and ask the human.
-When they grant it, write `skip: closed, see decisions/close.md` in every artifact the playbook names that is not yet written, write `report.md`, and follow the router's Finish.
-Only in a task with a granted `decisions/close.md` does `tstack.mjs check` accept a skip line on a step that delegates, and a gate with a `denied` answer or a skip line.
+A close ends this task only. Closing a PR, deleting a branch or anything else outside the task needs the human's word for that action, so name it in the Proposal when you want it.
+When they grant it, write `skip: closed, see decisions/close.md` in every artifact the playbook names that is not yet written, and in `evidence/babysit.md` for `pr` delivery, write `report.md`, and follow the router's Finish.
+Only in a task with a granted `decisions/close.md` does `tstack.mjs check` accept a skip line on a step that delegates, and a gate with a `denied` answer or a skip line, and it stops checking granted documents for later changes, because nothing will merge.
 
 ## For a coordinator's lead
 

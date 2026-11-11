@@ -371,7 +371,7 @@ function staleGaps(taskDir, closed) {
 		if (subject && GRANTED.test(prose(text)) && (latest.get(family)?.n ?? 0) < Number(n))
 			latest.set(family, { n: Number(n), name, path: subject[1], hash: subject[2] });
 	}
-	for (const { name, path, hash } of latest.values()) {
+	for (const { name, path, hash } of closed ? [] : latest.values()) {
 		const full = isAbsolute(path) ? path : [resolve(taskDir, path), resolve(taskDir, "..", "..", "..", path)].find((p) => existsSync(p));
 		if (!full || !existsSync(full)) gaps.push(`decisions/${name} grants ${path}, which is missing`);
 		else if (sha256(full) !== hash) gaps.push(`${path} changed after decisions/${name} granted it: open the next decision as references/decisions.md says`);

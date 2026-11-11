@@ -571,4 +571,9 @@ test("a gate denied and granted again under its next name counts, and a closed t
 	assert.throws(() => check(home, "rg"), /not a clean check-plan\.mjs run/);
 	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
 	assert.equal(check(home, "rg"), "ok rg: 3 required files present");
+	writeFileSync(join(task, "spec.md"), "v2\n");
+	writeFileSync(join(task, "decisions/spec.md"), `Subject: \`spec.md\` ${"0".repeat(64)}\n\n## Answer\n\ngranted\nyes\n`);
+	assert.equal(check(home, "rg"), "ok rg: 3 required files present", "a closed task does not check granted documents for changes");
+	rmSync(join(task, "decisions/close.md"));
+	assert.throws(() => check(home, "rg"), /spec\.md changed after decisions\/spec\.md granted it/);
 });
