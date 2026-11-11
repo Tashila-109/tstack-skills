@@ -133,3 +133,9 @@ A worker you cancel, or a brief you never sent, still gets a result: `FAILED <wh
 
 Give new work to a fresh worker with consolidated scope: the original brief, every later direction, and the previous result.
 Continue an existing worker only when the work needs state that worker alone holds, such as uncommitted changes or a process it still runs.
+
+Judge a worker that seems stuck by its side effects, such as files it wrote, commits or its result file, not by its status text.
+Never message a worker only to check on it.
+Stop a worker that stalls or loops, and retry by cause: a smaller scope after a context limit, and the same brief after a dropped connection.
+A seat that fails follows [Seats](#seats).
+After two retries, drop the unit and replan around it, and say so in your report.

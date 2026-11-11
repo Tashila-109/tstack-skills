@@ -40,9 +40,11 @@ Use `swarm` for coverage, and `arena` for picking the best of several attempts a
 
 ## Break it with interrogate
 
-`interrogate` sends the same diff, intent and rubric to reviewers on your `interrogate reviewers` seats.
-A finding two models raise independently is strong signal.
-The lead sorts every finding into act on, consider, noted and dismissed, with a reason for each dismissal, and applies nothing automatically.
+`interrogate` gives the change and its intent to adversaries on your `interrogate reviewers` seats, and each tries to break it with a run against the real code.
+Adversaries find different failures.
+A finding survives only when rerunning its command shows a failure that breaks the intent.
+The report lists every verified finding with the adversaries that found it, then what each adversary dropped and why, and applies nothing.
+Read the Dropped list too, because you can override the verdict.
 Feature runs it when the design is contested.
 
 ## Prototype instead of debating
@@ -65,8 +67,8 @@ Pair `architect` with prototypes, and keep a review gate:
 $tstack we need rate limiting for external webhooks. Architect it first, and answer open questions with prototypes. Let me review before proceeding.
 ```
 
-Do not spend reviewers on an abstract plan.
-`interrogate` belongs on a diff, because reviewers of a plan with no code behind it invent risks that never happen.
+Do not spend adversaries on an abstract plan.
+`interrogate` drops every finding a run does not prove, so a plan with no code behind it gives adversaries little to break.
 Let prototypes settle the questions, then review what got built.
 
 When several writers build competing options at once, give parallel writers their own checkout.

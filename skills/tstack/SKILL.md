@@ -86,7 +86,9 @@ These hold for every role, whatever a playbook says.
    A scout runs in any checkout.
    A ship task runs in its own worktree, so when `git rev-parse --git-dir` and `git rev-parse --git-common-dir` print the same path, you are in the primary checkout.
    Then move the task out of the primary checkout as the runtime reference says: on T3 this thread moves into the task's worktree, on Herdr a new lead starts there, and on any other harness the human starts a new session there.
-9. Tell the human in one line which playbook runs the task, its finish, and its delivery, then follow [Lead](#lead).
+9. Tell the human, in your own words, their goal, the problem it solves, and for a ship task the smallest change you expect to meet it.
+   Do not wait for confirmation, but if the evidence rules out the change the human asked for, show it and stop.
+   Then say in one line which playbook runs the task, its finish, and its delivery, and follow [Lead](#lead).
 
 ## Lead
 
@@ -192,7 +194,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 - **Fix Root Causes** (**principle-fix-root-causes**). Debugging. Trace each symptom back to the first place the system went wrong and fix it there. A guard is a fix only when the state it handles is legitimate.
 - **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
 - **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, or keeping a test. Assert what the code's users can observe, so the test fails when that behavior breaks and keeps passing when only the internals change.
-- **Explain the Number** (**principle-explain-the-number**). Before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
+- **Explain the Number** (**principle-explain-the-number**). Before you measure, and before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
 
 **Delegation**
 
@@ -280,7 +282,7 @@ Take the first row that fits, because rows run from the most specific request to
 | Driving a PR or a stack to merge-ready: conflicts, review threads, CI. | `babysit` | Adapted |
 | Verifying a green stack and landing the verified run. | `shipping` | Adapted |
 | A queue of independent PRs to build, verify and merge under one grant from the human. | `autopilot-full` | Coordinator's program |
-| A queue of changes to build and verify as one stack the human lands. | `autopilot-stack` | Coordinator's program |
+| A queue of changes to build and verify as PRs the human lands ("autopilot, don't merge"). | `autopilot-stack` | Coordinator's program |
 | A request no row above fits. | `figure-it-out` | Adapted |
 
 Each playbook is `playbooks/<name>.md` beside this file.

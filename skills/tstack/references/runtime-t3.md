@@ -51,7 +51,7 @@ Without it, ask the human to open a thread in New worktree mode and send the lau
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime t3`.
 2. Read the base branch: the primary checkout's current branch, which must be the default branch with no uncommitted changes.
-   An autopilot-stack link uses the previous link's task branch instead.
+   An autopilot-stack item that builds on another item uses that item's task branch instead.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": false }`;
@@ -94,7 +94,7 @@ Send with `t3_thread_send`: `{ "threadId": "<the other lead's thread>", "message
    - `title`: `<id> <name>`
    - `role`: the closest of `implementation`, `research`, `review`, `design`, `test` or `general`
    - `mode`: `async`
-   - `clientRequestId`: `<id>-<name>-<round>`, where round 1 is the first brief and each fix round adds one; keep it stable across retries of that round, because T3 answers a repeated key with the earlier task
+   - `clientRequestId`: `<id>-<name>-<round>`, where round 1 is the first brief and each fix round, or restart of a worker you stopped, adds one; keep it stable when you resend the same request, because T3 answers a repeated key with the earlier task
 4. When every independent worker is launched, end your turn.
 
 ### collect

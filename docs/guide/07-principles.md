@@ -58,7 +58,7 @@ The verification principles define what counts as proof:
 - **Fix Root Causes**: fix where the system first went wrong; a guard is a fix only for a legitimate state.
 - **Sequence Work into Verifiable Units**: end each small unit in a check before starting the next.
 - **Test Behavior, Not Implementation**: assert what the code's users can observe, so the test survives a change to the internals.
-- **Explain the Number**: find what limits a measured number before trusting it.
+- **Explain the Number**: name the result that would change a decision before you measure, and find what limits a measured number before trusting it.
   `benchmark-checklist` turns it into seven questions you answer from real runs.
 
 The delegation principles keep parallel work sane:

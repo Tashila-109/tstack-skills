@@ -34,7 +34,7 @@ A lead uses this to move a ship task out of the primary checkout, a coordinator 
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime herdr`.
 2. From the primary checkout, which must be on the default branch with no uncommitted changes, run `git worktree add ~/.tstack/worktrees/<project>/<id> -b task/<id>`, where `<project>` is the primary checkout's directory name.
-   An autopilot-stack link branches from the previous link's task branch instead: add that branch name as the last argument.
+   An autopilot-stack item that builds on another item branches from that item's task branch instead: add that branch name as the last argument.
    If the primary checkout has a `skills-lock.json`, the skills are installed per project, so run `tstack.mjs link-skills <worktree>` too.
    For a handoff, skip this step: the worktree exists, and the new agent takes the next free name, such as `<id>-lead-2`.
 3. `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <id> --no-focus`, and keep `.result.tab.tab_id` and `.result.root_pane.pane_id`.

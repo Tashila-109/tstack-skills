@@ -4,7 +4,7 @@
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>] [--head <sha>]
-//   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--cross <model>]
+//   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--cross <model> [--avoid <model>,...]]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
 //   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
 //   node tstack.mjs exclude [--project-skills]
@@ -424,16 +424,23 @@ function family(model) {
 	return model.split("/").pop().split("-")[0].toLowerCase();
 }
 
-export function seat(models, role, runtime, cross) {
+function modelId(model) {
+	return model.split("/").pop().toLowerCase();
+}
+
+export function seat(models, role, runtime, cross, avoid) {
 	if (!["t3", "herdr", "standalone"].includes(runtime)) throw new Usage(`--runtime must be t3, herdr or standalone: ${runtime}`);
 	const key = role.trim().toLowerCase();
 	const value = models.get(key) ?? (key.startsWith("lead ") ? models.get("lead") : undefined);
 	if (!value) throw new Refusal(`no line for role "${role}" in the models file; run tstack-setup to write it`);
 	let seats = value.split(",").map((s) => parseSeat(s.trim()));
+	if (avoid !== undefined && cross === undefined) throw new Usage("--avoid needs --cross");
 	if (cross !== undefined) {
-		const other = seats.find((s) => !s.inherit && family(s.model) !== family(cross));
-		if (!other) throw new Refusal(`no "${role}" seat outside the ${family(cross)} family; add one to that line`);
-		seats = [other];
+		const others = seats.filter((s) => !s.inherit && family(s.model) !== family(cross));
+		if (!others.length) throw new Refusal(`no "${role}" seat outside the ${family(cross)} family; add one to that line`);
+		const ran = (avoid ?? "").split(",").map((m) => m.trim()).filter(Boolean).map(modelId);
+		const count = (s) => ran.filter((m) => m === modelId(s.model)).length;
+		seats = [others.reduce((best, s) => (count(s) < count(best) ? s : best))];
 	}
 	return seats.map((parsed) => {
 		if (parsed.inherit) return parsed;
@@ -662,7 +669,7 @@ export function main(argv) {
 		}
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");
-			return seat(loadModels(taskHome()), f._.join(" "), f.runtime, f.cross)
+			return seat(loadModels(taskHome()), f._.join(" "), f.runtime, f.cross, f.avoid)
 				.map((s) => JSON.stringify(s))
 				.join("\n");
 		case "check-seats": {
