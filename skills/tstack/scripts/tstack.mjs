@@ -263,18 +263,22 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 function proofGaps(taskDir, text) {
 	// A table row may drop its outer pipes, so split on them and drop the empty edge cells.
 	// Only rows below a table's separator line are claims, so a prose line with pipes is not one.
-	const rows = [];
-	let inTable = false;
+	// The verdict is the column headed Verdict, or the last column when no header says so.
+	const plain = (cell) => cell.replace(/[*_`~]/g, "").trim().toLowerCase();
+	const failed = [];
+	let header = [];
+	let verdict = -1;
 	for (const line of prose(text).split("\n")) {
 		const cells = line.split("|").map((cell) => cell.trim());
 		const row = cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined);
-		if (row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell))) inTable = true;
-		else if (inTable && row.length > 1) rows.push(row);
-		else inTable = false;
+		if (row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell))) {
+			const named = header.map(plain).indexOf("verdict");
+			verdict = named >= 0 ? named : row.length - 1;
+		} else if (verdict >= 0 && row.length > 1) {
+			if (plain(row[verdict] ?? "") === "failed") failed.push(`has a failed claim: ${row[0]}: repair it and prove it again, or ask the human`);
+		} else verdict = -1;
+		header = row;
 	}
-	const failed = rows
-		.filter((row) => row.at(-1).replace(/[*_`~]/g, "").trim().toLowerCase() === "failed")
-		.map((row) => `has a failed claim: ${row[0]}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
 	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
