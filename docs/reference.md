@@ -108,7 +108,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | `how explorer`, `how explainer` | the how skill |
 | `why investigators`, `why synthesizer` | the why skill |
 | `architect runners` | the architect skill |
-| `arena runners`, `arena cross-judge pool` | the arena skill, whose one judge is the first pool seat outside the caller's model family, so order the pool by preference |
+| `arena runners`, `arena cross-judge pool` | the arena skill, whose one judge comes from the pool in order and never from the caller's model family, as its Phase C says |
 | `interrogate reviewers` | the interrogate skill, and thermo-review, which takes the first seat and the first seat of another family |
 | `swarm workers` | the swarm skill |
 | `reflect tooling`, `reflect judgment`, `reflect divergent`, `reflect synthesizer` | the reflect skill |
