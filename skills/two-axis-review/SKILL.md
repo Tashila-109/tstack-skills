@@ -83,7 +83,7 @@ Freeze again and rerun both axes.
 
 Write `tasks/<id>/evidence/reviews/<label>.md` with:
 
-- a first line naming the reviewed head and the round, exactly as `Head 1a2b3c4, round 2`, which `tstack.mjs check` reads for the round cap and for `--head`;
+- a first line naming the reviewed head and the round, such as `Head 1a2b3c4, round 2`;
 - the scope, base, and each reviewer's name, seat and result path;
 - `## Standards` and `## Spec`, each report verbatim or lightly cleaned;
 - one closing line with each axis's verdict, its finding counts by severity, and the worst finding within that axis.
@@ -125,4 +125,5 @@ After three complete rounds with an accepted Must still open, open a `question` 
 Wait for the human's answer before another repair or round 4.
 Each answered `review-<label>` decision allows three more rounds, and the next one is named `review-<label>-2`, then `review-<label>-3`.
 `tstack.mjs check` refuses a task whose aggregate names a round past what its answered decisions allow.
+It reads the round, and for `--head` the head, only from a first line in exactly that `Head <sha>, round <n>` shape.
 Record the repair series, round number, each earlier round's head and accepted Musts, and any checkpoint decision in the aggregate.

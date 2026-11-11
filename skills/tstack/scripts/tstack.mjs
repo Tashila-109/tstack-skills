@@ -406,7 +406,7 @@ function committedGaps(cwd, name, path, commit) {
 		return [`decisions/${name} grants ${path} at ${commit}, which this checkout does not hold: run check from the task's worktree`];
 	}
 	try {
-		git(["diff", "--quiet", commit, "--", `:(top)${path}`]);
+		git(["diff", "--quiet", commit, "--", `:(top,literal)${path}`]);
 		return [];
 	} catch {
 		return [`${path} changed after decisions/${name} granted it at ${commit}: open the next decision as references/decisions.md says`];
