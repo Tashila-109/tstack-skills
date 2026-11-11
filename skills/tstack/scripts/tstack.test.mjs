@@ -557,6 +557,8 @@ test("check refuses a proof table row whose verdict is failed", () => {
 	const table = (verdict) => `| Claim | Action | Evidence | Verdict |\n| --- | --- | --- | --- |\n| Saves the note | Save it | \`evidence/proof/run.txt\` | ${verdict} |\n`;
 	writeFileSync(join(task, "evidence/verify.md"), table("failed"));
 	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves the note/);
+	writeFileSync(join(task, "evidence/verify.md"), "Claim | Action | Evidence | Verdict\n--- | --- | --- | ---\nSaves the note | Save it | `evidence/proof/run.txt` | failed\n");
+	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves the note/, "a row without outer pipes counts");
 	writeFileSync(join(task, "evidence/verify.md"), `${table("failed")}\nskip: no screenshot\n`);
 	assert.throws(() => check(home, "pf", 1), /has a failed claim/, "a skip line does not hide a failed row");
 	writeFileSync(join(task, "evidence/verify.md"), table("passed"));

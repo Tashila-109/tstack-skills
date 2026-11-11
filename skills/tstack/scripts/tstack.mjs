@@ -261,10 +261,13 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 }
 
 function proofGaps(taskDir, text) {
+	// A table row may drop its outer pipes, so split on them and drop the empty edge cells.
 	const failed = prose(text)
 		.split("\n")
-		.filter((line) => /^\s*\|.*\|\s*failed\s*\|\s*$/i.test(line))
-		.map((line) => `has a failed claim: ${line.split("|")[1].trim()}: repair it and prove it again, or ask the human`);
+		.map((line) => line.split("|").map((cell) => cell.trim()))
+		.map((cells) => cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined))
+		.filter((cells) => cells.length > 1 && cells.at(-1).toLowerCase() === "failed")
+		.map((cells) => `has a failed claim: ${cells[0]}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
 	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
