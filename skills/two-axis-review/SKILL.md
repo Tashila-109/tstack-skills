@@ -83,7 +83,7 @@ Freeze again and rerun both axes.
 
 Write `tasks/<id>/evidence/reviews/<label>.md` with:
 
-- a first line naming the reviewed head and the round, such as `Head 1a2b3c4, round 2`;
+- a first line naming the reviewed head and the round, exactly as `Head 1a2b3c4, round 2`, which `tstack.mjs check` reads for the round cap and for `--head`;
 - the scope, base, and each reviewer's name, seat and result path;
 - `## Standards` and `## Spec`, each report verbatim or lightly cleaned;
 - one closing line with each axis's verdict, its finding counts by severity, and the worst finding within that axis.

@@ -47,6 +47,7 @@ Give its folder once, below the table.
 Then list what no agent could prove, such as native key delivery or a system dialog, and say whether the human should check it.
 
 `tstack.mjs check` refuses a `verify.md` that cites no file under `evidence/`, or cites one that is missing or empty, unless it holds a `skip: <reason>` line.
+It also refuses a table row whose verdict is `failed`: repair the claim and prove it again, or ask the human.
 
 ## Show it
 
