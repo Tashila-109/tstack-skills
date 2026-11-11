@@ -11,7 +11,7 @@
 
 ## Landing
 
-Land only on the human's explicit word to land these PRs, or under an autopilot grant that covers them, and only the run in the task's `evidence/verdicts.md`.
+Land only on the human's explicit word to land these PRs, or under an autopilot grant that covers them, and only the run in the task's `evidence/verdicts.md`, or under an autopilot, the audits recorded in its queue file.
 Land one PR at a time, bottom first:
 
 - **Move a child onto the default branch once its parent merges.** If the bottom PR targets its parent branch and the parent has merged, retarget it with `gh pr edit <pr> --base <default>`, then bring the merge result in with `gh pr update-branch <pr>`, which merges and never force-pushes, so the PR holds only its own patch.

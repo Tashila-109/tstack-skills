@@ -192,7 +192,8 @@ Use them to drive a web UI or a simulator when the project's `verify-*` skill na
 An error saying the capability is unavailable means that access is off, so use the verify skill's driver instead.
 
 - A web UI: call `preview_open`, then `preview_navigate` with `{ "target": { "kind": "environment-port", "port": <dev server port> } }`.
-  Drive it with `preview_click`, `preview_type`, `preview_press` and `preview_wait_for`, and read it with `preview_snapshot`.
+  Drive it with `preview_act`, whose `action` is `click`, `type`, `press`, `hover`, `select`, `drag`, `upload` or `scroll`, and `preview_wait_for`, and read it with `preview_snapshot`.
+  T3 0.1.9-nightly.20261111 offered these on 2026-11-12, in place of the separate click, type and press tools.
 - A simulator: call `device_list`, then `device_open`, which returns the `agent-device` command for that device.
   Drive it with that command, and call `device_close` when you are done.
 - Evidence: `preview_snapshot` with `save: true` returns a screenshot's path, `preview_recording_stop` returns the path of the recording `preview_recording_start` began, and `agent-device screenshot <path>` saves a simulator's screen.
