@@ -533,7 +533,7 @@ const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(
   state isDraft baseRefName mergeable mergeStateStatus reviewDecision headRefOid updatedAt
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
     __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
-  reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { isResolved } }
+  reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { id isResolved path line } }
   comments(last: 1) { nodes { createdAt } }
   reviews(last: 1) { nodes { submittedAt } }
 } } }`;
@@ -542,7 +542,14 @@ const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(
 // `required` names the base branch's required checks, so one that has not started yet still counts as pending.
 export function prVerdict(pr, now = Date.now(), required = []) {
 	const head = pr.headRefOid?.slice(0, 12) ?? "unknown";
-	const say = (verdict, reason) => `${verdict}${reason ? ` ${reason}` : ""} (head ${head})`;
+	// An outdated thread still counts: branch protection's resolve-conversations rule counts it.
+	// Every blocker lists the unresolved threads, so a threads-only pass can resolve them without touching the blocker.
+	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved);
+	const more = pr.reviewThreads?.pageInfo?.hasNextPage ? " in the first 100, and more to read on GitHub" : "";
+	const list = open.map((t) => `${t.id} ${t.path ?? "?"}${t.line ? `:${t.line}` : ""}`).join(", ");
+	const threads = `review-threads: ${open.length} unresolved${more}${list ? `: ${list}` : ""}`;
+	const say = (verdict, reason) =>
+		`${verdict}${reason ? ` ${reason}` : ""}${verdict === "BLOCKER" && (open.length || more) && reason !== threads ? `; ${threads}` : ""} (head ${head})`;
 	if (pr.state === "MERGED") return say("MERGED");
 	if (pr.state === "CLOSED") return say("CLOSED", "closed without merging");
 	if (pr.isDraft) return say("BLOCKER", "draft: mark it ready");
@@ -558,9 +565,7 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 	);
 	const failed = checks.filter((c) => c.failed).map((c) => c.name);
 	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
-	// An outdated thread still counts: branch protection's resolve-conversations rule counts it.
-	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved).length;
-	if (open) return say("BLOCKER", `review-threads: ${open} unresolved`);
+	if (open.length) return say("BLOCKER", threads);
 	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
 	const reported = new Set(checks.map((c) => c.name));
 	const pending = [...checks.filter((c) => c.pending).map((c) => c.name), ...required.filter((name) => !reported.has(name)).map((name) => `${name} (required, not started)`)];
