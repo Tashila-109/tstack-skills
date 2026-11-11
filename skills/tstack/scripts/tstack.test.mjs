@@ -117,6 +117,8 @@ test("seat --avoid prefers a seat whose model ran no candidate, then the one tha
 	assert.equal(model("gpt-6.1-sol, openai/gpt-6.1-terra"), "grok/grok-4.7");
 	assert.equal(model("gpt-6.1-sol,gpt-6.1-terra,grok-4.7,gpt-6.1-sol,grok-4.7"), "pi/openai/gpt-6.1-terra@high");
 	assert.throws(() => seat(models, "pool", "standalone", undefined, "gpt-6.1-sol"), /--avoid needs --cross/);
+	const variants = parseModels("pool: cursor/gpt-6.1-sol@200k, cursor/gpt-6.1-sol@300k");
+	assert.equal(seat(variants, "pool", "standalone", "claude-opus-5-5", "gpt-6.1-sol@200k")[0].configured, "cursor/gpt-6.1-sol@300k");
 });
 
 test("a project's models file cannot set launch flags, and seats cannot smuggle flags", () => {

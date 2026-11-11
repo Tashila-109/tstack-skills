@@ -425,7 +425,7 @@ function family(model) {
 }
 
 function modelId(model) {
-	return model.split("@")[0].split("/").pop().toLowerCase();
+	return model.split("/").pop().toLowerCase();
 }
 
 export function seat(models, role, runtime, cross, avoid) {
