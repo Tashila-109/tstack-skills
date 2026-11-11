@@ -585,6 +585,38 @@ test("a gate denied and granted again under its next name counts, and a closed t
 	writeFileSync(join(task, "spec.md"), "v2\n");
 	writeFileSync(join(task, "decisions/spec.md"), `Subject: \`spec.md\` ${"0".repeat(64)}\n\n## Answer\n\ngranted\nyes\n`);
 	assert.equal(check(home, "rg"), "ok rg: 3 required files present", "a closed task does not check granted documents for changes");
+	writeFileSync(join(task, "decisions/design-3.md"), "# Approve the revision?\n");
+	assert.equal(check(home, "rg"), "ok rg: 3 required files present", "a closed task's gate passes with an unanswered later revision");
+	rmSync(join(task, "decisions/design-3.md"));
+	const other = join(home, "tasks", "other-close.md");
+	writeFileSync(other, "## Answer\n\ngranted\nanother task's close\n");
+	rmSync(join(task, "decisions/close.md"));
+	symlinkSync(other, join(task, "decisions/close.md"));
+	assert.throws(() => check(home, "rg"), /link to outside the task directory/, "a close linked from elsewhere is refused");
+	rmSync(join(task, "decisions/close.md"));
+	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
 	rmSync(join(task, "decisions/close.md"));
 	assert.throws(() => check(home, "rg"), /spec\.md changed after decisions\/spec\.md granted it/);
+});
+
+test("check --head holds a closed task to a commit SHA but not to proof of that head", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+	writeFileSync(join(dir, "a.txt"), "1\n");
+	git("add", "a.txt");
+	git("commit", "-q", "-m", "one");
+	const one = git("rev-parse", "HEAD");
+	writeFileSync(join(dir, "a.txt"), "2\n");
+	git("commit", "-q", "-am", "two");
+	const two = git("rev-parse", "HEAD");
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "ch", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "ch");
+	writeFileSync(join(task, "report.md"), REPORT);
+	writeFileSync(join(task, "evidence/verify.md"), `Head ${one.slice(0, 12)}\n`);
+	assert.throws(() => check(home, "ch", undefined, two, dir), /names no commit with the same tree/);
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	assert.equal(check(home, "ch", undefined, two, dir), "ok ch: 1 required file present");
+	assert.throws(() => check(home, "ch", undefined, "nothex", dir), /--head must be a commit SHA/);
 });

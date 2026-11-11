@@ -239,7 +239,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 	}
 	const problems = [];
 	// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines.
-	const closed = GRANTED.test(prose(readIfFile(join(taskDir, "decisions", "close.md"))));
+	const closed = GRANTED.test(prose(readIfFile(insideTask(taskDir, "decisions/close.md"))));
 	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
@@ -252,7 +252,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
-	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd));
+	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, closed));
 	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir, closed));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
@@ -298,7 +298,7 @@ function reportGaps(text) {
 
 // Each review or proof must name a commit whose tree is the head's, so a later commit cannot ride on old evidence.
 // A file that only records a skipped step, such as a closed PR's verify, holds a skip: line and names no commit.
-function headGaps(taskDir, head, cwd) {
+function headGaps(taskDir, head, cwd, closed) {
 	const tree = (rev) => {
 		try {
 			return execFileSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{tree}`], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -308,6 +308,8 @@ function headGaps(taskDir, head, cwd) {
 	};
 	const want = /^[0-9a-f]{7,40}$/.test(head) ? tree(head) : "";
 	if (!want) throw new Refusal(`--head must be a commit SHA in ${cwd}: ${head}`);
+	// A closed task merges nothing, so its proof and review need not describe the head.
+	if (closed) return [];
 	return [PROOF, "evidence/reviews/final.md"]
 		.filter((path) => existsSync(join(taskDir, path)))
 		.filter((path) => {
