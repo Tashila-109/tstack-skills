@@ -487,6 +487,11 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 		prVerdict(pr({ reviewThreads: { nodes: [{ id: "PRRT_a", isResolved: false, path: "a.js", line: 3 }, { id: "PRRT_b", isResolved: false, path: "b.md", line: null }, { isResolved: true }] } }), now),
 		/^BLOCKER review-threads: 2 unresolved: PRRT_a a\.js:3, PRRT_b b\.md \(head/,
 	);
+	assert.match(
+		prVerdict(pr({ reviewThreads: { nodes: [{ id: "PRRT_a", isResolved: false, path: "a.js", line: 3 }] }, commits: { nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: [{ __typename: "CheckRun", name: "ci", status: "COMPLETED", conclusion: "FAILURE" }] } } } }] } }), now),
+		/^BLOCKER failing-checks: ci; review-threads: 1 unresolved: PRRT_a a\.js:3 /,
+		"threads come first in babysit's order, so a failing check still lists them",
+	);
 	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
 	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
 	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");

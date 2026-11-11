@@ -557,11 +557,11 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 			: { name: c.name, failed: FAILED_RUN.has(c.conclusion), pending: c.status !== "COMPLETED", approval: c.conclusion === "ACTION_REQUIRED" },
 	);
 	const failed = checks.filter((c) => c.failed).map((c) => c.name);
-	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
 	// An outdated thread still counts: branch protection's resolve-conversations rule counts it.
 	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved);
-	if (open.length)
-		return say("BLOCKER", `review-threads: ${open.length} unresolved: ${open.map((t) => `${t.id} ${t.path ?? "?"}${t.line ? `:${t.line}` : ""}`).join(", ")}`);
+	const threads = `review-threads: ${open.length} unresolved: ${open.map((t) => `${t.id} ${t.path ?? "?"}${t.line ? `:${t.line}` : ""}`).join(", ")}`;
+	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}${open.length ? `; ${threads}` : ""}`);
+	if (open.length) return say("BLOCKER", threads);
 	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
 	const reported = new Set(checks.map((c) => c.name));
 	const pending = [...checks.filter((c) => c.pending).map((c) => c.name), ...required.filter((name) => !reported.has(name)).map((name) => `${name} (required, not started)`)];
