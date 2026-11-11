@@ -95,7 +95,7 @@ lead: claude/claude-opus-5-5@xhigh
 feature, refactoring: pi/openai/gpt-6.1-sol@xhigh
 bug-fix: pi/openai/gpt-6.1-sol@xhigh
 perf-issue, hillclimb: pi/openai/gpt-6.1-sol@xhigh
-judgment and prose, hardest tasks: claude/claude-opus-5-5@high
+judgment and prose, hardest tasks: claude/claude-fable-5-2@high
 how explorer: claude/claude-sonnet-5-5@max
 how explainer: claude/claude-opus-5-5@high
 why investigators: grok/grok-4.7@xhigh
@@ -108,7 +108,7 @@ arena cross-judge pool: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, gro
 interrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
 swarm workers: grok/grok-4.7@xhigh
 comment sicko: inherit
-review: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
+review: claude/claude-fable-5-2@high, codex/gpt-6.1-sol@high
 verify: claude/claude-opus-5-5@high
 t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thinking, grok=grok/reasoningEffort
 ```
