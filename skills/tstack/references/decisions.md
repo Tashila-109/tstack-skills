@@ -91,6 +91,7 @@ Record the human's words as they wrote them.
 
 A `denied` gate stops the work it gates.
 When the human said what to change, revise and open the gate again under its next name, such as `design-2`.
+`tstack.mjs check` reads a gate from its highest-numbered file, so the newest answer decides it.
 Otherwise close the task, as below.
 
 ## Close a task

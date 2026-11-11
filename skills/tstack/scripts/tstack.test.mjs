@@ -552,3 +552,23 @@ test("a granted close lets a task end with skipped delegating steps and a denied
 	writeFileSync(join(task, "report.md"), "skip: closed\n");
 	assert.throws(() => check(home, "cl"), /report\.md has no ## Remember heading/, "a closed task still reports");
 });
+
+test("a gate denied and granted again under its next name counts, and a closed task may skip its plan check", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "planned.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n2. Spec it.\n   Artifact: `evidence/check-plan.md`\n");
+	brief(home, "rg", { playbook: "planned", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "rg");
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), "## Answer\n\ndenied\nchange the API, 2026-11-12\n");
+	assert.throws(() => check(home, "rg", 1), /decisions\/design\.md with a granted answer/);
+	writeFileSync(join(task, "decisions/design-2.md"), "## Answer\n\ngranted\nyes, 2026-11-12\n");
+	assert.equal(check(home, "rg", 1), "ok rg: 1 required file present");
+	writeFileSync(join(task, "decisions/design-3.md"), "## Answer\n\ndenied\nno, 2026-11-12\n");
+	assert.throws(() => check(home, "rg", 1), /granted answer/, "the latest answer decides");
+	rmSync(join(task, "decisions/design-3.md"));
+	writeFileSync(join(task, "evidence/check-plan.md"), "skip: closed, see decisions/close.md\n");
+	writeFileSync(join(task, "report.md"), REPORT);
+	assert.throws(() => check(home, "rg"), /not a clean check-plan\.mjs run/);
+	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	assert.equal(check(home, "rg"), "ok rg: 3 required files present");
+});

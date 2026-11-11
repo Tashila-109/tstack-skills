@@ -244,7 +244,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
 		if (closed && path !== "report.md" && text.trim() && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))))) continue;
-		if (path.startsWith("decisions/") ? !GRANTED.test(prose(text)) : !text.trim())
+		if (path.startsWith("decisions/") ? !GRANTED.test(prose(latestDecision(taskDir, path, text))) : !text.trim())
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
@@ -253,9 +253,21 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
 	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd));
-	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir));
+	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir, closed));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
+}
+
+// A gate denied and reopened as <name>-2, -3 and so on is decided by its highest-numbered file.
+function latestDecision(taskDir, path, text) {
+	const name = path.match(/^decisions\/([a-z0-9][a-z0-9-]*?)\.md$/)?.[1];
+	const dir = join(taskDir, "decisions");
+	if (!name || !existsSync(dir)) return text;
+	const later = readdirSync(dir)
+		.map((f) => ({ f, n: Number(f.match(new RegExp(`^${name}-(\\d+)\\.md$`))?.[1] ?? 0) }))
+		.filter((d) => d.n > 1)
+		.sort((a, b) => b.n - a.n)[0];
+	return later ? readIfFile(join(dir, later.f)) : text;
 }
 
 function proofGaps(taskDir, text) {
@@ -348,7 +360,7 @@ function sha256(path) {
 	return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
-function staleGaps(taskDir) {
+function staleGaps(taskDir, closed) {
 	const gaps = [];
 	const decisions = join(taskDir, "decisions");
 	const latest = new Map();
@@ -368,7 +380,8 @@ function staleGaps(taskDir) {
 	const spec = existsSync(checked) ? readFileSync(checked, "utf8").match(CHECKED_SPEC) : null;
 	if (spec && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
 		gaps.push(`evidence/check-plan.md checked an older ${spec[1]}: run check-plan.mjs again and save its output`);
-	if (existsSync(checked) && !/^\d+ phase sections?, 0 problems$/m.test(readFileSync(checked, "utf8")))
+	const run = readIfFile(checked);
+	if (existsSync(checked) && !(closed && SKIPPED.test(run)) && !/^\d+ phase sections?, 0 problems$/m.test(run))
 		gaps.push("evidence/check-plan.md is not a clean check-plan.mjs run: fix every problem and save the output that ends in 0 problems");
 	return gaps;
 }
