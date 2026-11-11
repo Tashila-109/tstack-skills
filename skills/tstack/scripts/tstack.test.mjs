@@ -230,6 +230,8 @@ test("check-seats reads a real T3 catalog: provider reasons, cross-provider limi
 	const roles = new Set(["lead", "interrogate reviewers"]);
 	const ok = `lead: claude/claude-opus-5-5@high\ninterrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, pi/openai/gpt-6.1-sol@xhigh\n${instances}`;
 	assert.equal(checkSeats(parseModels(ok), caps, roles), "ok: 3 seats advertised");
+	const newer = `lead: claude/claude-fable-5-2@high\ninterrogate reviewers: claude/claude-fable-5-2@high, codex/gpt-6.1-terra@high, pi/openai/gpt-6.1-terra@xhigh\n${instances}`;
+	assert.equal(checkSeats(parseModels(newer), caps, roles), "ok: 3 seats advertised");
 	assert.throws(() => checkSeats(parseModels(`lead: grok/grok-4.7@high\ninterrogate reviewers: claude/claude-opus-5-5, codex/gpt-6.1-sol\n${instances}`), caps, roles), /grok-4\.7: instance grok cannot run child tasks here \(.*not logged in/);
 	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-haiku-4-5@high\ninterrogate reviewers: claude/claude-opus-5-5, codex/gpt-6.1-sol\n${instances}`), caps, roles), /effort high not offered \(no such option\)/);
 	assert.throws(() => checkSeats(parseModels(`lead: haiku/claude-haiku-4-5@high\ninterrogate reviewers: claude/claude-opus-5-5, codex/gpt-6.1-sol\n${instances}, haiku=claudeAgent/thinking`), caps, roles), /thinking is an on\/off option, so drop the @high effort/);

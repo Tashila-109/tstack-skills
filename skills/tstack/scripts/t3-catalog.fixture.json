@@ -66,6 +66,68 @@
               "currentValue": "default"
             }
           ]
+        },
+        {
+          "id": "gpt-6.1-terra",
+          "label": "GPT-6.1 Terra",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "label": "Reasoning",
+              "type": "select",
+              "options": [
+                {
+                  "id": "low",
+                  "label": "Low",
+                  "isDefault": true
+                },
+                {
+                  "id": "medium",
+                  "label": "Medium"
+                },
+                {
+                  "id": "high",
+                  "label": "High"
+                },
+                {
+                  "id": "xhigh",
+                  "label": "Extra High"
+                },
+                {
+                  "id": "max",
+                  "label": "Max"
+                },
+                {
+                  "id": "ultra",
+                  "label": "Ultra"
+                }
+              ],
+              "currentValue": "low"
+            },
+            {
+              "id": "serviceTier",
+              "label": "Service Tier",
+              "type": "select",
+              "options": [
+                {
+                  "id": "default",
+                  "label": "Standard",
+                  "isDefault": true
+                },
+                {
+                  "id": "priority",
+                  "label": "Fast",
+                  "description": "2x speed, increased usage"
+                },
+                {
+                  "id": "ultrafast",
+                  "label": "Ultrafast",
+                  "description": "Even faster, more expensive"
+                }
+              ],
+              "currentValue": "default"
+            }
+          ]
         }
       ],
       "canRunChildTask": true,
@@ -77,6 +139,52 @@
       "driverKind": "claudeAgent",
       "displayName": "Claude",
       "models": [
+        {
+          "id": "claude-fable-5-2",
+          "label": "Claude Fable 5.2",
+          "options": [
+            {
+              "id": "effort",
+              "label": "Reasoning",
+              "type": "select",
+              "options": [
+                {
+                  "id": "low",
+                  "label": "Low"
+                },
+                {
+                  "id": "medium",
+                  "label": "Medium",
+                  "isDefault": true
+                },
+                {
+                  "id": "high",
+                  "label": "High"
+                },
+                {
+                  "id": "xhigh",
+                  "label": "Extra High"
+                },
+                {
+                  "id": "max",
+                  "label": "Max"
+                },
+                {
+                  "id": "ultracode",
+                  "label": "Ultracode",
+                  "description": "xhigh effort plus multi-agent workflow orchestration"
+                },
+                {
+                  "id": "ultrathink",
+                  "label": "Ultrathink"
+                }
+              ],
+              "promptInjectedValues": [
+                "ultrathink"
+              ]
+            }
+          ]
+        },
         {
           "id": "claude-opus-5-5",
           "label": "Claude Opus 5.5",
@@ -259,6 +367,40 @@
         {
           "id": "openai/gpt-6.1-sol",
           "label": "GPT-6.1 Sol",
+          "options": [
+            {
+              "id": "thinking",
+              "label": "Thinking",
+              "type": "select",
+              "options": [
+                {
+                  "id": "low",
+                  "label": "Low"
+                },
+                {
+                  "id": "medium",
+                  "label": "Medium",
+                  "isDefault": true
+                },
+                {
+                  "id": "high",
+                  "label": "High"
+                },
+                {
+                  "id": "xhigh",
+                  "label": "Extra High"
+                },
+                {
+                  "id": "max",
+                  "label": "Max"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "openai/gpt-6.1-terra",
+          "label": "GPT-6.1 Terra",
           "options": [
             {
               "id": "thinking",
