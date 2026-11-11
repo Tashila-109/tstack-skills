@@ -21,7 +21,7 @@ Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed he
 - Delegate one read-only worker on that seat, named `review-final`, with its result at `results/review-final.md`, as [dispatch](../references/dispatch.md) says.
 - Decide each finding as [two-axis-review's step 7](../../two-axis-review/SKILL.md#7-act-on-the-findings) says, with this one reviewer in place of the two axes.
   A repair makes a new head, and the new head gets a fresh review.
-- Write `evidence/reviews/final.md`: the reviewed head, the reviewer's seat and result path, its report, and your decision on each finding.
+- Write `evidence/reviews/final.md`, opening with the reviewed head and round as [two-axis-review's step 6](../../two-axis-review/SKILL.md#6-aggregate) says, then the reviewer's seat and result path, its report, and your decision on each finding.
   The review is done when the recorded head is `HEAD` and no accepted Must is open.
 
 **Worktree.** Work from the task's worktree off main. Workers share it. Two writers on the same branch each get their own checkout through the runtime reference. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: start a fresh worktree off main and redo minimally, keeping the old branch until its work lands or the human drops it.

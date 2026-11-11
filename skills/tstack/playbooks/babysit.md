@@ -23,6 +23,7 @@ Use the GitHub CLI, `gh`, for every PR operation. Read the PR's state with `tsta
    Before you post, check the whole reply for secrets and private details.
 9. **Stop at the human's line.** Owner approval is a wait, not a blocker to fix. Babysitting never authorizes merging. Tell the human the PR is merge-ready, with its full URL. Sweep the run's triage decisions once, and offer any team-useful dismissal pattern as a `## Follow-ups` line that adds it to `../references/bugbot-triage.md`.
    Write `evidence/babysit.md`: the mode, the frontier and its state, what you fixed and what you dismissed with reasons, what is pending, and what needs the human.
+   Paste the last `pr-state` line as it printed, because `check --head` on a `pr` task wants its `READY` or `MERGED` line for that head.
    Artifact: `evidence/babysit.md`
 
 `drive` ends at merge-ready. Landing is `playbooks/shipping.md`.

@@ -29,10 +29,16 @@ const RESULT = /\bresults\/[a-z0-9][a-z0-9.-]*\.md\b/g;
 const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
+// A whole file skipped: its first line is the skip line, so a stray skip note inside a finished file excuses nothing.
+const WHOLLY_SKIPPED = /^\s*skip:\s*\S/;
+const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{12})\)\s*$/gm;
+const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
+const COMMITTED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{7,40})\b/im;
+const REVIEW_HEAD = /^Head ([0-9a-f]{7,40}), round (\d+)\s*$/;
 const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
 
 export class Refusal extends Error {}
@@ -248,13 +254,33 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
-	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd));
-	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir));
+	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, task.delivery === "pr" && through === undefined));
+	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir, cwd));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
 }
 
 function proofGaps(taskDir, text) {
+	// A table row may drop its outer pipes, so split on them and drop the empty edge cells.
+	// Only rows below a table's separator line are claims, so a prose line with pipes is not one.
+	// The verdict is the column headed Verdict, or the last column when no header says so.
+	const plain = (cell) => cell.replace(/[*_`~]/g, "").trim().toLowerCase();
+	const failed = [];
+	let header = [];
+	let verdict = -1;
+	for (const line of prose(text).split("\n")) {
+		// An escaped pipe, \|, belongs to its cell.
+		const cells = line.split(/(?<!\\)\|/).map((cell) => cell.trim());
+		const row = cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined);
+		if (row.length > 1 && row.every((cell) => /^:?-+:?$/.test(cell))) {
+			const named = header.map(plain).indexOf("verdict");
+			verdict = named >= 0 ? named : row.length - 1;
+		} else if (verdict >= 0 && row.length > 1) {
+			if (plain(row[verdict] ?? "") === "failed") failed.push(`has a failed claim: ${row[0]}: repair it and prove it again, or ask the human`);
+		} else verdict = -1;
+		header = row;
+	}
+	if (failed.length) return failed;
 	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
@@ -264,7 +290,9 @@ function proofGaps(taskDir, text) {
 function delegationGaps(taskDir, path, text) {
 	const cited = [...new Set(prose(text).match(RESULT) ?? [])];
 	if (!cited.length) return [`cites no results/<name>.md: this step delegates${DELEGATED.has(path) ? ", and a skip: line does not excuse it" : " unless it holds a skip: line"}`];
-	const gaps = cited.filter((r) => !VERDICT.test(readIfFile(insideTask(taskDir, r)))).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
+	const verdicts = cited.map((r) => [...readIfFile(insideTask(taskDir, r)).matchAll(new RegExp(VERDICT, "gm"))].at(-1)?.[1]);
+	const gaps = cited.filter((r, i) => !verdicts[i]).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
+	if (!gaps.length && !verdicts.includes("DONE")) gaps.push("cites no result that ends DONE: the work this step delegates never finished");
 	if (path !== "evidence/dispatch.md") {
 		const briefs = (prose(text).match(/\bbriefs\/[a-z0-9][a-z0-9.-]*\.md\b/g) ?? []).map((b) => readIfFile(insideTask(taskDir, b)));
 		if (!briefs.some((b) => /\btdd\b/.test(b))) gaps.push("cites no brief under briefs/ that lists the tdd skill");
@@ -282,7 +310,7 @@ function reportGaps(text) {
 
 // Each review or proof must name a commit whose tree is the head's, so a later commit cannot ride on old evidence.
 // A file that only records a skipped step, such as a closed PR's verify, holds a skip: line and names no commit.
-function headGaps(taskDir, head, cwd) {
+function headGaps(taskDir, head, cwd, prDelivery) {
 	const tree = (rev) => {
 		try {
 			return execFileSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{tree}`], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -292,15 +320,23 @@ function headGaps(taskDir, head, cwd) {
 	};
 	const want = /^[0-9a-f]{7,40}$/.test(head) ? tree(head) : "";
 	if (!want) throw new Refusal(`--head must be a commit SHA in ${cwd}: ${head}`);
-	return [PROOF, "evidence/reviews/final.md"]
+	const gaps = [PROOF, "evidence/reviews/final.md"]
 		.filter((path) => existsSync(join(taskDir, path)))
 		.filter((path) => {
 			const text = readFileSync(join(taskDir, path), "utf8");
-			const shas = [...new Set(text.match(/\b[0-9a-f]{7,40}\b/g) ?? [])];
-			if (!shas.length && SKIPPED.test(text)) return false;
+			const reviewed = path === PROOF ? null : text.split("\n", 1)[0].match(REVIEW_HEAD);
+			const shas = reviewed ? [reviewed[1]] : path === PROOF ? [...new Set(text.match(/\b[0-9a-f]{7,40}\b/g) ?? [])] : [];
+			if (!shas.length && (path === PROOF ? SKIPPED : WHOLLY_SKIPPED).test(text.trimStart())) return false;
 			return !shas.some((sha) => tree(sha) === want);
 		})
 		.map((path) => `${path} names no commit with the same tree as ${head}: verify or review again on this head`);
+	if (prDelivery) {
+		const text = readIfFile(join(taskDir, "evidence", "babysit.md"));
+		const latest = [...text.matchAll(PR_VERDICT)].filter((m) => tree(m[2]) === want).at(-1)?.[1];
+		if (!WHOLLY_SKIPPED.test(text.trimStart()) && !["READY", "MERGED"].includes(latest))
+			gaps.push(`evidence/babysit.md's latest pr-state line for ${head} is ${latest ?? "missing"}, not READY or MERGED: paste the pr-state output for this head`);
+	}
+	return gaps;
 }
 
 function readIfFile(path) {
@@ -330,7 +366,13 @@ function reviewCapGaps(taskDir) {
 	for (const name of readdirSync(reviews)) {
 		const label = name.match(/^([a-z0-9][a-z0-9-]*)\.md$/)?.[1];
 		if (!label || /-(standards|spec|brief)$/.test(label)) continue;
-		const round = Number(readFileSync(join(reviews, name), "utf8").split("\n", 1)[0].match(/\bround\s+(\d+)\b/i)?.[1] ?? 0);
+		const text = readFileSync(join(reviews, name), "utf8");
+		const first = text.split("\n", 1)[0].match(REVIEW_HEAD);
+		if (!first) {
+			if (!WHOLLY_SKIPPED.test(text.trimStart())) gaps.push(`evidence/reviews/${name} does not open with "Head <sha>, round <n>": write that line first, as two-axis-review step 6 says`);
+			continue;
+		}
+		const round = Number(first[2]);
 		const checkpoints = answered.filter((d) => d === `review-${label}.md` || new RegExp(`^review-${label}-\\d+\\.md$`).test(d)).length;
 		if (round > REVIEW_ROUNDS * (checkpoints + 1))
 			gaps.push(
@@ -344,18 +386,25 @@ function sha256(path) {
 	return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
-function staleGaps(taskDir) {
+function staleGaps(taskDir, cwd) {
 	const gaps = [];
 	const decisions = join(taskDir, "decisions");
 	const latest = new Map();
 	for (const name of existsSync(decisions) ? readdirSync(decisions) : []) {
 		const [, family, n = "1"] = name.match(/^(.+?)(?:-(\d+))?\.md$/) ?? [];
 		const text = family ? readFileSync(join(decisions, name), "utf8") : "";
-		const subject = text.match(HASHED_SUBJECT);
+		const loose = text.match(LOOSE_COMMIT);
+		if (loose) gaps.push(`decisions/${name} names its document at ${loose[1]}: write the commit SHA, as references/decisions.md says`);
+		const hashed = text.match(HASHED_SUBJECT);
+		const subject = hashed ?? text.match(COMMITTED_SUBJECT);
 		if (subject && GRANTED.test(prose(text)) && (latest.get(family)?.n ?? 0) < Number(n))
-			latest.set(family, { n: Number(n), name, path: subject[1], hash: subject[2] });
+			latest.set(family, { n: Number(n), name, path: subject[1], ...(hashed ? { hash: subject[2] } : { commit: subject[2] }) });
 	}
-	for (const { name, path, hash } of latest.values()) {
+	for (const { name, path, hash, commit } of latest.values()) {
+		if (commit) {
+			gaps.push(...committedGaps(cwd, name, path, commit));
+			continue;
+		}
 		const full = isAbsolute(path) ? path : [resolve(taskDir, path), resolve(taskDir, "..", "..", "..", path)].find((p) => existsSync(p));
 		if (!full || !existsSync(full)) gaps.push(`decisions/${name} grants ${path}, which is missing`);
 		else if (sha256(full) !== hash) gaps.push(`${path} changed after decisions/${name} granted it: open the next decision as references/decisions.md says`);
@@ -367,6 +416,22 @@ function staleGaps(taskDir) {
 	if (existsSync(checked) && !/^\d+ phase sections?, 0 problems$/m.test(readFileSync(checked, "utf8")))
 		gaps.push("evidence/check-plan.md is not a clean check-plan.mjs run: fix every problem and save the output that ends in 0 problems");
 	return gaps;
+}
+
+// A committed document is stale when the checkout's copy, committed or not, differs from the one in the granted commit.
+function committedGaps(cwd, name, path, commit) {
+	const git = (args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+	try {
+		git(["cat-file", "-e", `${commit}:${path}`]);
+	} catch {
+		return [`decisions/${name} grants ${path} at ${commit}, which this checkout does not hold: run check from the task's worktree`];
+	}
+	try {
+		git(["diff", "--quiet", commit, "--", `:(top,literal)${path}`]);
+		return [];
+	} catch {
+		return [`${path} changed after decisions/${name} granted it at ${commit}: open the next decision as references/decisions.md says`];
+	}
 }
 
 function hasContent(path) {
@@ -657,9 +722,23 @@ function flags(args) {
 	return out;
 }
 
+const ALLOWED = {
+	home: [],
+	brief: ["playbook", "goal", "finish", "kind", "delivery"],
+	check: ["through", "head"],
+	seat: ["runtime", "cross", "avoid"],
+	"check-seats": [],
+	"pr-state": ["wait"],
+	exclude: ["project-skills"],
+	"link-skills": [],
+};
+
 export function main(argv) {
 	const [command, ...rest] = argv;
 	const f = flags(rest);
+	const unknown = Object.keys(f).filter((k) => k !== "_" && !(ALLOWED[command] ?? []).includes(k));
+	if (command in ALLOWED && unknown.length)
+		throw new Usage(`${command} takes no ${unknown.map((k) => `--${k}`).join(", ")}; its flags are ${ALLOWED[command].map((k) => `--${k}`).join(", ") || "none"}`);
 	switch (command) {
 		case "home":
 			return taskHome();
