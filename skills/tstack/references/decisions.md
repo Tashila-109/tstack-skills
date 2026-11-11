@@ -64,7 +64,7 @@ Then ask the human, as [Ask the human](#ask-the-human) says.
 Gates come in order: `design-approval` before `spec-approval`, and both before `implement-authorization`.
 A gate covers its subject as it was when you opened it.
 After a grant, a changed design or spec is a new decision under a new name, such as `design-2`, and the gates after it follow again.
-Write the Subject of a committed document as its path from the repository root in backticks, followed by the commit that holds the version you ask about.
+Write the Subject of a committed document as its path from the repository root in backticks, then `at` and the SHA, 7 to 40 hex characters, of the commit that holds the version you ask about, never a name such as `HEAD`.
 For a document kept out of Git, write its path in backticks followed by its SHA-256.
 `tstack.mjs check` refuses a task when either document differs from what its latest granted decision names, including an uncommitted edit.
 

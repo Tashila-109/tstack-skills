@@ -29,6 +29,10 @@ const RESULT = /\bresults\/[a-z0-9][a-z0-9.-]*\.md\b/g;
 const PROOF = "evidence/verify.md";
 const CITED = /`(evidence\/[^`\s]+)`/g;
 const SKIPPED = /^\s*skip:\s*\S/im;
+// A whole file skipped: its first line is the skip line, so a stray skip note inside a finished file excuses nothing.
+const WHOLLY_SKIPPED = /^\s*skip:\s*\S/;
+const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{12})\)\s*$/gm;
+const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
@@ -257,12 +261,12 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 }
 
 function proofGaps(taskDir, text) {
-	if (SKIPPED.test(text)) return [];
 	const failed = prose(text)
 		.split("\n")
 		.filter((line) => /^\s*\|.*\|\s*failed\s*\|\s*$/i.test(line))
 		.map((line) => `has a failed claim: ${line.split("|")[1].trim()}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
+	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
 	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
@@ -271,7 +275,7 @@ function proofGaps(taskDir, text) {
 function delegationGaps(taskDir, path, text) {
 	const cited = [...new Set(prose(text).match(RESULT) ?? [])];
 	if (!cited.length) return [`cites no results/<name>.md: this step delegates${DELEGATED.has(path) ? ", and a skip: line does not excuse it" : " unless it holds a skip: line"}`];
-	const verdicts = cited.map((r) => readIfFile(insideTask(taskDir, r)).match(VERDICT)?.[1]);
+	const verdicts = cited.map((r) => [...readIfFile(insideTask(taskDir, r)).matchAll(new RegExp(VERDICT, "gm"))].at(-1)?.[1]);
 	const gaps = cited.filter((r, i) => !verdicts[i]).map((r) => `cites ${r}, which has no DONE, BLOCKED or FAILED line`);
 	if (!gaps.length && !verdicts.includes("DONE")) gaps.push("cites no result that ends DONE: the work this step delegates never finished");
 	if (path !== "evidence/dispatch.md") {
@@ -307,15 +311,15 @@ function headGaps(taskDir, head, cwd, prDelivery) {
 			const text = readFileSync(join(taskDir, path), "utf8");
 			const reviewed = path === PROOF ? null : text.split("\n", 1)[0].match(REVIEW_HEAD);
 			const shas = reviewed ? [reviewed[1]] : path === PROOF ? [...new Set(text.match(/\b[0-9a-f]{7,40}\b/g) ?? [])] : [];
-			if (!shas.length && SKIPPED.test(text)) return false;
+			if (!shas.length && (path === PROOF ? SKIPPED : WHOLLY_SKIPPED).test(text.trimStart())) return false;
 			return !shas.some((sha) => tree(sha) === want);
 		})
 		.map((path) => `${path} names no commit with the same tree as ${head}: verify or review again on this head`);
 	if (prDelivery) {
 		const text = readIfFile(join(taskDir, "evidence", "babysit.md"));
-		const verdicts = [...text.matchAll(/^(?:READY|MERGED)\b.*\(head ([0-9a-f]{12})\)\s*$/gm)].map((m) => m[1]);
-		if (!SKIPPED.test(text) && !verdicts.some((sha) => tree(sha) === want))
-			gaps.push(`evidence/babysit.md holds no pr-state READY or MERGED line for ${head}: paste the pr-state output for this head`);
+		const latest = [...text.matchAll(PR_VERDICT)].filter((m) => tree(m[2]) === want).at(-1)?.[1];
+		if (!WHOLLY_SKIPPED.test(text.trimStart()) && !["READY", "MERGED"].includes(latest))
+			gaps.push(`evidence/babysit.md's latest pr-state line for ${head} is ${latest ?? "missing"}, not READY or MERGED: paste the pr-state output for this head`);
 	}
 	return gaps;
 }
@@ -350,7 +354,7 @@ function reviewCapGaps(taskDir) {
 		const text = readFileSync(join(reviews, name), "utf8");
 		const first = text.split("\n", 1)[0].match(REVIEW_HEAD);
 		if (!first) {
-			if (!SKIPPED.test(text)) gaps.push(`evidence/reviews/${name} does not open with "Head <sha>, round <n>": write that line first, as two-axis-review step 6 says`);
+			if (!WHOLLY_SKIPPED.test(text.trimStart())) gaps.push(`evidence/reviews/${name} does not open with "Head <sha>, round <n>": write that line first, as two-axis-review step 6 says`);
 			continue;
 		}
 		const round = Number(first[2]);
@@ -374,6 +378,8 @@ function staleGaps(taskDir, cwd) {
 	for (const name of existsSync(decisions) ? readdirSync(decisions) : []) {
 		const [, family, n = "1"] = name.match(/^(.+?)(?:-(\d+))?\.md$/) ?? [];
 		const text = family ? readFileSync(join(decisions, name), "utf8") : "";
+		const loose = text.match(LOOSE_COMMIT);
+		if (loose) gaps.push(`decisions/${name} names its document at ${loose[1]}: write the commit SHA, as references/decisions.md says`);
 		const hashed = text.match(HASHED_SUBJECT);
 		const subject = hashed ?? text.match(COMMITTED_SUBJECT);
 		if (subject && GRANTED.test(prose(text)) && (latest.get(family)?.n ?? 0) < Number(n))
