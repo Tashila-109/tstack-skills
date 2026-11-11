@@ -563,6 +563,8 @@ test("check refuses a proof table row whose verdict is failed", () => {
 	assert.equal(check(home, "pf", 1), "ok pf: 1 required file present", "a prose line with pipes is no claim");
 	writeFileSync(join(task, "evidence/verify.md"), "| Claim | Evidence | Verdict | Notes |\n| --- | --- | --- | --- |\n| Saves the note | `evidence/proof/run.txt` | failed | retry later |\n");
 	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves the note/, "the Verdict column counts, not the last one");
+	writeFileSync(join(task, "evidence/verify.md"), "| Claim | Evidence | Verdict |\n| - | - | - |\n| Saves A \\| B | `evidence/proof/run.txt` | failed |\n");
+	assert.throws(() => check(home, "pf", 1), /has a failed claim: Saves A \\\| B/, "a one-hyphen separator and an escaped pipe both count");
 	for (const verdict of ["**failed**", "`failed`", "_Failed_"]) {
 		writeFileSync(join(task, "evidence/verify.md"), table(verdict));
 		assert.throws(() => check(home, "pf", 1), /has a failed claim/, `${verdict} counts as failed`);

@@ -269,9 +269,10 @@ function proofGaps(taskDir, text) {
 	let header = [];
 	let verdict = -1;
 	for (const line of prose(text).split("\n")) {
-		const cells = line.split("|").map((cell) => cell.trim());
+		// An escaped pipe, \|, belongs to its cell.
+		const cells = line.split(/(?<!\\)\|/).map((cell) => cell.trim());
 		const row = cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined);
-		if (row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell))) {
+		if (row.length > 1 && row.every((cell) => /^:?-+:?$/.test(cell))) {
 			const named = header.map(plain).indexOf("verdict");
 			verdict = named >= 0 ? named : row.length - 1;
 		} else if (verdict >= 0 && row.length > 1) {
