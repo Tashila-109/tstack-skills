@@ -109,6 +109,16 @@ test("seat --cross picks the first seat outside the caller's model family", () =
 	assert.throws(() => seat(models, "solo", "herdr", "claude-opus-5-5"), /no "solo" seat outside the claude family/);
 });
 
+test("seat --avoid prefers a seat whose model ran no candidate, then the one that ran the fewest", () => {
+	const models = parseModels("pool: inherit, codex/gpt-6.1-sol@high, pi/openai/gpt-6.1-terra@high, claude/claude-fable-5-2@high, grok/grok-4.7");
+	const model = (avoid) => seat(models, "pool", "standalone", "claude-opus-5-5", avoid)[0].configured;
+	assert.equal(model(undefined), "codex/gpt-6.1-sol@high");
+	assert.equal(model("gpt-6.1-sol"), "pi/openai/gpt-6.1-terra@high");
+	assert.equal(model("gpt-6.1-sol, openai/gpt-6.1-terra"), "grok/grok-4.7");
+	assert.equal(model("gpt-6.1-sol,gpt-6.1-terra,grok-4.7,gpt-6.1-sol,grok-4.7"), "pi/openai/gpt-6.1-terra@high");
+	assert.throws(() => seat(models, "pool", "standalone", undefined, "gpt-6.1-sol"), /--avoid needs --cross/);
+});
+
 test("a project's models file cannot set launch flags, and seats cannot smuggle flags", () => {
 	const { home } = scratch();
 	const globalDir = join(home, "..", "global");

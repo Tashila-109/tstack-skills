@@ -25,10 +25,10 @@ If a candidate produces no output, proceed with N-1 and note the dropout.
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, spawn one readonly judge subagent. The judge is never from your own model family. Take the first seat on the `arena cross-judge pool` role in the tstack models file whose family differs from yours, where a family is the model ID's first word, such as `claude` or `gpt`. An `inherit` seat is your own model, so it never judges. When no seat qualifies, skip the judge, pick the base alone in Phase D, and say so. The judge sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with your reading in Phase D. Don't spawn it while candidates are still writing.
+After all Phase B candidates complete, spawn one readonly judge subagent. The judge is never from your own model family. Resolve it with `tstack.mjs seat "arena cross-judge pool" --runtime <runtime> --cross <your model ID> --avoid <each candidate's model ID>`, as the tstack skill's [dispatch reference](../tstack/references/dispatch.md#seats) says. When it refuses, no seat qualifies: skip the judge, pick the base alone in Phase D, and say so. The judge sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with your reading in Phase D. Don't spawn it while candidates are still writing.
 
-In a tstack task, among the seats from another family, take the first in pool order whose model ran no candidate, so no model scores its own work.
-If every such seat ran one, say so in the synthesis note and take the first whose model wrote the fewest candidates.
+Give `--avoid` one model ID per candidate, comma-separated, so the script prefers a judge whose model ran no candidate and otherwise the one that wrote the fewest.
+When the judge's model ran a candidate, say so in the synthesis note.
 
 ## Phase D: Pick a base
 
