@@ -266,7 +266,7 @@ function proofGaps(taskDir, text) {
 		.split("\n")
 		.map((line) => line.split("|").map((cell) => cell.trim()))
 		.map((cells) => cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined))
-		.filter((cells) => cells.length > 1 && cells.at(-1).toLowerCase() === "failed")
+		.filter((cells) => cells.length > 1 && cells.at(-1).replace(/[*_`~]/g, "").trim().toLowerCase() === "failed")
 		.map((cells) => `has a failed claim: ${cells[0]}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
 	if (SKIPPED.test(text)) return [];
