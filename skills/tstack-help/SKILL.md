@@ -105,7 +105,7 @@ The `principle-*` skills are indexed in the router, and the human steers with th
   `teach` is a different job: a learning workspace over several sessions.
 - `arena` gives every runner the same brief and merges the best parts into one result.
   `swarm` gives each worker its own slice, or races workers, and returns one table.
-- `interrogate` reviews the diff with several models against one rubric.
+- `interrogate` has adversaries on several models try to break the diff, and keeps only findings a run proves.
   `thermo-review` runs two strict reviewers on two model families, one for bugs and security, one for maintainability.
   `blast-radius` looks for breakage outside the diff and proves the one fact that makes the change safe.
 - `recall` rebuilds the human's own context on a topic from recent sessions and the shared record.

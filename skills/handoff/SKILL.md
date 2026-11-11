@@ -38,6 +38,7 @@ These are judgment calls, and the same boundary can go either way.
 ## Write the file
 
 Write to the path [In a tstack task](#in-a-tstack-task) gives, or, outside a task, to a new file in the OS temp directory, never the workspace.
+The temp directory is `$TMPDIR`, else `/tmp`, or `%TEMP%` on Windows.
 Print the path when done.
 If an argument named what the next session will do, shape the file around that.
 

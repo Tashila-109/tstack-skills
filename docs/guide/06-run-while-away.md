@@ -65,11 +65,12 @@ Each item gets its own lead and PR, and those leads report to the coordinator in
 The coordinator asks you their decisions, audits each lead's evidence, and merges the PRs the grant covers one at a time.
 
 ```text
-$tstack build these four changes as a stack. I will land it.
+$tstack autopilot these four changes, but don't merge. I will land them.
 ```
 
-Autopilot-stack builds the same leads into one chain of PRs, each on top of the last, and merges nothing.
-You review the chain bottom up and land it, or ask the coordinator to land it with Shipping.
+Autopilot-stack is Autopilot-full without the merge.
+You get verified PRs, each with its audit verdict, and a PR stacks on another only when it builds on it.
+You review and land them, a stack bottom up, or ask the coordinator to land them with Shipping.
 
 Tell the coordinator to stop at any time.
 It holds every lead: no more commits, pushes or workers until you release it.

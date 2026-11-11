@@ -51,7 +51,7 @@ Without it, ask the human to open a thread in New worktree mode and send the lau
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime t3`.
 2. Read the base branch: the primary checkout's current branch, which must be the default branch with no uncommitted changes.
-   An autopilot-stack link uses the previous link's task branch instead.
+   An autopilot-stack item that builds on another item uses that item's task branch instead.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": false }`;

@@ -34,7 +34,7 @@ Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed he
 
 **Descriptions.** The PR body is a one-minute briefing, not a lab notebook, for a reviewer who has the diff. It says why the change exists, what it leaves out, what it could break, and how you proved it works. Write short, simple sentences with few identifiers, no walls of text. The body becomes the squash commit body, so keep that commit under about 40 lines. Use `##` headings, not bold lead-ins, in this order, and drop a section with nothing to say:
 
-- `## Why`: the problem and approach, 1–3 short sentences. Say the problem as the person who hit it would, not as a list of what changed. No SHAs, rebase genealogy, or "based on main" preamble.
+- `## Why`: the human's goal from the brief, then the problem and approach, 1–3 short sentences. Say the problem as the person who hit it would, not as a list of what changed. No SHAs, rebase genealogy, or "based on main" preamble.
 - `## What changed`: 1–3 short bullets. Name a real symbol or path only when it carries the change. Name both sides of a rename or retarget.
 - `## Scope`: always. 1–3 short items on what it covers and what it deliberately leaves out (a follow-up, a known gap). No symbols, paths, or file-by-file essay.
 - `## Tradeoffs`: only rejected alternatives a reviewer would otherwise ask about. Skip when there was no real choice.

@@ -14,6 +14,7 @@ Each session teaches one lesson the human is ready for, then writes down what ch
 ## Workspace
 
 The current directory is the teaching workspace, for one topic.
+Workspace paths such as `./lessons/` resolve from the directory teach runs in, and only the format links below resolve from this skill's folder.
 Create each file or directory when it first has content.
 
 | Path | Holds | Format |
@@ -73,7 +74,7 @@ A lesson is one self-contained HTML file that teaches one tightly scoped thing t
   End it on one tangible win the human can build on.
 - Teach only the knowledge the target skill needs, then make the human practice it.
 - Give practice a tight feedback loop, immediate and ideally automatic: a quiz, a small in-browser task, or a checklist of real-world steps.
-- Write every quiz answer at the same length and format, so nothing but knowledge picks the right one.
+- Write every quiz answer at the same length and format, and vary which position holds the right one, so nothing but knowledge picks it.
 - Cite a source from `RESOURCES.md` for every claim, and recommend one primary source to read or watch next.
 - Link related lessons and reference documents.
 - Remind the human to bring their questions back to you.

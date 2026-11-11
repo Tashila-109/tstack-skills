@@ -28,6 +28,8 @@ Ask through your harness's structured ask-the-user tool when it has one: `AskUse
 An answer typed under "Other" is the human's words; read it as they wrote it.
 A skipped or declined question settles nothing, so ask it again in the next round.
 
+Word each question so that "yes" accepts your recommended answer.
+
 When the tool is missing from this session, or the harness has none, number each question and give your recommended answer with it, in this format:
 
 ```text
