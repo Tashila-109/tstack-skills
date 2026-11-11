@@ -118,7 +118,7 @@ It ends with `## Remember`, short lessons a later task in this project should kn
 1. Tell the human the outcome from `report.md`: who it is for, what changed for them, how it was proved, what the next maintainer inherits, and the follow-ups.
    Show the proof as [references/proof.md](references/proof.md#show-it) says.
    For `pr` delivery, give the PR's full URL, or say that the task closed before it opened one.
-   A lead that a coordinator launched reports done to it with the head SHA of its task branch, and stops here.
+   A lead that a coordinator launched reports done to it with the head SHA of its task branch, or reports its task closed, and stops here.
 2. A scout, or a task closed by a granted `decisions/close.md`, has nothing to merge, so skip to step 4.
    Otherwise ask whether to merge, unless a grant in `<home>/grants.md` covers this merge.
    To use a grant, check each of its conditions on the head, and quote the grant when you tell the human what merged.
