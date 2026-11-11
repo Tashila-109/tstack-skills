@@ -17,6 +17,8 @@ At the start of a session, read the newest `<home>/handoff/coordinator-*.md` whe
 3. When a lead reports done, run `tstack.mjs check <id> --head <its head SHA>`.
    A refusal goes back to the lead.
    Read `report.md` and the evidence it cites, then audit and merge as the program playbook says.
+   When the human declines the merge, tell the lead to close its task as [decisions.md](decisions.md#close-a-task) says, and wait for its closed report.
+   A lead that reports its task closed has a granted `decisions/close.md` and nothing to merge: run `tstack.mjs check <id>` without `--head`, skip the audit and the merge, record the item as closed with its reason in the program's queue, and go to step 4's lessons.
 4. After each merge, clean up per the runtime reference.
    Read the report's `## Remember` and `## Follow-ups`.
    Add a one-line summary of each lesson worth keeping to `<home>/learnings.md`, in your own words, and tell the human the follow-ups.

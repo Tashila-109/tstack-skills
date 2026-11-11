@@ -40,7 +40,7 @@ Use these sections:
 ```markdown
 # <one-line question>
 
-Kind: question | design-approval | spec-approval | implement-authorization
+Kind: question | design-approval | spec-approval | implement-authorization | close
 Subject: <the path and commit, the path and its SHA-256 for a document kept out of Git, the action, or the head SHA this decision is about>
 
 ## Requirement
@@ -89,6 +89,19 @@ For a document kept out of Git, write its path in backticks followed by its SHA-
 Never answer for the human, and never turn a silence into a grant.
 Record the human's words as they wrote them.
 `tstack.mjs check` refuses a task while a gate its playbook names lacks a `granted` answer.
+
+A `denied` gate stops the work it gates.
+When the human said what to change, revise and open the gate again under its next name, such as `design-2`.
+`tstack.mjs check` reads a gate from its highest-numbered file, so the newest answer decides it.
+Otherwise close the task, as below.
+
+## Close a task
+
+Some tasks end with nothing to merge: the bug no longer reproduces, a gate is denied, the disposition is CLOSE, or the human declines the merge.
+Open a `close` decision named `close`, with the reason and its evidence, and ask the human.
+A close ends this task only. Closing a PR, deleting a branch or anything else outside the task needs the human's word for that action, so name it in the Proposal when you want it.
+When they grant it, write `skip: closed, see decisions/close.md` in every artifact the playbook names that is not finished, whether unwritten or written in part, such as an unanswered gate or a stale `evidence/check-plan.md`, and in `evidence/babysit.md` for `pr` delivery, write `report.md`, and follow the router's Finish.
+Only in a task with a granted `decisions/close.md` does `tstack.mjs check` accept a skip line on a step that delegates, and a gate with a `denied` answer or a skip line, and it stops checking granted documents for later changes, because nothing will merge.
 
 ## For a coordinator's lead
 

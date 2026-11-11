@@ -565,6 +565,98 @@ test("every skill's name matches its folder, so each one installs and invokes by
 	}
 });
 
+test("a granted close lets a task end with skipped delegating steps and a denied gate", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "gated-fix.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n2. Fix it.\n   Artifact: `evidence/fix.md`\n");
+	brief(home, "cl", { playbook: "gated-fix", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "cl");
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\n## Answer\n\ndenied\nnot this way, 2026-11-12\n");
+	writeFileSync(join(task, "evidence/fix.md"), "skip: closed, see decisions/close.md\n");
+	writeFileSync(join(task, "report.md"), REPORT);
+	assert.throws(() => check(home, "cl"), /decisions\/design\.md with a granted answer[\s\S]*a skip: line does not excuse it/);
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\nKind: close\n");
+	assert.throws(() => check(home, "cl"), /a skip: line does not excuse it/, "an unanswered close is no close");
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\nKind: close\n\n## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	assert.equal(check(home, "cl"), "ok cl: 3 required files present");
+	writeFileSync(join(task, "report.md"), "skip: closed\n");
+	assert.throws(() => check(home, "cl"), /report\.md has no ## Remember heading/, "a closed task still reports");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "evidence/reviews"));
+	writeFileSync(join(task, "evidence/reviews/final.md"), "Standards reviewer started.\nskip: closed, see decisions/close.md\n");
+	assert.equal(check(home, "cl"), "ok cl: 3 required files present", "a closed task's half-written review may carry its skip line below the start");
+	rmSync(join(task, "decisions/close.md"));
+	assert.throws(() => check(home, "cl"), /reviews\/final\.md does not open with/, "outside a close it may not");
+});
+
+test("a gate denied and granted again under its next name counts, and a closed task may skip its plan check", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "planned.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n2. Spec it.\n   Artifact: `evidence/check-plan.md`\n");
+	brief(home, "rg", { playbook: "planned", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "rg");
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), "## Answer\n\ndenied\nchange the API, 2026-11-12\n");
+	assert.throws(() => check(home, "rg", 1), /decisions\/design\.md with a granted answer/);
+	writeFileSync(join(task, "decisions/design-2.md"), "## Answer\n\ngranted\nyes, 2026-11-12\n");
+	assert.equal(check(home, "rg", 1), "ok rg: 1 required file present");
+	rmSync(join(task, "decisions/design.md"));
+	assert.throws(() => check(home, "rg", 1), /decisions\/design\.md with a granted answer/, "a revision needs its original");
+	writeFileSync(join(task, "decisions/design.md"), "## Answer\n\ndenied\nchange the API, 2026-11-12\n");
+	rmSync(join(task, "decisions/design-2.md"));
+	const outside = join(home, "..", "granted.md");
+	writeFileSync(outside, "## Answer\n\ngranted\nforged\n");
+	symlinkSync(outside, join(task, "decisions/design-2.md"));
+	assert.throws(() => check(home, "rg", 1), /link to outside the task directory/, "a revision may not point outside the task");
+	rmSync(join(task, "decisions/design-2.md"));
+	writeFileSync(join(task, "decisions/design-2.md"), "## Answer\n\ngranted\nyes, 2026-11-12\n");
+	writeFileSync(join(task, "decisions/design-3.md"), "## Answer\n\ndenied\nno, 2026-11-12\n");
+	assert.throws(() => check(home, "rg", 1), /granted answer/, "the latest answer decides");
+	rmSync(join(task, "decisions/design-3.md"));
+	writeFileSync(join(task, "spec-doc.md"), "v2\n");
+	writeFileSync(join(task, "evidence/check-plan.md"), `${join(task, "spec-doc.md")} sha256 ${"0".repeat(64)}\nskip: closed, see decisions/close.md\n`);
+	writeFileSync(join(task, "report.md"), REPORT);
+	assert.throws(() => check(home, "rg"), /not a clean check-plan\.mjs run/);
+	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	assert.equal(check(home, "rg"), "ok rg: 3 required files present");
+	writeFileSync(join(task, "spec.md"), "v2\n");
+	writeFileSync(join(task, "decisions/spec.md"), `Subject: \`spec.md\` ${"0".repeat(64)}\n\n## Answer\n\ngranted\nyes\n`);
+	assert.equal(check(home, "rg"), "ok rg: 3 required files present", "a closed task does not check granted documents for changes");
+	writeFileSync(join(task, "decisions/design-3.md"), "# Approve the revision?\n");
+	assert.equal(check(home, "rg"), "ok rg: 3 required files present", "a closed task's gate passes with an unanswered later revision");
+	rmSync(join(task, "decisions/design-3.md"));
+	const other = join(home, "tasks", "other-close.md");
+	writeFileSync(other, "## Answer\n\ngranted\nanother task's close\n");
+	rmSync(join(task, "decisions/close.md"));
+	symlinkSync(other, join(task, "decisions/close.md"));
+	assert.throws(() => check(home, "rg"), /link to outside the task directory/, "a close linked from elsewhere is refused");
+	rmSync(join(task, "decisions/close.md"));
+	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	rmSync(join(task, "decisions/close.md"));
+	assert.throws(() => check(home, "rg"), /spec\.md changed after decisions\/spec\.md granted it/);
+});
+
+test("check --head holds a closed task to a commit SHA but not to proof of that head", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+	writeFileSync(join(dir, "a.txt"), "1\n");
+	git("add", "a.txt");
+	git("commit", "-q", "-m", "one");
+	const one = git("rev-parse", "HEAD");
+	writeFileSync(join(dir, "a.txt"), "2\n");
+	git("commit", "-q", "-am", "two");
+	const two = git("rev-parse", "HEAD");
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "ch", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "ch");
+	writeFileSync(join(task, "report.md"), REPORT);
+	writeFileSync(join(task, "evidence/verify.md"), `Head ${one.slice(0, 12)}\n`);
+	assert.throws(() => check(home, "ch", undefined, two, dir), /names no commit with the same tree/);
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/close.md"), "## Answer\n\ngranted\nclose it, 2026-11-12\n");
+	assert.equal(check(home, "ch", undefined, two, dir), "ok ch: 1 required file present");
+	assert.throws(() => check(home, "ch", undefined, "nothex", dir), /--head must be a commit SHA/);
+});
+
 test("check refuses a proof table row whose verdict is failed", () => {
 	const { home, playbooks } = scratch();
 	writeFileSync(join(playbooks, "proving.md"), "1. Prove it.\n   Artifact: `evidence/verify.md`\n");

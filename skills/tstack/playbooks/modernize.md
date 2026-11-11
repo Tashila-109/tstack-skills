@@ -27,8 +27,8 @@ Bring the base in by merge, so every push fast-forwards the PR's branch.
    Age alone is not evidence, and sunk effort is no reason to keep a PR alive.
    Write the disposition, its reason and its evidence to `evidence/disposition.md`.
    For REWORK, write the smallest credible rewrite there too.
-   On REWORK or CLOSE, open a decision as [decisions](../references/decisions.md) says and stop until the human answers, because rewriting or closing someone's PR is their call.
-   On an approved CLOSE, post the reason as a PR comment from a file, as babysit step 8 says, then run `gh pr close <pr>`, and mark steps 4 to 7 `skip: closed on the human's word`.
+   On REWORK, open a decision as [decisions](../references/decisions.md) says, and on CLOSE a `close` decision as its [Close a task](../references/decisions.md#close-a-task) says, naming closing the PR in its Proposal, and stop until the human answers, because rewriting or closing someone's PR is their call.
+   On an approved CLOSE, post the reason as a PR comment from a file, as babysit step 8 says, then run `gh pr close <pr>`, and mark steps 4 to 7 with the close's skip line.
    Write the same skip line to `evidence/babysit.md`, and at Finish report the close instead of asking to merge, because nothing is left to merge.
    Artifact: `evidence/disposition.md`
 4. Bring the base in.

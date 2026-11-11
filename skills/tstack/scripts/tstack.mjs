@@ -34,6 +34,7 @@ const WHOLLY_SKIPPED = /^\s*skip:\s*\S/;
 const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{12})\)\s*$/gm;
 const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
+const ANSWERED_OR_DENIED = /^##\s+Answer\s*\n+\s*(granted|answered|denied)\b/im;
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
@@ -243,10 +244,13 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		wanted.push({ step: "final report", path: "report.md" });
 	}
 	const problems = [];
+	// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines.
+	const closed = GRANTED.test(prose(readIfFile(insideTask(taskDir, "decisions/close.md"))));
 	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
-		if (path.startsWith("decisions/") ? !GRANTED.test(prose(text)) : !text.trim())
+		if (closed && path !== "report.md" && text.trim() && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))))) continue;
+		if (path.startsWith("decisions/") ? !GRANTED.test(prose(latestDecision(taskDir, path, text))) : !text.trim())
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
@@ -254,10 +258,22 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
-	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, task.delivery === "pr" && through === undefined));
-	problems.push(...reviewCapGaps(taskDir), ...staleGaps(taskDir, cwd));
+	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, task.delivery === "pr" && through === undefined, closed));
+	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
+}
+
+// A gate denied and reopened as <name>-2, -3 and so on is decided by its highest-numbered file.
+function latestDecision(taskDir, path, text) {
+	const name = path.match(/^decisions\/([a-z0-9][a-z0-9-]*?)\.md$/)?.[1];
+	const dir = join(taskDir, "decisions");
+	if (!name || !existsSync(dir) || !text.trim()) return text;
+	const later = readdirSync(dir)
+		.map((f) => ({ f, n: Number(f.match(new RegExp(`^${name}-(\\d+)\\.md$`))?.[1] ?? 0) }))
+		.filter((d) => d.n > 1)
+		.sort((a, b) => b.n - a.n)[0];
+	return later ? readIfFile(insideTask(taskDir, `decisions/${later.f}`)) : text;
 }
 
 function proofGaps(taskDir, text) {
@@ -310,7 +326,7 @@ function reportGaps(text) {
 
 // Each review or proof must name a commit whose tree is the head's, so a later commit cannot ride on old evidence.
 // A file that only records a skipped step, such as a closed PR's verify, holds a skip: line and names no commit.
-function headGaps(taskDir, head, cwd, prDelivery) {
+function headGaps(taskDir, head, cwd, prDelivery, closed) {
 	const tree = (rev) => {
 		try {
 			return execFileSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{tree}`], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -320,6 +336,8 @@ function headGaps(taskDir, head, cwd, prDelivery) {
 	};
 	const want = /^[0-9a-f]{7,40}$/.test(head) ? tree(head) : "";
 	if (!want) throw new Refusal(`--head must be a commit SHA in ${cwd}: ${head}`);
+	// A closed task merges nothing, so its proof, review and PR state need not describe the head.
+	if (closed) return [];
 	const gaps = [PROOF, "evidence/reviews/final.md"]
 		.filter((path) => existsSync(join(taskDir, path)))
 		.filter((path) => {
@@ -355,7 +373,7 @@ function workerGaps(taskDir) {
 		.map((name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`);
 }
 
-function reviewCapGaps(taskDir) {
+function reviewCapGaps(taskDir, closed) {
 	const reviews = join(taskDir, "evidence", "reviews");
 	if (!existsSync(reviews)) return [];
 	const decisions = join(taskDir, "decisions");
@@ -369,7 +387,8 @@ function reviewCapGaps(taskDir) {
 		const text = readFileSync(join(reviews, name), "utf8");
 		const first = text.split("\n", 1)[0].match(REVIEW_HEAD);
 		if (!first) {
-			if (!WHOLLY_SKIPPED.test(text.trimStart())) gaps.push(`evidence/reviews/${name} does not open with "Head <sha>, round <n>": write that line first, as two-axis-review step 6 says`);
+			// A closed task's half-written review may carry its skip line below the start.
+			if (!(closed ? SKIPPED : WHOLLY_SKIPPED).test(text.trimStart())) gaps.push(`evidence/reviews/${name} does not open with "Head <sha>, round <n>": write that line first, as two-axis-review step 6 says`);
 			continue;
 		}
 		const round = Number(first[2]);
@@ -386,7 +405,7 @@ function sha256(path) {
 	return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
-function staleGaps(taskDir, cwd) {
+function staleGaps(taskDir, cwd, closed) {
 	const gaps = [];
 	const decisions = join(taskDir, "decisions");
 	const latest = new Map();
@@ -400,7 +419,7 @@ function staleGaps(taskDir, cwd) {
 		if (subject && GRANTED.test(prose(text)) && (latest.get(family)?.n ?? 0) < Number(n))
 			latest.set(family, { n: Number(n), name, path: subject[1], ...(hashed ? { hash: subject[2] } : { commit: subject[2] }) });
 	}
-	for (const { name, path, hash, commit } of latest.values()) {
+	for (const { name, path, hash, commit } of closed ? [] : latest.values()) {
 		if (commit) {
 			gaps.push(...committedGaps(cwd, name, path, commit));
 			continue;
@@ -411,9 +430,11 @@ function staleGaps(taskDir, cwd) {
 	}
 	const checked = join(taskDir, "evidence", "check-plan.md");
 	const spec = existsSync(checked) ? readFileSync(checked, "utf8").match(CHECKED_SPEC) : null;
-	if (spec && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
+	const run = readIfFile(checked);
+	const skippedRun = closed && SKIPPED.test(run);
+	if (spec && !skippedRun && existsSync(spec[1]) && sha256(spec[1]) !== spec[2])
 		gaps.push(`evidence/check-plan.md checked an older ${spec[1]}: run check-plan.mjs again and save its output`);
-	if (existsSync(checked) && !/^\d+ phase sections?, 0 problems$/m.test(readFileSync(checked, "utf8")))
+	if (existsSync(checked) && !skippedRun && !/^\d+ phase sections?, 0 problems$/m.test(run))
 		gaps.push("evidence/check-plan.md is not a clean check-plan.mjs run: fix every problem and save the output that ends in 0 problems");
 	return gaps;
 }
