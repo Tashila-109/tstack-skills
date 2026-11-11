@@ -497,6 +497,11 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 		/^BLOCKER conflicts: merge the base branch in; review-threads: 1 unresolved: PRRT_a a\.js:3 \(head/,
 		"a threads-only pass gets the IDs without fixing the conflict",
 	);
+	assert.match(
+		prVerdict(pr({ isDraft: true, reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [{ id: "PRRT_a", isResolved: true }] } }), now),
+		/^BLOCKER draft: mark it ready; review-threads: 0 unresolved in the first 100, and more to read on GitHub \(head/,
+		"an early blocker says when threads were cut off",
+	);
 	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
 	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
 	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");
