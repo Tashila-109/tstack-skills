@@ -781,6 +781,8 @@ test("an away grant lets the lead take its recommendation on a question until th
 	assert.throws(() => check(home, "away"), /decisions\/design\.md is a design-approval decision, which waits for the human/);
 	decide("design.md", "design-approval", "granted\nApprove it, under `decisions/away.md`, 2026-11-21");
 	assert.throws(() => check(home, "away"), /design-approval decision, which waits for the human/, "a gate granted under the away grant is the lead answering for the human");
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\nKind: design-approval\n\n## ANSWER\n\ngranted\nApprove it, under `decisions/away.md`, 2026-11-21\n");
+	assert.throws(() => check(home, "away"), /design-approval decision, which waits for the human/, "an uppercase heading is still the answer");
 	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ntaken\nclose it, 2026-11-21\n");
 	assert.throws(() => check(home, "away"), /decisions\/close\.md is a decision with no Kind line/);
 	rmSync(join(task, "decisions/design.md"));

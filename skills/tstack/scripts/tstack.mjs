@@ -405,7 +405,7 @@ function reviewCapGaps(taskDir, closed) {
 
 // The bodies of every `## <heading>` section, joined, or undefined when the markdown has none.
 function sections(markdown, heading) {
-	const parts = markdown.split(/^(?=##\s)/m).filter((part) => new RegExp(`^##\\s+${heading}\\s*$`).test(part.split("\n", 1)[0]));
+	const parts = markdown.split(/^(?=##\s)/m).filter((part) => new RegExp(`^##\\s+${heading}\\s*$`, "i").test(part.split("\n", 1)[0]));
 	return parts.length ? parts.map((part) => part.slice(part.indexOf("\n") + 1)).join("\n") : undefined;
 }
 
