@@ -11,7 +11,7 @@ Brief it as a scout when the charts stay in the task folder, and as a ship task 
    Write each chart's reader, question and Mermaid type to `evidence/frame.md`, and say whether each one is a code or a design chart and whether it goes in the repo.
    Artifact: `evidence/frame.md`
 2. **Map.** Find the parts and flows that answer each question, with the file and line of each.
-   For a large system, delegate the reading on the `how explorer` seat, one worker per area, each returning its parts and flows with `path:line` citations.
+   For a large system, delegate the reading on the `explorer` seat, one worker per area, each returning its parts and flows with `path:line` citations.
    For a design chart, map the existing code it builds on.
    Write the map to `evidence/map.md`, and name the commit you read it at.
    Artifact: `evidence/map.md`

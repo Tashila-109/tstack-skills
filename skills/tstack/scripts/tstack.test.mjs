@@ -281,7 +281,7 @@ test("a models file refuses a malformed line and a role named twice", () => {
 test("the tstack-setup template is a complete, valid models file", () => {
 	const setup = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8");
 	const template = parseModels(setup.match(/```text\n(# tstack models[\s\S]*?)```/)[1]);
-	for (const role of ["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
+	for (const role of ["arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
 		assert.ok(new Set(seat(template, role, "t3").map((s) => s.model.split("/").pop().split("-")[0])).size >= 2, role);
 });
 

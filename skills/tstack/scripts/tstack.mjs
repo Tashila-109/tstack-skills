@@ -478,7 +478,7 @@ export function parseModels(text) {
 	return lines;
 }
 
-const PANELS = new Set(["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"]);
+const PANELS = new Set(["arena runners", "arena cross-judge pool", "interrogate reviewers", "review"]);
 
 function templateRoles() {
 	const path = join(SKILL_DIR, "..", "tstack-setup", "SKILL.md");

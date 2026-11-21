@@ -66,7 +66,7 @@ The lead writes code itself only for a review repair that the next review covers
 
 ## Clean before delivery
 
-Bug fix, Feature, Refactoring, Figure it out and Orchestrate end with Opening a PR, which runs the cleanup whatever the delivery mode:
+Bug fix, Feature, Refactoring and Figure it out end with Opening a PR, which runs the cleanup whatever the delivery mode:
 - unneeded code comes out: narrating comments, unsupported guards, dead compatibility paths, and unrelated edits;
 - `no-comments` hands the comments to a separate reviewer, Comment Sicko, who keeps only what code cannot say;
 - `technical-writing` and `unslop` shape the commit messages and the PR description.

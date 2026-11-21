@@ -40,7 +40,7 @@ Use these sections:
 ```markdown
 # <one-line question>
 
-Kind: question | design-approval | spec-approval | implement-authorization | close
+Kind: question | design-approval | spec-approval | close
 Subject: <the path and commit, the path and its SHA-256 for a document kept out of Git, the action, or the head SHA this decision is about>
 
 ## Requirement
@@ -61,7 +61,7 @@ Your pick, and why it best serves the accepted intent.
 
 Then ask the human, as [Ask the human](#ask-the-human) says.
 
-Gates come in order: `design-approval` before `spec-approval`, and both before `implement-authorization`.
+Gates come in order: `design-approval` before `spec-approval`.
 A gate covers its subject as it was when you opened it.
 After a grant, a changed design or spec is a new decision under a new name, such as `design-2`, and the gates after it follow again.
 Write the Subject of a committed document as its path from the repository root in backticks, then `at` and the SHA, 7 to 40 hex characters, of the commit that holds the version you ask about, never a name such as `HEAD`.
