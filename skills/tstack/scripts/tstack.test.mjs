@@ -544,6 +544,9 @@ test("pr-state blocks on a base that moved in this PR's files, and counts the re
 	assert.match(prVerdict(fixturePr(), now, [], { ...elsewhere, count: 300 }), /^BLOCKER base-moved: .* changes more files than pr-state reads;/, "a cut-off compare cannot rule out this PR's files");
 	const manyFiles = { files: { ...PR_FIXTURE.pullRequest.files, pageInfo: { hasNextPage: true } } };
 	assert.match(prVerdict(fixturePr([], manyFiles), now, [], elsewhere), /^BLOCKER base-moved/, "nor can a PR with more files than pr-state reads");
+	const renamed = fixturePr();
+	renamed.files = { pageInfo: { hasNextPage: false }, nodes: [{ path: "src/new-name.js", changeType: "RENAMED" }] };
+	assert.match(prVerdict(renamed, now, [], elsewhere), /^BLOCKER base-moved: .*renames a file whose old path GitHub does not report/, "a base change to a renamed file's old path is invisible, so it blocks");
 	assert.match(prVerdict(fixturePr([], { mergeable: "CONFLICTING" }), now, [], shared), /^BLOCKER conflicts/, "a conflict is the more specific cause");
 	assert.match(prVerdict(fixturePr([], { mergeStateStatus: "BEHIND" }), now, [], elsewhere), /^BLOCKER behind-base/, "a branch rule can still ask for an up-to-date branch");
 	assert.equal(prVerdict({ ...fixturePr(), state: "MERGED" }, now), "MERGED (head c3c3c3c3c3c3)");

@@ -629,7 +629,7 @@ const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
     __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
   reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { id isResolved path line } }
-  files(first: 100) { pageInfo { hasNextPage } nodes { path } }
+  files(first: 100) { pageInfo { hasNextPage } nodes { path changeType } }
   comments(last: 1) { nodes { createdAt } }
   reviews(last: 100) { nodes { id submittedAt body author { __typename login } commit { oid } reactionGroups { viewerHasReacted } } }
 } } }`;
@@ -693,9 +693,15 @@ export function prVerdict(pr, now = Date.now(), required = [], base) {
 	if (base?.behind) {
 		const mine = new Set((pr.files?.nodes ?? []).map((f) => f.path));
 		const shared = [...new Set(base.files.filter((f) => mine.has(f)))];
+		// GitHub gives a renamed file's new path only, so a base change to its old path cannot be seen: block on any base change.
+		const renamed = base.files.length > 0 && (pr.files?.nodes ?? []).some((f) => f.changeType === "RENAMED");
 		const unread = base.count >= COMPARE_FILES || (base.count > 0 && pr.files?.pageInfo?.hasNextPage);
-		const which = shared.length ? `files this PR changes: ${shared.slice(0, 5).join(", ")}${shared.length > 5 ? ` and ${shared.length - 5} more` : ""}` : "more files than pr-state reads";
-		if (shared.length || unread)
+		const which = shared.length
+			? `files this PR changes: ${shared.slice(0, 5).join(", ")}${shared.length > 5 ? ` and ${shared.length - 5} more` : ""}`
+			: unread
+				? "more files than pr-state reads"
+				: "files, and this PR renames a file whose old path GitHub does not report";
+		if (shared.length || unread || renamed)
 			return say("BLOCKER", `base-moved: ${pr.baseRefName} is ${plural(base.behind, "commit")} ahead and changes ${which}; merge it in and run the proof again`);
 	}
 	const commit = pr.commits?.nodes?.[0]?.commit;
