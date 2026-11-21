@@ -9,7 +9,7 @@ On 2026-10-29 these ran live on a trial project: launches with a `clientRequestI
 On 2026-11-01, on T3 Code 0.1.6-nightly.20261031, `html_preview` drew a chart page from `chart.mjs render --theme t3` in the thread's dark and light colors with no console errors, and `html_render` showed it.
 On 2026-11-03, on T3 Code 0.1.7-nightly.20261103.4119, a lead ran the charting playbook live on a trial project. It ran `chart.mjs check`, a verify worker reviewed the citations, the lead rendered and showed the `--theme t3` page, and a chart committed in a PR passed `stale` until a cited file changed.
 On 2026-11-02 a heartbeat run fired live in a coordinator's thread, an hour after the human interrupted its program, and the coordinator then deleted it.
-That run's T3 version was not recorded.
+That run's T3 version was not recorded, so a heartbeat run still needs a live run on a recorded version before it counts as measured.
 The surface tools, history, hold and worker cancellation follow T3's own tool definitions, and have not yet run in a live task.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
