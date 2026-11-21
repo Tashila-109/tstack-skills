@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, status, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -754,4 +754,102 @@ test("every command refuses a flag it does not take", () => {
 	assert.throws(() => main(["brief", "t1", "--playbook", "plain", "--goal", "g", "--finish", "f", "--deliver", "pr"]), /brief takes no --deliver; its flags are --playbook, --goal, --finish, --kind, --delivery/);
 	assert.throws(() => main(["check", "t1", "--trough", "1"]), /check takes no --trough/);
 	assert.throws(() => main(["home", "--verbose", "1"]), /home takes no --verbose; its flags are none/);
+});
+
+test("status lists every task's step, what waits on the human, finished workers nobody cited, held programs and size", () => {
+	const { home, playbooks } = scratch();
+	assert.equal(status(home), `0 tasks under ${join(home, "tasks")}`);
+	brief(home, "beta", { playbook: "sample", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
+	brief(home, "alpha", { playbook: "sample", goal: "g", finish: "f", kind: "scout", playbooksDir: playbooks });
+	const task = join(home, "tasks", "beta");
+	for (const d of ["briefs", "results", "decisions", "evidence/reviews"]) mkdirSync(join(task, d), { recursive: true });
+	writeFileSync(join(task, "evidence/grounding.md"), "traced\n");
+	writeFileSync(join(task, "evidence/design.md"), "pick A\n");
+	for (const name of ["fix", "review", "fenced", "late", "running"]) writeFileSync(join(task, "briefs", `${name}.md`), "GOAL x\n");
+	writeFileSync(join(task, "results/fix.md"), "changed a.js\nDONE fixed\n");
+	writeFileSync(join(task, "results/review.md"), "BLOCKED needs a key\n");
+	writeFileSync(join(task, "results/fenced.md"), "FAILED broke\n");
+	writeFileSync(join(task, "results/late.md"), "DONE first\nFAILED rerun\n");
+	writeFileSync(join(task, "results/running.md"), "half written\n");
+	writeFileSync(join(task, "evidence/dispatch.md"), "Result `results/fix.md`.\n\n```text\nresults/fenced.md\n```\n");
+	writeFileSync(join(task, "evidence/reviews/final.md"), "Head abc1234, round 1\n\nresults/review.md\n");
+	writeFileSync(join(task, "decisions/merge.md"), "# Merge PR #3?\n\nKind: question\n");
+	writeFileSync(join(task, "decisions/fenced.md"), "# Fenced answer?\n\n```text\n## Answer\n\ngranted\n```\n");
+	writeFileSync(join(task, "decisions/scope.md"), "# Widen scope?\n\n## Answer\n\nanswered\nno, 2026-11-21\n");
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\n## Answer\n\ndenied\nnot yet, 2026-11-21\n");
+	writeFileSync(join(task, "heartbeat.txt"), "sched-123\n");
+	writeFileSync(join(task, "evidence/big.bin"), Buffer.alloc(2 * 1024 * 1024));
+	mkdirSync(join(home, "tasks", "stray"));
+	mkdirSync(join(home, "tasks", "Odd_Name"));
+	writeFileSync(
+		join(home, "autopilot-fixes.md"),
+		"# Queue\n\n| # | Task | State |\n| --- | --- | --- |\n| 1 | `alpha` | **held**: the human stopped it, 2026-11-03 |\n| 2 | beta | waiting |\n| 3 | gamma | merged #4 |\n",
+	);
+	writeFileSync(join(home, "autopilot-fixes-heartbeat.txt"), "sched-9\n");
+	writeFileSync(join(home, "autopilot-notes.md"), "No table yet.\n");
+	const lines = status(home).split("\n");
+	assert.equal(lines[0], `4 tasks under ${join(home, "tasks")}`);
+	assert.equal(lines[1], "Odd_Name: not a task ID");
+	lines.splice(1, 1);
+	assert.match(lines[1], /^alpha: sample, scout, local-only, created \d{4}-\d\d-\d\d, no step reached, \d+(\.\d)? (B|KB)$/);
+	assert.deepEqual(lines.slice(2), [
+		"  held: autopilot-fixes.md says **held**: the human stopped it, 2026-11-03",
+		lines[3],
+		"  open decision: decisions/fenced.md: Fenced answer?",
+		"  open decision: decisions/merge.md: Merge PR #3?",
+		"  finished workers no evidence file cites: 2, which status beta lists",
+		"  briefs with no verdict yet: 1, which status beta lists",
+		"  heartbeat: sched-123",
+		"stray: no task.json",
+		"program autopilot-fixes.md: 3 items, 1 held, 1 waiting, 1 merged, heartbeat sched-9",
+		"  held: alpha: **held**: the human stopped it, 2026-11-03",
+		"program autopilot-notes.md: no queue table with a State column",
+	]);
+	assert.match(lines[3], /^beta: sample, ship, pr, created \d{4}-\d\d-\d\d, step 1 of 3 reached, 2\.0 MB$/, "step 2 still lacks evidence/alternatives.md");
+	writeFileSync(join(task, "evidence/alternatives.md"), "A, B\n");
+	writeFileSync(join(task, "report.md"), REPORT);
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ngranted\nclose it, 2026-11-21\n");
+	assert.match(status(home), /^beta: .*, step 2 of 3 reached, report written, closed, 2\.0 MB$/m);
+});
+
+test("status <id> shows one task's steps and lists every item", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "one", { playbook: "sample", goal: "make it work", finish: "tests pass", playbooksDir: playbooks });
+	const task = join(home, "tasks", "one");
+	mkdirSync(join(task, "briefs"));
+	mkdirSync(join(task, "results"));
+	writeFileSync(join(task, "evidence/grounding.md"), "traced\n");
+	writeFileSync(join(task, "evidence/alternatives.md"), "A, B\n");
+	writeFileSync(join(task, "briefs/fix.md"), "GOAL x\n");
+	writeFileSync(join(task, "results/fix.md"), "DONE fixed\n");
+	writeFileSync(join(task, "briefs/probe.md"), "GOAL y\n");
+	writeFileSync(join(home, "autopilot-q.md"), "| Task | State |\n| --- | --- |\n| one | held: stopped by the human, 2026-11-21 |\n");
+	const lines = status(home, "one").split("\n");
+	assert.match(lines[1], /^playbook: sample, ship, local-only delivery, created \d{4}-\d\d-\d\d$/);
+	assert.match(lines[4], /^size: \d+(\.\d)? (B|KB)$/);
+	assert.deepEqual([lines[0], lines[2], lines[3], ...lines.slice(5)], [
+		"task one",
+		"goal: make it work",
+		"finish: tests pass",
+		"step 1 done: Ground the change.",
+		"step 2 missing evidence/design.md: Design it.",
+		"step 3 names no artifact: Ship it.",
+		"reached: step 1 of 3",
+		"report: not written",
+		"closed: no",
+		"held: 1",
+		"  autopilot-q.md says held: stopped by the human, 2026-11-21",
+		"open decisions: none",
+		"finished workers no evidence file cites: 1",
+		"  results/fix.md ends DONE",
+		"briefs with no verdict yet: 1",
+		"  briefs/probe.md",
+		"heartbeat: none",
+	]);
+	writeFileSync(join(task, "evidence/dispatch.md"), "Brief `briefs/fix.md`, result `results/fix.md`.\n");
+	assert.match(status(home, "one"), /^finished workers no evidence file cites: none$/m, "a citation under evidence/ collects it");
+	assert.throws(() => status(home, "missing"), /no task missing at/);
+	assert.throws(() => status(home, "../one"), /task id must match/);
+	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);
+	assert.throws(() => main(["status", "--verbose", "1"]), /status takes no --verbose; its flags are none/);
 });

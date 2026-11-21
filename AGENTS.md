@@ -9,7 +9,7 @@ Read [README.md](README.md) to install and use it, and [docs/concepts.md](docs/c
 skills/tstack/              the router: roles, rules, intake table, principles index
   playbooks/                one file per kind of work
   references/               dispatch rules, the coordinator, the T3, Herdr and standalone runtimes, the worker preamble
-  scripts/                  tstack.mjs (home, brief, check, seat, check-seats, pr-state, exclude, link-skills) and check-plan.mjs, with tests beside them
+  scripts/                  tstack.mjs (home, brief, check, status, seat, check-seats, pr-state, exclude, link-skills) and check-plan.mjs, with tests beside them
 skills/tstack-setup/        project setup and the models file template
 skills/chart/               the chart skill, its themes, and chart.mjs (check, render, stale), which fetches its renderer into ~/.tstack/cache on first use
 skills/<name>/              every other skill; agents/openai.yaml, on each skill marked disable-model-invocation, keeps Codex from invoking it on its own
