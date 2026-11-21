@@ -787,7 +787,8 @@ test("status lists every task's step, what waits on the human, finished workers 
 	);
 	writeFileSync(join(home, "autopilot-fixes-heartbeat.txt"), "sched-9\n");
 	writeFileSync(join(home, "autopilot-notes.md"), "No table yet.\n");
-	const lines = status(home).split("\n");
+	assert.doesNotMatch(status(home), /\d (B|KB|MB)$/m, "size is opt-in, because walking a large task folder is slow");
+	const lines = status(home, undefined, true).split("\n");
 	assert.equal(lines[0], `4 tasks under ${join(home, "tasks")}`);
 	assert.equal(lines[1], "Odd_Name: not a task ID");
 	lines.splice(1, 1);
@@ -809,7 +810,7 @@ test("status lists every task's step, what waits on the human, finished workers 
 	writeFileSync(join(task, "evidence/alternatives.md"), "A, B\n");
 	writeFileSync(join(task, "report.md"), REPORT);
 	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ngranted\nclose it, 2026-11-21\n");
-	assert.match(status(home), /^beta: .*, step 2 of 3 reached, report written, closed, 2\.0 MB$/m);
+	assert.match(status(home, undefined, true), /^beta: .*, step 2 of 3 reached, report written, closed, 2\.0 MB$/m);
 });
 
 test("status <id> shows one task's steps and lists every item", () => {
@@ -824,7 +825,8 @@ test("status <id> shows one task's steps and lists every item", () => {
 	writeFileSync(join(task, "results/fix.md"), "DONE fixed\n");
 	writeFileSync(join(task, "briefs/probe.md"), "GOAL y\n");
 	writeFileSync(join(home, "autopilot-q.md"), "| Task | State |\n| --- | --- |\n| one | held: stopped by the human, 2026-11-21 |\n");
-	const lines = status(home, "one").split("\n");
+	assert.doesNotMatch(status(home, "one"), /^size:/m);
+	const lines = status(home, "one", true).split("\n");
 	assert.match(lines[1], /^playbook: sample, ship, local-only delivery, created \d{4}-\d\d-\d\d$/);
 	assert.match(lines[4], /^size: \d+(\.\d)? (B|KB)$/);
 	assert.deepEqual([lines[0], lines[2], lines[3], ...lines.slice(5)], [
@@ -851,5 +853,5 @@ test("status <id> shows one task's steps and lists every item", () => {
 	assert.throws(() => status(home, "missing"), /no task missing at/);
 	assert.throws(() => status(home, "../one"), /task id must match/);
 	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);
-	assert.throws(() => main(["status", "--verbose", "1"]), /status takes no --verbose; its flags are none/);
+	assert.throws(() => main(["status", "--verbose", "1"]), /status takes no --verbose; its flags are --size/);
 });

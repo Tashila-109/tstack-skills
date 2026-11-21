@@ -524,7 +524,7 @@ function programs(home) {
 	});
 }
 
-function taskFacts(home, queues, id) {
+function taskFacts(home, queues, id, sized) {
 	const taskDir = join(home, "tasks", id);
 	const task = readTask(taskDir);
 	const text = (path) => readIfFile(insideTask(taskDir, path));
@@ -550,14 +550,14 @@ function taskFacts(home, queues, id) {
 			.map(({ name, verdict }) => `results/${name} ends ${verdict}`),
 		running: unfinishedBriefs(taskDir).map((name) => `briefs/${name}`),
 		heartbeat: firstLine(text("heartbeat.txt")),
-		size: humanSize(diskSize(taskDir)),
+		size: sized ? humanSize(diskSize(taskDir)) : undefined,
 	};
 }
 
 function summaryLine(f) {
 	const reached = f.reached ? `step ${f.reached} of ${f.steps.length} reached` : "no step reached";
 	const created = f.task.created?.slice(0, 10) ?? "unknown";
-	return [f.task.playbook, f.task.kind, f.task.delivery, `created ${created}`, reached, ...(f.report ? ["report written"] : []), ...(f.closed ? ["closed"] : []), f.size].join(", ");
+	return [f.task.playbook, f.task.kind, f.task.delivery, `created ${created}`, reached, ...(f.report ? ["report written"] : []), ...(f.closed ? ["closed"] : []), ...(f.size ? [f.size] : [])].join(", ");
 }
 
 const UNCOLLECTED = "finished workers no evidence file cites";
@@ -575,20 +575,20 @@ function queueLines(q) {
 }
 
 // Each task's progress, what waits on the human, and what waits to be collected, so a lead or coordinator can answer "where are we?".
-export function status(home, id) {
+export function status(home, id, sized = false) {
 	const queues = programs(home);
 	if (id !== undefined) {
 		if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
 		const taskDir = join(home, "tasks", id);
 		if (!existsSync(join(taskDir, "task.json"))) throw new Refusal(`no task ${id} at ${taskDir}`);
-		const f = taskFacts(home, queues, id);
+		const f = taskFacts(home, queues, id, sized);
 		const list = (label, items) => [`${label}: ${items.length || "none"}`, ...items.map((item) => `  ${item}`)];
 		return [
 			`task ${id}`,
 			`playbook: ${f.task.playbook}, ${f.task.kind}, ${f.task.delivery} delivery, created ${f.task.created?.slice(0, 10) ?? "unknown"}`,
 			`goal: ${f.task.goal}`,
 			`finish: ${f.task.finish}`,
-			`size: ${f.size}`,
+			...(f.size ? [`size: ${f.size}`] : []),
 			...f.steps.map((s) => `step ${s.n} ${!s.artifacts.length ? "names no artifact" : s.missing.length ? `missing ${s.missing.join(", ")}` : "done"}: ${s.text}`),
 			`reached: ${f.reached ? `step ${f.reached} of ${f.steps.length}` : "no step"}`,
 			`report: ${f.report ? "written" : "not written"}`,
@@ -610,7 +610,7 @@ export function status(home, id) {
 		}
 		let f;
 		try {
-			f = taskFacts(home, queues, name);
+			f = taskFacts(home, queues, name, sized);
 		} catch (err) {
 			lines.push(`${name}: unreadable: ${err.message}`);
 			continue;
@@ -902,7 +902,7 @@ export function prState(number, waitSeconds = 0) {
 	}
 }
 
-const BOOLEAN_FLAGS = new Set(["--project-skills"]);
+const BOOLEAN_FLAGS = new Set(["--project-skills", "--size"]);
 
 function flags(args) {
 	const out = { _: [] };
@@ -919,7 +919,7 @@ const ALLOWED = {
 	home: [],
 	brief: ["playbook", "goal", "finish", "kind", "delivery"],
 	check: ["through", "head"],
-	status: [],
+	status: ["size"],
 	seat: ["runtime", "cross", "avoid"],
 	"check-seats": [],
 	"pr-state": ["wait"],
@@ -947,7 +947,7 @@ export function main(argv) {
 		}
 		case "status":
 			if (f._.length > 1) throw new Usage("status takes at most one task id");
-			return status(taskHome(), f._[0]);
+			return status(taskHome(), f._[0], f.size === true);
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");
 			return seat(loadModels(taskHome()), f._.join(" "), f.runtime, f.cross, f.avoid)
