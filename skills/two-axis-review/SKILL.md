@@ -65,7 +65,7 @@ Each brief carries:
 - that axis's sources from step 2 or step 3, by absolute path;
 - the line `Read <this skill's directory>/REVIEWER.md and follow the <axis> section.`, with the directory as an absolute path.
 
-Resolve the seats with `tstack.mjs seat review --runtime <runtime>`.
+Resolve the seats with `tstack.mjs seat review --runtime <runtime> --task <id>`.
 The first seat reviews standards and the second reviews spec.
 Delegate both at once, as [dispatch](../tstack/references/dispatch.md) says, named `review-<label>-standards` and `review-<label>-spec`, with result files at `tasks/<id>/results/review-<label>-<axis>.md`.
 The `review` seats should run models from different families, so each axis also gets an independent model.

@@ -15,7 +15,7 @@ The calling step names both artifacts.
 Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed head, as a calling playbook's final `two-axis-review` does.
 - Rebase per **Commits**, commit everything, and record the base and head SHAs.
   Nothing writes in the checkout until the reviewer is collected.
-- Run `tstack.mjs seat review --runtime <runtime> --cross <your model ID>`.
+- Run `tstack.mjs seat review --runtime <runtime> --task <id> --cross <your model ID>`.
   It prints the first `review` seat outside your model's family, so a Claude lead gets a GPT reviewer and a GPT lead gets a Claude reviewer.
 - Write the brief to `briefs/review-final.md`: the checkout, the base and head SHAs with the `git diff <base>...<head>` command, the task's goal and finish as the spec, `AGENTS.md` and what it points at as the standards, and the line `Read <two-axis-review directory>/REVIEWER.md and review both axes.`, with the directory as an absolute path.
 - Delegate one read-only worker on that seat, named `review-final`, with its result at `results/review-final.md`, as [dispatch](../references/dispatch.md) says.

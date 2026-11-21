@@ -7,7 +7,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, lock, main, parseModels, parseSteps, preflight, prVerdict, seat, taskHome, unlock } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -754,4 +756,169 @@ test("every command refuses a flag it does not take", () => {
 	assert.throws(() => main(["brief", "t1", "--playbook", "plain", "--goal", "g", "--finish", "f", "--deliver", "pr"]), /brief takes no --deliver; its flags are --playbook, --goal, --finish, --kind, --delivery/);
 	assert.throws(() => main(["check", "t1", "--trough", "1"]), /check takes no --trough/);
 	assert.throws(() => main(["home", "--verbose", "1"]), /home takes no --verbose; its flags are none/);
+	assert.throws(() => main(["lock", "simulator"]), /lock needs --task <id>/);
+	assert.throws(() => main(["unlock", "--task", "t1"]), /unlock takes one lock name/);
+	assert.throws(() => main(["preflight", "extra"]), /preflight takes no arguments/);
+	assert.throws(() => main(["preflight", "--runtime", "cloud"]), /--runtime must be t3, herdr or standalone/);
+	assert.throws(() => main(["seat", "lead", "--runtime", "t3", "--task", "../t1"]), /task id must match/);
+});
+
+const TEMPLATE = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8").match(/```text\n(# tstack models[\s\S]*?)```/)[1];
+
+function withGlobal(home, text) {
+	const globalDir = join(home, "..", "global");
+	mkdirSync(globalDir, { recursive: true });
+	if (text !== undefined) writeFileSync(join(globalDir, "models.md"), text);
+	return globalDir;
+}
+
+test("a task's models file overrides the project's and the global one for that task only", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "t1", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	brief(home, "t2", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	const globalDir = withGlobal(home, "lead: claude/claude-opus-5-5@high\nreview: claude/claude-fable-5-2@high, codex/gpt-6.1-sol@high\nverify: claude/claude-opus-5-5@high\n");
+	writeFileSync(join(home, "models.md"), "verify: codex/gpt-6.1-sol@high\n");
+	writeFileSync(join(home, "tasks", "t1", "models.md"), "# 2026-11-21, the human: use fast mode for the coding and reviews\nreview: claude/claude-opus-5-5@high+fast, codex/gpt-6.1-sol+fast\n");
+	const configured = (task, role) => seat(loadModels(home, globalDir, task), role, "standalone").map((s) => s.configured);
+	assert.deepEqual(configured("t1", "review"), ["claude/claude-opus-5-5@high+fast", "codex/gpt-6.1-sol+fast"]);
+	assert.deepEqual(configured("t1", "verify"), ["codex/gpt-6.1-sol@high"], "a role the task file leaves out keeps the project's line");
+	assert.deepEqual(configured("t1", "lead"), ["claude/claude-opus-5-5@high"]);
+	assert.deepEqual(configured("t2", "review"), ["claude/claude-fable-5-2@high", "codex/gpt-6.1-sol@high"], "another task keeps the shared file");
+	assert.deepEqual(configured(undefined, "review"), ["claude/claude-fable-5-2@high", "codex/gpt-6.1-sol@high"]);
+	assert.throws(() => loadModels(home, globalDir, "t9"), /no task t9 at/);
+	assert.throws(() => loadModels(home, globalDir, "../t1"), /task id must match/);
+	writeFileSync(join(home, "tasks", "t1", "models.md"), "herdr args claude: --dangerously-skip-permissions\n");
+	assert.throws(() => loadModels(home, globalDir, "t1"), /tasks\/t1\/models\.md is allowed only in/);
+	writeFileSync(join(home, "tasks", "t1", "models.md"), "review claude/claude-opus-5-5\n");
+	assert.throws(() => loadModels(home, globalDir, "t1"), /tasks\/t1\/models\.md: models file line 1 is not "role: seats"/);
+});
+
+test("a +fast seat sets T3's fast option, and check-seats checks it in both catalog shapes", () => {
+	const instances = "t3 instances: claude=claudeAgent/effort/fastMode, codex=codex/reasoningEffort/serviceTier=priority, pi=pi/thinking";
+	const models = parseModels(`lead: claude/claude-opus-5-5@xhigh+fast\nfeature: codex/gpt-6.1-sol+FAST\nbug-fix: pi/openai/gpt-6.1-sol@high+fast\n${instances}`);
+	assert.deepEqual(seat(models, "lead", "t3"), [
+		{ providerInstanceId: "claudeAgent", model: "claude-opus-5-5", options: [{ id: "effort", value: "xhigh" }, { id: "fastMode", value: true }] },
+	]);
+	assert.deepEqual(seat(models, "feature", "t3"), [{ providerInstanceId: "codex", model: "gpt-6.1-sol", options: [{ id: "serviceTier", value: "priority" }] }]);
+	assert.throws(() => seat(models, "bug-fix", "t3"), /no fast option for harness pi in the "t3 instances" line/);
+	assert.throws(() => seat(models, "lead", "herdr"), /no Herdr fast-mode flag known for harness claude: drop \+fast/);
+	assert.deepEqual(seat(models, "lead", "standalone"), [{ inherit: true, configured: "claude/claude-opus-5-5@xhigh+fast" }]);
+	assert.equal(seat(models, "lead", "standalone", "gpt-6.1-sol")[0].configured, "claude/claude-opus-5-5@xhigh+fast", "--cross reads the family without +fast");
+	assert.throws(() => seat(parseModels("lead: inherit+fast"), "lead", "t3"), /seat must be harness\/model\[@effort\]\[\+fast\] or inherit/);
+
+	const template = parseModels(TEMPLATE).get("t3 instances");
+	const fixture = JSON.parse(readFileSync(new URL("./t3-catalog.fixture.json", import.meta.url), "utf8"));
+	const live = {
+		providers: [
+			{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [
+				{ id: "claude-opus-5-5", options: [{ id: "effort", values: ["low", "high", "xhigh"], default: "medium" }, { id: "fastMode", values: [false, true] }] },
+				{ id: "claude-fable-5-2", options: [{ id: "effort", values: ["high"] }] },
+			] },
+			{ providerInstanceId: "codex", canRunChildTask: true, models: [{ id: "gpt-6.1-sol", options: [{ id: "reasoningEffort", values: ["high"] }, { id: "serviceTier", values: ["default", "priority"] }] }] },
+		],
+	};
+	for (const [shape, caps] of [["fixture", fixture], ["live", live]]) {
+		const check = (lines) => checkSeats(parseModels(`${lines}\nt3 instances: ${template}`), caps, null);
+		assert.equal(check("lead: claude/claude-opus-5-5@xhigh+fast\nfeature: codex/gpt-6.1-sol@high+fast"), "ok: 2 seats advertised", shape);
+		assert.throws(() => check("lead: claude/claude-fable-5-2@high+fast"), /fastMode true not offered \(no such option\)/, shape);
+		assert.throws(() => check("lead: claude/claude-opus-5-5@ultra"), /effort ultra not offered/, shape);
+	}
+	assert.throws(() => checkSeats(parseModels("lead: codex/gpt-6.1-sol+fast\nt3 instances: codex=codex/reasoningEffort/serviceTier=turbo"), live, null), /serviceTier turbo not offered \(default, priority\)/);
+	assert.throws(() => checkSeats(parseModels("lead: claude/claude-opus-5-5@high\nt3 instances: claude=claudeAgent/fastMode"), live, null), /fastMode is an on\/off option, so drop the @high effort/);
+});
+
+test("preflight names each seat that will not resolve, a locked signing key and a logged-out gh", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" });
+	git("config", "user.name", "Test");
+	git("config", "user.email", "test@example.com");
+	git("config", "commit.gpgsign", "false");
+	git("commit", "-q", "--allow-empty", "-m", "init");
+	const bin = join(dir, "..", `${dir.split("/").at(-1)}-bin`);
+	mkdirSync(bin);
+	const script = (name, body) => {
+		writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+		return join(bin, name);
+	};
+	script("gh", "exit 0");
+	const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+	const globalDir = withGlobal(home, TEMPLATE);
+	const run = (runtime, task) => preflight(home, runtime, task, { cwd: dir, env, globalDir });
+	assert.match(run("t3"), /^ok: \d+ roles resolve on t3; commits need no signature; gh is logged in$/);
+	assert.match(run("herdr"), /^ok: /);
+	assert.match(run(undefined), /^ok: \d+ roles resolve; /);
+
+	writeFileSync(join(globalDir, "models.md"), "lead: claude/claude-opus-5-5@high\nswarm workers: grok/grok-4.7\nt3 instances: claude=claudeAgent/effort\n");
+	assert.throws(() => run("t3"), (err) => {
+		assert.match(err.message, /^seat "verify": no line for role "verify" in the models file; run tstack-setup to write it$/m);
+		assert.match(err.message, /^seat "swarm workers": no T3 instance for harness grok/m);
+		assert.doesNotMatch(err.message, /seat "lead"/);
+		return true;
+	});
+	rmSync(join(globalDir, "models.md"));
+	assert.throws(() => run("t3"), /no models file at .*models\.md: run tstack-setup$/m);
+	writeFileSync(join(globalDir, "models.md"), TEMPLATE);
+
+	const head = git("rev-parse", "HEAD");
+	const refs = git("for-each-ref");
+	git("config", "commit.gpgsign", "true");
+	git("config", "gpg.program", script("gpg-locked", "cat >/dev/null\necho 'gpg: signing failed: No pinentry' >&2\nexit 2"));
+	assert.throws(() => run("t3"), /commit\.gpgsign is on, and a signed commit failed \(.+\): unlock your signing key/m);
+	git("config", "gpg.program", script("gpg-open", "cat >/dev/null\nprintf '\\n[GNUPG:] SIG_CREATED D 1 8 00 1 X\\n' >&2\nprintf -- '-----BEGIN PGP SIGNATURE-----\\nfake\\n-----END PGP SIGNATURE-----\\n'"));
+	assert.match(run("t3"), /; a signed commit works; /);
+	assert.equal(git("rev-parse", "HEAD"), head, "preflight moves no ref");
+	assert.equal(git("for-each-ref"), refs);
+	git("config", "commit.gpgsign", "false");
+
+	script("gh", "echo 'You are not logged into any GitHub hosts. To log in, run: gh auth login' >&2\nexit 1");
+	assert.throws(() => run("t3"), /gh is not logged in \(You are not logged into any GitHub hosts\. To log in, run: gh auth login\): run gh auth login$/m);
+	brief(home, "local", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.match(run("t3", "local"), /gh not needed for a local-only task$/);
+	brief(home, "shipped", { playbook: "sample", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
+	assert.throws(() => run("t3", "shipped"), /gh is not logged in/);
+	writeFileSync(join(home, "tasks", "local", "models.md"), "verify: claude/claude-opus-5-5@high+fast\n");
+	assert.match(run("t3", "local"), /^ok: /);
+	assert.throws(() => run("herdr", "local"), /seat "verify": no Herdr fast-mode flag known for harness claude/m);
+	assert.throws(() => run("t3", "nope"), /no task nope at/);
+});
+
+test("lock is held by one task at a time, and a finished task must have released it", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	for (const id of ["t1", "t2"]) brief(home, id, { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	writeFileSync(join(home, "tasks", "t1", "report.md"), REPORT);
+	const globalDir = withGlobal(home);
+	assert.equal(lock(home, "simulator", "t1", globalDir), "locked simulator for task t1");
+	assert.match(readFileSync(join(globalDir, "locks", "simulator"), "utf8"), new RegExp(`^task: t1\nhome: ${home}\nsince: \\d{4}-`));
+	assert.match(lock(home, "simulator", "t1", globalDir), /^simulator is already locked for task t1 since /);
+	assert.throws(() => lock(home, "simulator", "t2", globalDir), /simulator is locked by task t1 in .* since .*: notify that task's lead, and never ask the human to relay$/);
+	const other = scratch();
+	brief(other.home, "t1", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => lock(other.home, "simulator", "t1", globalDir), /locked by task t1 in /, "the same task ID in another project is another task");
+	assert.throws(() => unlock(home, "simulator", "t2", globalDir), /not by task t2: only that task's lead unlocks it/);
+	assert.throws(() => check(home, "t1", undefined, undefined, undefined, globalDir), /task t1 still holds lock simulator: run tstack\.mjs unlock simulator --task t1/);
+	assert.equal(check(home, "t1", 1, undefined, undefined, globalDir), "ok t1: 0 required files present", "a step check leaves a held lock alone");
+	assert.equal(unlock(home, "simulator", "t1", globalDir), "unlocked simulator");
+	assert.equal(unlock(home, "simulator", "t1", globalDir), "simulator is not locked");
+	assert.equal(check(home, "t1", undefined, undefined, undefined, globalDir), "ok t1: 1 required file present");
+	assert.equal(lock(home, "simulator", "t2", globalDir), "locked simulator for task t2");
+	assert.throws(() => lock(home, "../desktop", "t1", globalDir), /lock name must match/);
+	assert.throws(() => lock(home, "desktop", "t9", globalDir), /no task t9 at/);
+});
+
+test("lock is atomic: of many tasks racing for one lock, exactly one gets it", async () => {
+	const { dir, home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	const ids = Array.from({ length: 8 }, (_, i) => `racer-${i}`);
+	for (const id of ids) brief(home, id, { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const env = { ...process.env, TSTACK_GLOBAL_DIR: withGlobal(home) };
+	const runs = await Promise.all(
+		ids.map((id) =>
+			promisify(execFile)(process.execPath, [join(HERE, "tstack.mjs"), "lock", "port-5432", "--task", id], { cwd: dir, env }).then(
+				() => 0,
+				(err) => err.code,
+			),
+		),
+	);
+	assert.deepEqual(runs.sort(), [0, 1, 1, 1, 1, 1, 1, 1]);
 });

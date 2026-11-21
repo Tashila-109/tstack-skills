@@ -29,6 +29,8 @@ The surface tools, history, hold and worker cancellation follow T3's own tool de
   Its completion wakes the parent as a new turn, and the wake carries the worker's final message when it fits.
   A running delegate's `next` says to end your turn: do that, and never poll it.
 - Seats come from `tstack.mjs seat`.
+  A `+fast` seat sets `fastMode` on a Claude model and `serviceTier` `priority` on a Codex model, which T3 Code 0.1.12-nightly.20261121.5038 offered on 2026-11-21.
+  That T3 listed each option's choices as `values`, and `check-seats` reads that shape and the older `options` one.
   A launch takes `modelSelection: { instanceId, model, options }`.
   A delegation takes `target: { providerInstanceId, model, options }`.
   The seat output uses `providerInstanceId`, so rename it to `instanceId` for a launch.
@@ -49,7 +51,7 @@ A lead moving its own ship task out of the primary checkout uses [Moving your ow
 It needs Full access.
 Without it, ask the human to open a thread in New worktree mode and send the launch block as its first message, then stop.
 
-1. Run `tstack.mjs seat "lead <playbook>" --runtime t3`.
+1. Run `tstack.mjs seat "lead <playbook>" --runtime t3 --task <id>`.
 2. Read the base branch: the primary checkout's current branch, which must be the default branch with no uncommitted changes.
    An autopilot-stack item that builds on another item uses that item's task branch instead.
 3. Call `t3_thread_launch` with:
@@ -85,7 +87,7 @@ Send with `t3_thread_send`: `{ "threadId": "<the other lead's thread>", "message
 
 ### delegate
 
-1. Run `tstack.mjs seat "<role>" --runtime t3`.
+1. Run `tstack.mjs seat "<role>" --runtime t3 --task <id>`.
    A panel prints one line per seat.
 2. Write each worker's brief, per dispatch.md.
 3. For each seat, call `delegate_task` with:

@@ -36,7 +36,7 @@ It owns the facts on disk, and its header lists its commands.
 
 | Role | Owns | Never |
 | --- | --- | --- |
-| lead | one task: intake, its playbook, worktree, branch, stage commits, PR, worker briefs, decisions with the human, the merge on the human's word, cleanup, and its lessons | working on a second task, starting a lead except to move or hand off its own task, writing under `<home>` outside its task folder except `learnings.md` and `grants.md` |
+| lead | one task: intake, its playbook, worktree, branch, stage commits, PR, worker briefs, the seats the human names for this task in its `models.md`, decisions with the human, the merge on the human's word, cleanup, and its lessons | working on a second task, starting a lead except to move or hand off its own task, writing under `<home>` outside its task folder except `learnings.md` and `grants.md` |
 | coordinator | an autopilot program: its queue, briefs, launching leads, relaying decisions, audits, merges under the human's grant, cleanup | editing project files, running a task's playbook, delegating workers, deciding for the human |
 | worker | its brief's scope in its checkout, evidence, its result file | Git writes, starting tstack agents, addressing the human |
 
@@ -82,6 +82,9 @@ These hold for every role, whatever a playbook says.
 5. Derive a checkable finish if the human gave none, such as a command that passes, an output that matches, or an artifact that exists.
 6. Choose delivery: `pr` when the human asked for a PR or the playbook is `modernize` or `takeover`, which deliver through a PR, and `local-only` otherwise.
 7. Pick a short task ID and run `tstack.mjs brief <id> --playbook <name> --goal "..." --finish "..." [--kind scout] [--delivery pr]`.
+   Before long or unattended work, run `tstack.mjs preflight --runtime <runtime> --task <id>`.
+   On T3, also run `tstack.mjs check-seats <file> --task <id>` on a fresh `orchestrator_capabilities` result, which names a provider that is logged out.
+   Ask the human once, in one message, for everything the two name, because only the human can unlock a key, log in, or choose a seat.
 8. Check your checkout.
    A scout runs in any checkout.
    A ship task runs in its own worktree, so when `git rev-parse --git-dir` and `git rev-parse --git-common-dir` print the same path, you are in the primary checkout.
@@ -106,7 +109,7 @@ These hold for every role, whatever a playbook says.
    With `pr` delivery, push and open the PR per the playbook.
 6. Decide what you may decide alone, and put the rest to the human as a decision, as [references/decisions.md](references/decisions.md) says.
    A tool approval on screen is the human's: never answer it, and tell the human where a worker's approval waits.
-7. When the human stops you, stop your running workers as the runtime reference's collect says, delete your heartbeat if you armed one, and make no commits, pushes or new workers until the human tells you to go on.
+7. When the human stops you, stop your running workers as the runtime reference's collect says, delete your heartbeat if you armed one, unlock each lock you hold, and make no commits, pushes or new workers until the human tells you to go on.
 8. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id> --head <head SHA>` until it passes, then follow [Finish](#finish).
 
 The report opens with who the work is for and what changes for them, then what the next maintainer inherits.

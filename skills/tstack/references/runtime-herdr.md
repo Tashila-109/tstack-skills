@@ -18,8 +18,9 @@ Read IDs from the response instead of predicting them.
 - `herdr agent start` returns `agent_not_ready` when the agent is blocked at startup, for example on a trust dialog.
   Never answer a trust dialog.
   Tell the human which tab it is in.
-- Seats come from `tstack.mjs seat "<role>" --runtime herdr` as `{ "kind", "args" }`.
+- Seats come from `tstack.mjs seat "<role>" --runtime herdr --task <id>` as `{ "kind", "args" }`.
   `args` already holds the model, the effort and the autonomy flags.
+  A `+fast` seat is refused, because no fast-mode flag is known for these CLIs.
 
 ## Lead
 
@@ -32,7 +33,7 @@ Intake moves a ship task started in the primary checkout into its own worktree a
 
 A lead uses this to move a ship task out of the primary checkout, a coordinator uses it to start each lead, and both use it to relaunch a lead for a handoff.
 
-1. Run `tstack.mjs seat "lead <playbook>" --runtime herdr`.
+1. Run `tstack.mjs seat "lead <playbook>" --runtime herdr --task <id>`.
 2. From the primary checkout, which must be on the default branch with no uncommitted changes, run `git worktree add ~/.tstack/worktrees/<project>/<id> -b task/<id>`, where `<project>` is the primary checkout's directory name.
    An autopilot-stack item that builds on another item branches from that item's task branch instead: add that branch name as the last argument.
    If the primary checkout has a `skills-lock.json`, the skills are installed per project, so run `tstack.mjs link-skills <worktree>` too.
@@ -60,7 +61,7 @@ Wait for the other lead the same way, then prompt it:
 
 ### delegate
 
-1. Run `tstack.mjs seat "<role>" --runtime herdr`.
+1. Run `tstack.mjs seat "<role>" --runtime herdr --task <id>`.
    For `inherit`, start your own harness with your own model and effort.
 2. Write each worker's brief, per dispatch.md.
 3. Split a pane for each worker.
