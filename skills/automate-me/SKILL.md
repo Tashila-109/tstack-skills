@@ -20,7 +20,7 @@ Look recursively for `.agents/skills/**/*-mode/SKILL.md` and `~/.agents/skills/*
 - Start fresh (rare, ask why before doing it)
 
 Update mode changes the rest of the flow:
-- Step 1 mines only history since the skill was last edited (`git log -1 --format=%cI <path>`).
+- Step 1 mines only history since the skill was last edited (`git log -1 --format=%cI <path>`). For a personal skill outside Git, ask the user for that date.
 - Step 2 asks what's changed or missing, not what to capture from zero.
 - Step 4 edits the existing file in place. Preserve sections the user hasn't contradicted. Revise ones with new evidence. Add new sections only for genuinely new rules.
 
@@ -73,7 +73,7 @@ Use the **writing-for-agents** skill to author the skill. Placement:
 - Frontmatter `description`: trigger on their name + `/<handle>-mode` + "work in their style", not on generic keywords like "write code" or "review PR".
 - Frontmatter formatting: follow the writing-for-agents skill's [skill mechanics](../writing-for-agents/SKILL-MECHANICS.md). Keep `description` as one YAML scalar. Quote it or use `description: >-` with indented continuation lines when punctuation or wrapping requires it.
 - Frontmatter `disable-model-invocation: true` by default. Opt out only if the user explicitly wants their mode to apply on every turn.
-  Codex ignores that field, so with it also write `agents/openai.yaml` beside the skill with `policy.allow_implicit_invocation: false`, as this repo's own explicit-only skills do.
+  Codex ignores that field, so with it also write `agents/openai.yaml` beside the skill with `policy.allow_implicit_invocation: false`, as this repo's own explicit-only skills do. When the user opts out, delete that file too.
 
 ### 5. Iterate on prose
 
@@ -84,6 +84,7 @@ Show the draft to the user and take feedback. Expect multiple iterations. Cut ru
 ### 6. Land it
 
 Work in a worktree off main. Commit and open a PR. Don't push to main directly.
+For a project skill, make that worktree before step 4 edits the file.
 A personal skill saved outside the project, such as under `~/.agents/skills/`, is saved in place instead, with its own repository's workflow only if it has one.
 
 ## Guardrails
