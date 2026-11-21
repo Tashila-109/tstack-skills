@@ -86,7 +86,7 @@ These hold for every role, whatever a playbook says.
    Before long or unattended work, run `tstack.mjs preflight --runtime <runtime> --task <id>`.
    On T3, also run `tstack.mjs check-seats <file> --task <id>` on a fresh `orchestrator_capabilities` result, which names a provider that is logged out.
    Ask the human once, in one message, for everything the two name, because only the human can unlock a key, log in, or choose a seat.
-   Go on only when both pass, and run them again after the human's fix.
+   Go on only when each check you ran passes, and run it again after the human's fix.
 8. Check your checkout.
    A scout runs in any checkout.
    A ship task runs in its own worktree, so when `git rev-parse --git-dir` and `git rev-parse --git-common-dir` print the same path, you are in the primary checkout.

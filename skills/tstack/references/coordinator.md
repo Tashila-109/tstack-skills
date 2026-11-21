@@ -6,7 +6,8 @@ You run an autopilot program from the primary checkout, and you never edit proje
 The programs need T3 Code or Herdr to start and hold leads, so on the standalone runtime follow its [Coordinator](runtime-standalone.md#coordinator) section instead.
 At the start of a session, read the newest `<home>/handoff/coordinator-*.md` when one exists, then reconcile: for each running task in the program's `<home>/autopilot-<name>.md`, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
 
-1. Before the first lead starts, run `tstack.mjs preflight --runtime <runtime>`, and on T3 `tstack.mjs check-seats`, as the router's Intake does for unattended work, and ask the human once for everything they name.
+1. Before the first lead starts, run `tstack.mjs preflight --runtime <runtime>`, and on T3 `tstack.mjs check-seats <file>` on a freshly saved `orchestrator_capabilities` result, as the router's Intake does for unattended work.
+   Ask the human once for everything they name, and start the program playbook only when each check you ran passes.
    Run the program playbook.
    For each lead it starts, run `tstack.mjs brief` for the item, then launch-lead per the runtime reference, with your own thread or agent name as the launch block's `coordinator:`.
 2. A lead reaches you with `report <id>:`, `decision <id>:` or `handoff <id>:`.
