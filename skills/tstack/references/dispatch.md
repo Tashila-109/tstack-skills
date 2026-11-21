@@ -91,6 +91,7 @@ It holds the lock while the step and its workers run.
 It runs `tstack.mjs unlock <name> --task <id>` when the step ends, and when the human stops it.
 A refusal names the task that holds the lock.
 Notify that task's lead and wait for its reply, which comes when it unlocks, and never ask the human to relay.
+On the standalone runtime, where notify is a file the human points the other lead to, write that file and ask the human once, as [its reference](runtime-standalone.md#report-notify-and-hold) says.
 When that lead no longer runs, tell the human, who may delete the lock file the refusal names.
 `tstack.mjs check` refuses a finished task that still holds a lock.
 
