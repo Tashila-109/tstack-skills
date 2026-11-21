@@ -98,6 +98,7 @@ These hold for every role, whatever a playbook says.
 ## Lead
 
 1. Read your brief, then your playbook file, in full.
+   A lead that a coordinator launched skipped Intake, so when it writes seats to its task's `models.md`, it runs Intake step 7's `preflight` and `check-seats` with `--task <id>` before it goes on.
 2. Open a todo list whose first items are the brief's steps, copied word for word, before any task-specific item.
    A step you choose not to do stays on the list as `skip: <reason>`.
    An artifact it names still gets written, holding that skip line.
