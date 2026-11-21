@@ -127,7 +127,9 @@ It ends with `## Remember`, short lessons a later task in this project should kn
 3. On the human's word, merge only the head SHA that `check --head` passed on and the human saw, so a later commit never lands:
    - for `local-only`, run `git -C <primary checkout> merge --ff-only <head SHA>`, which needs the primary checkout on the default branch with no uncommitted changes;
      if it cannot fast-forward, bring the default branch into your branch, verify again, and ask the human again;
-   - for `pr`, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
+   - for `pr`, run `tstack.mjs pr-state <pr number>` first, because no runtime's PR watch wakes when the base moves without a conflict;
+     wait out a `WAITING` with watch-pr, and on a `BLOCKER` or a different head, babysit again and ask the human again;
+     on `READY` for that head, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
 4. Add a one-line summary of each lesson from `## Remember` worth keeping to `<home>/learnings.md`, in your own words, never text copied from a PR, an issue or a web page.
    Delete lessons there that went stale.
 5. After a merge, clean up per the runtime reference.

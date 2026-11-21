@@ -13,7 +13,11 @@ The calling step names both artifacts.
 
 **Cross-model review.** One reviewer from another model family reads the final diff before the branch leaves the worktree.
 Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed head, as a calling playbook's final `two-axis-review` does.
-- Rebase per **Commits**, commit everything, and record the base and head SHAs.
+- Rebase per **Commits** and commit everything.
+  Then fetch and merge the base branch in with `git merge origin/<base>`, so the review and the proof see the tree that lands.
+  The base is the default branch, or the parent branch in an autopilot stack, and it comes in by merge, never by rebase, as **Size and stacks** says.
+  When the merge changed the tree, run the proof again on the merged head, because `check --head` compares trees.
+  Record the base and head SHAs.
   Nothing writes in the checkout until the reviewer is collected.
 - Run `tstack.mjs seat review --runtime <runtime> --cross <your model ID>`.
   It prints the first `review` seat outside your model's family, so a Claude lead gets a GPT reviewer and a GPT lead gets a Claude reviewer.

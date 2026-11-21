@@ -40,6 +40,8 @@ It builds a measurement harness first and proves the harness can see the change,
 
 With PR delivery, the lead opens the PR ready and babysits it to merge-ready before it reports done.
 It reads the PR's state with `tstack.mjs pr-state`, which waits for running checks and gives review bots ten minutes to post after the last push, comment or review.
+A bot that has reviewed two earlier heads gets up to twenty minutes to review the new one, and its findings outside review threads block until the lead answers them.
+When the base branch moves in files the PR changes, the lead merges it in and proves the change again, even with no conflict.
 On T3, the lead also arms T3's PR watch when it opens the PR, so when the PR waits only on your review, it ends its turn and your review wakes it.
 On any other harness, the lead tells you the PR waits on your review, and your next message wakes it.
 

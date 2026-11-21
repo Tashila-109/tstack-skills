@@ -141,6 +141,11 @@ So watch-pr on T3 pairs the watch with a `pr-state` loop inside your turn:
    The watch wakes you on their review, and you start again at step 1.
 5. When you stop, or the PR merges, call `unwatch_pull_request`.
 
+Because the watch never wakes on a moved base, a `READY` can go stale while the PR waits on the human.
+`pr-state` compares the head with the base on every read, so start every wake at step 1, even a wake for a comment you need not answer.
+The router's [Finish](../SKILL.md#finish) runs `pr-state` once more before the merge, so a base that moved after the last wake still shows as `BLOCKER base-moved`.
+Never arm a timer to poll the base.
+
 A wake is news, not a merge decision.
 
 When T3's review guides are on, `write_pull_request_guides` with the PR's `url` writes a reviewer's tour of the change into the PR's Guide tab.
