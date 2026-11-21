@@ -88,7 +88,7 @@ For a document kept out of Git, write its path in backticks followed by its SHA-
 
 Never answer for the human, and never turn a silence into a grant.
 Record the human's words as they wrote them.
-`tstack.mjs check` refuses a task while a gate its playbook names lacks a `granted` answer.
+`tstack.mjs check` refuses a task while a gate its playbook names lacks a `granted` answer, and while a `question` its playbook names lacks an `answered` one.
 
 A `denied` gate stops the work it gates.
 When the human said what to change, revise and open the gate again under its next name, such as `design-2`.

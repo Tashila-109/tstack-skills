@@ -92,6 +92,20 @@ Your old sessions hold context that a fresh agent lacks, so load it first, then 
 $tstack recall my work on the virtualized list from yesterday, then read this bug report.
 ```
 
+## Learn from another project with a deep dive
+
+```text
+$tstack deep dive on https://github.com/acme/widgets. Which of its features would improve this project? Ideas only, copy nothing.
+```
+
+The [Deep dive playbook](../../skills/tstack/playbooks/deep-dive.md) clones the other project into the task folder at a recorded commit, and changes neither project.
+Before anyone reads the code, it settles how much you may take: copy with a notice in your license file, adapt in your own words, or ideas only.
+Name the rule in your request, as "Ideas only, copy nothing" does, and the lead records your words instead of asking.
+Four or five read-only explorers each read one area, and the lead checks every claim their candidates rest on against both codebases.
+You get a table ranked against your current design and one question: which candidates to take.
+Each one you take becomes a line you start as its own task, and the rest go in the report's follow-ups with the reason each was left.
+To review only what changed since you last took from the project, name the commit you took last.
+
 ## Why this comes first
 
 The Feature and Refactoring playbooks start by running `how` over the code they touch.

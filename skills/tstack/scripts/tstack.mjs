@@ -34,6 +34,8 @@ const WHOLLY_SKIPPED = /^\s*skip:\s*\S/;
 const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{12})\)\s*$/gm;
 const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
+const QUESTION = /^Kind:\s*question\s*$/im;
+const ANSWERED_QUESTION = /^##\s+Answer\s*\n+\s*answered\b/im;
 const ANSWERED_OR_DENIED = /^##\s+Answer\s*\n+\s*(granted|answered|denied)\b/im;
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
@@ -250,8 +252,8 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
 		if (closed && path !== "report.md" && text.trim() && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))))) continue;
-		if (path.startsWith("decisions/") ? !GRANTED.test(prose(latestDecision(taskDir, path, text))) : !text.trim())
-			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
+		const undecided = path.startsWith("decisions/") ? decisionGap(prose(latestDecision(taskDir, path, text))) : "";
+		if (path.startsWith("decisions/") ? undecided : !text.trim()) problems.push(`missing ${step}: ${path}${undecided}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (MAYBE_DELEGATED.has(path) && !SKIPPED.test(text)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
@@ -262,6 +264,12 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
+}
+
+// A gate a playbook names needs a granted answer, and a question it names needs an answered one.
+function decisionGap(text) {
+	if (QUESTION.test(text)) return ANSWERED_QUESTION.test(text) ? "" : " with the human's answer";
+	return GRANTED.test(text) ? "" : " with a granted answer";
 }
 
 // A gate denied and reopened as <name>-2, -3 and so on is decided by its highest-numbered file.
