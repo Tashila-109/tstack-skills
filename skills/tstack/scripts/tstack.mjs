@@ -380,6 +380,11 @@ function headGaps(taskDir, head, cwd, prDelivery, closed) {
 		})
 		.map((path) => `${path} names no commit with the same tree as ${head}: verify or review again on this head`);
 	for (const [, sha, paths] of prose(readIfFile(join(taskDir, PROOF))).matchAll(REUSED)) {
+		// Paths are split on spaces, so a quoted or escaped path would compare the wrong files: refuse it.
+		if (/['"\\]/.test(paths)) {
+			gaps.push(`${PROOF} reuses the run at ${sha} with a quoted or escaped path: list paths without quotes, or prove the claim again`);
+			continue;
+		}
 		const specs = paths.trim().split(/\s+/).map((p) => (p.startsWith(":") ? p : `:(top)${p}`));
 		try {
 			execFileSync("git", ["diff", "--quiet", sha, head, "--", ...specs], { cwd, stdio: "ignore" });

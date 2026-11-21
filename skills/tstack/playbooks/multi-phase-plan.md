@@ -14,7 +14,7 @@ Run state and evidence stay under `tasks/<id>/` in the task home, with a decisio
    Settle three delivery questions too, because the build runs on them: whether the human accepts each phase before the next one starts or reviews the whole branch once, whether the lead pushes the task branch after each verified stage or only on the human's word, and which method merges a PR, squash, merge or rebase.
    Take each answer from the human's request, and ask through decide when it is silent.
    Write the outcome, scope, constraints, the six answers, probe results and the verification routes you found to `evidence/frame.md`.
-   A task that builds from this plan passes the delivery answers to `tstack.mjs brief` as `--acceptance phase|branch`, `--push stage|word` and `--merge squash|merge|rebase`, so its brief carries them.
+   A task that builds from this plan passes the delivery answers to `tstack.mjs brief` as `--acceptance phase|branch` and `--push stage|word`, and for `pr` delivery `--merge squash|merge|rebase`, so its brief carries them. A local-only task fast-forwards, so it takes no `--merge`.
    Artifact: `evidence/frame.md`
 2. **Design, then gate.** Delegate one worker on the `judgment and prose` seat to write `design.md`.
    It covers the problem, included and excluded scope, constraints, alternatives, the chosen approach, data boundaries, failure cases and observable acceptance criteria.
