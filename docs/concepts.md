@@ -10,8 +10,10 @@ You open one thread or pane for each task and talk to that task's lead there.
 The lead does the intake itself: it classifies the ask, picks a playbook, and derives a checkable finish.
 It then runs the task in its own Git worktree and hands scoped jobs to workers.
 
-Your list of threads, tabs or sessions is your task list.
-T3's sidebar and Herdr's tabs show every task, so tstack keeps no backlog of its own.
+Your list of threads, tabs or sessions is your list of running tasks.
+T3's sidebar and Herdr's tabs show every one of them.
+Work that no task has started yet goes in `.tstack/backlog.md`.
+Each lead adds its report's follow-ups there when it finishes, each with an ID you can name in a later request, unless the project names a tracker for them.
 
 There are three roles: the lead, a coordinator, and workers.
 The router's [Roles](../skills/tstack/SKILL.md#roles) table says what each owns and never does.

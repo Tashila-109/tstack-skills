@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { Refusal, backlog, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -751,7 +751,132 @@ test("check refuses a committed document that changed after the commit its grant
 });
 
 test("every command refuses a flag it does not take", () => {
-	assert.throws(() => main(["brief", "t1", "--playbook", "plain", "--goal", "g", "--finish", "f", "--deliver", "pr"]), /brief takes no --deliver; its flags are --playbook, --goal, --finish, --kind, --delivery/);
+	assert.throws(() => main(["brief", "t1", "--playbook", "plain", "--goal", "g", "--finish", "f", "--deliver", "pr"]), /brief takes no --deliver; its flags are --playbook, --goal, --finish, --kind, --delivery, --design, --acceptance, --push, --merge/);
+	assert.throws(() => main(["backlog", "t1", "--all", "1"]), /backlog takes no --all; its flags are none/);
 	assert.throws(() => main(["check", "t1", "--trough", "1"]), /check takes no --trough/);
 	assert.throws(() => main(["home", "--verbose", "1"]), /home takes no --verbose; its flags are none/);
+});
+
+test("brief carries the design source and the delivery answers, and refuses values it does not know", () => {
+	const { home, playbooks } = scratch();
+	const base = { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks };
+	const read = (id) => readFileSync(join(home, "tasks", id, "brief.md"), "utf8");
+	brief(home, "plain", base);
+	assert.doesNotMatch(read("plain"), /^(Design source|Acceptance|Push|Merge):/m, "no answer, no line");
+	brief(home, "full", { ...base, delivery: "pr", design: "https://figma.example/file/abc", acceptance: "phase", push: "word", merge: "squash" });
+	const text = read("full");
+	assert.match(text, /^Design source: https:\/\/figma\.example\/file\/abc\. Prove the change against it, as the Prove against a design section of \S+proof\.md says\.$/m);
+	assert.match(text, /^Acceptance: phase\. The human accepts each phase before the next one starts/m);
+	assert.match(text, /^Push: word\. Push nothing until the human says so/m);
+	assert.match(text, /^Merge: squash\. At Finish, merge with `gh pr merge <pr> --squash --match-head-commit <head SHA>`\.$/m);
+	const task = JSON.parse(readFileSync(join(home, "tasks", "full", "task.json"), "utf8"));
+	assert.deepEqual([task.design, task.acceptance, task.push, task.merge], ["https://figma.example/file/abc", "phase", "word", "squash"]);
+	brief(home, "branch", { ...base, acceptance: "branch", push: "stage" });
+	assert.match(read("branch"), /^Acceptance: branch\. The human reviews the whole branch once/m);
+	assert.match(read("branch"), /^Push: stage\. Push the task branch after each verified stage commit/m);
+	assert.throws(() => brief(home, "x1", { ...base, acceptance: "toString" }), /--acceptance must be phase or branch/);
+	assert.throws(() => brief(home, "x2", { ...base, push: "always" }), /--push must be stage or word/);
+	assert.throws(() => brief(home, "x3", { ...base, delivery: "pr", merge: "ff" }), /--merge must be squash, merge or rebase/);
+	assert.throws(() => brief(home, "x4", { ...base, merge: "squash" }), /--merge names how a PR merges/);
+	assert.throws(() => brief(home, "x5", { ...base, design: "  " }), /--design needs a link or a path/);
+});
+
+test("check wants every claim of a design-sourced proof to cite its evidence, except a blocked one", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "proving.md"), PROVING);
+	brief(home, "ds", { playbook: "proving", goal: "g", finish: "f", design: "design/settings.png", playbooksDir: playbooks });
+	brief(home, "nd", { playbook: "proving", goal: "g", finish: "f", playbooksDir: playbooks });
+	const rows = [
+		"| Claim | Action | Evidence | Verdict |",
+		"| --- | --- | --- | --- |",
+		"| Empty state matches | Open with no notes | `evidence/proof/empty.png` shows both | passed |",
+		"| Long title wraps | Add a long title | the title wraps | passed |",
+		"| Narrow width | Resize | needs a device | blocked |",
+	].join("\n");
+	for (const id of ["ds", "nd"]) {
+		mkdirSync(join(home, "tasks", id, "evidence/proof"));
+		writeFileSync(join(home, "tasks", id, "evidence/proof/empty.png"), "png");
+		writeFileSync(join(home, "tasks", id, "evidence/verify.md"), `${rows}\n`);
+	}
+	assert.equal(check(home, "nd", 1), "ok nd: 1 required file present", "without a design source one citation is enough");
+	assert.throws(() => check(home, "ds", 1), /has a claim that cites no file under evidence\/: Long title wraps/);
+	assert.throws(() => check(home, "ds", 1), (err) => !/Narrow width/.test(err.message), "a blocked claim needs no citation");
+	writeFileSync(join(home, "tasks", "ds", "evidence/verify.md"), `${rows.replace("the title wraps", "`evidence/verify.md` says so")}\n`);
+	assert.throws(() => check(home, "ds", 1), /Long title wraps/, "a row cannot cite the proof itself");
+	writeFileSync(join(home, "tasks", "ds", "evidence/verify.md"), `${rows.replace("the title wraps", "`evidence/proof/empty.png` too")}\n`);
+	assert.equal(check(home, "ds", 1), "ok ds: 1 required file present");
+	writeFileSync(join(home, "tasks", "ds", "evidence/verify.md"), `${rows}\nskip: the design has no screens for this change\n`);
+	assert.equal(check(home, "ds", 1), "ok ds: 1 required file present", "a skip line excuses it, as it excuses citations");
+});
+
+test("check --head reruns a proof's reuse command against the head", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+	mkdirSync(join(dir, "src"));
+	writeFileSync(join(dir, "src/a.txt"), "1\n");
+	writeFileSync(join(dir, "README.md"), "1\n");
+	git("add", ".");
+	git("commit", "-q", "-m", "one");
+	const one = git("rev-parse", "HEAD");
+	writeFileSync(join(dir, "README.md"), "2\n");
+	git("commit", "-q", "-am", "docs");
+	const docs = git("rev-parse", "HEAD");
+	writeFileSync(join(dir, "src/a.txt"), "2\n");
+	git("commit", "-q", "-am", "code");
+	const code = git("rev-parse", "HEAD");
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "ru", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "ru");
+	writeFileSync(join(task, "report.md"), REPORT);
+	const proof = (head) => `Head ${head.slice(0, 12)}\n\n| Claim | Evidence | Verdict |\n| --- | --- | --- |\n| Unit tests pass | reused, \`git diff --quiet ${one.slice(0, 12)} HEAD -- src package.json\` exits 0 | passed |\n`;
+	writeFileSync(join(task, "evidence/verify.md"), proof(docs));
+	assert.equal(check(home, "ru", undefined, docs, dir), "ok ru: 1 required file present", "a docs commit leaves src as it was");
+	writeFileSync(join(task, "evidence/verify.md"), proof(code));
+	assert.throws(() => check(home, "ru", undefined, code, dir), /reuses the run at \w+, but src package\.json changed before \w+: run that claim again/);
+	writeFileSync(join(task, "evidence/verify.md"), proof(code).replace(one.slice(0, 12), "0000000"));
+	assert.throws(() => check(home, "ru", undefined, code, dir), /reuses the run at 0000000, which this checkout does not hold/);
+});
+
+test("backlog appends each follow-up once, with an ID that a rerun keeps", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "fx", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	brief(home, "none", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => backlog(home, "fx"), /no report\.md for task fx/);
+	writeFileSync(join(home, "tasks", "fx", "report.md"), "done\n\n## Remember\n\nx\n");
+	assert.throws(() => backlog(home, "fx"), /has no ## Follow-ups heading/);
+	writeFileSync(
+		join(home, "tasks", "fx", "report.md"),
+		[
+			"done",
+			"",
+			"## Follow-ups",
+			"",
+			"These came up.",
+			"",
+			"- Retry the token refresh",
+			"  when the network drops.",
+			"1. Cache the avatar.",
+			"- none",
+			"```",
+			"- a fenced line is no follow-up",
+			"```",
+			"",
+			"## Remember",
+			"",
+			"- a lesson, not a follow-up",
+			"",
+		].join("\n"),
+	);
+	const path = join(home, "backlog.md");
+	assert.equal(backlog(home, "fx"), `ok fx: added 2 follow-ups to ${path}`);
+	const first = readFileSync(path, "utf8");
+	assert.match(first, /^# Backlog\n/);
+	assert.match(first, /^- `fx-[0-9a-f]{6}` Retry the token refresh when the network drops\. \(task `fx`, \d{4}-\d{2}-\d{2}\)$/m);
+	assert.match(first, /^- `fx-[0-9a-f]{6}` Cache the avatar\. \(task `fx`, \d{4}-\d{2}-\d{2}\)$/m);
+	assert.doesNotMatch(first, /fenced|lesson|none|These came up/);
+	assert.equal(backlog(home, "fx"), `ok fx: no new follow-ups for ${path}`);
+	assert.equal(readFileSync(path, "utf8"), first, "a rerun adds nothing");
+	writeFileSync(join(home, "tasks", "none", "report.md"), REPORT);
+	assert.equal(backlog(home, "none"), `ok none: no new follow-ups for ${path}`, "a prose line is no follow-up");
+	assert.throws(() => backlog(home, "../fx"), /task id must match/);
 });

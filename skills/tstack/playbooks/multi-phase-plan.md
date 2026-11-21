@@ -11,8 +11,10 @@ Run state and evidence stay under `tasks/<id>/` in the task home, with a decisio
 1. **Frame and explore.** State the outcome, scope boundaries, constraints and definition of done. Resolve empirical questions with scoped probes through [Prototype](prototype.md). Preserve the actual commands, code identity and artifacts, including inconclusive results. A read-only request does not authorize a prototype that changes the project or a live system.
    Inspect the affected code, conventions, dependencies and verification routes, with read-only workers on the `how explorer` seat for large reads. Workers return file pointers and findings.
    Settle three questions before any design, because each one reshapes the design when it arrives late: whether planning documents are committed or stay in the task folder, which platforms the work targets, and how code from reference projects may be reused, whether copied with its notice, adapted, or taken as ideas only.
+   Settle three delivery questions too, because the build runs on them: whether the human accepts each phase before the next one starts or reviews the whole branch once, whether the lead pushes the task branch after each verified stage or only on the human's word, and which method merges a PR, squash, merge or rebase.
    Take each answer from the human's request, and ask through decide when it is silent.
-   Write the outcome, scope, constraints, the three answers, probe results and the verification routes you found to `evidence/frame.md`.
+   Write the outcome, scope, constraints, the six answers, probe results and the verification routes you found to `evidence/frame.md`.
+   A task that builds from this plan passes the delivery answers to `tstack.mjs brief` as `--acceptance phase|branch`, `--push stage|word` and `--merge squash|merge|rebase`, so its brief carries them.
    Artifact: `evidence/frame.md`
 2. **Design, then gate.** Delegate one worker on the `judgment and prose` seat to write `design.md`.
    It covers the problem, included and excluded scope, constraints, alternatives, the chosen approach, data boundaries, failure cases and observable acceptance criteria.
@@ -81,7 +83,7 @@ The lead pauses dispatch and takes the human's steer.
 
 ### Delivery boundaries
 
-- [ ] <State whether delivery is local-only or a pull request. Record the result without inventing a PR.>
+- [ ] <State whether delivery is local-only or a pull request, and the phase acceptance, push cadence and merge method from `evidence/frame.md`. Record the result without inventing a PR.>
 The lead commits stages and merges on the human's word.
 
 ### Verdict and delivery

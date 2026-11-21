@@ -21,6 +21,7 @@ A check it could not run is reported as inconclusive, and a confident report wit
 Match the check to the change:
 - a CLI change runs the real command;
 - a UI change walks the changed flow in the running app, and when it must match a reference pixel for pixel, the [Visual parity playbook](../../skills/tstack/playbooks/visual-parity.md) diffs screenshots against a frozen baseline instead of judging by eye;
+- a UI change built from a design, such as a Figma link or a design file you name in the request, gets a scenario matrix written before any test, and each row shows the design and the built screen side by side;
 - a parser or migration replays a saved input;
 - a performance change compares before and after measurements;
 - a storage change reads back the written value.
@@ -29,6 +30,8 @@ Ask for the proof as an artifact you can inspect yourself: the failing test and 
 For a feature, a bug fix or a large effort, the lead writes it as one table in `evidence/verify.md`: each claim, the action a user takes, the file that proves it, and a verdict of passed, failed or blocked.
 It copies the few artifacts it cites into `evidence/proof/` and shows you the table at the end, as a page on T3.
 `tstack.mjs check` refuses a proof that cites no evidence file, so a confident sentence alone cannot pass.
+With PR delivery, the PR shows each changed screen before and after.
+To keep each repair round short, the lead runs the checks most likely to fail first, reuses a claim whose inputs have not changed since it passed, and deletes old run output that nothing cites.
 The rules live in [references/proof.md](../../skills/tstack/references/proof.md).
 If the fix already merged, ask for the same check again on the default branch.
 An artifact beats a plausible explanation, because you can challenge it without replaying the run.
@@ -164,5 +167,6 @@ $tstack ship the open stack from #41 up.
 
 The lead has a worker who did not write the code verify each PR on the real surface, then finds the run of verified PRs from the bottom.
 It records each verdict with the patch it covered in `evidence/verdicts.md`.
+When people will deploy, support or track the run, it also writes `evidence/ship-pack.md` for them: a runbook whose commands paste as they are, what changes for existing users, where the run departs from its design and why, and the tracker update, which it posts only on your word.
 On your word, the lead lands that run one PR at a time, bottom first.
 Before each merge it checks the PR's patch still matches its verdict, and it stops at the first PR that changed or was never verified.

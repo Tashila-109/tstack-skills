@@ -8,8 +8,8 @@ Every delivery mode runs the cleanup in **PRs** below: the router's before-commi
 Record the cleanup in `evidence/closing-pass.md`, one line per changed file with its verdict and any fix.
 Then run the **Cross-model review** below.
 The calling step names both artifacts.
-- `local-only` delivery stops after **Commits**, the cleanup and the review: no push and no PR. The clean branch is the deliverable, and the lead merges it at the router's Finish, on the human's word.
-- `pr` delivery pushes the task branch, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Go on to the router's Finish, with the PR's full URL and its head SHA, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done.
+- `local-only` delivery stops after **Commits**, the cleanup and the review: no PR, and no push unless the brief's `Push:` line says `stage`. The clean branch is the deliverable, and the lead merges it at the router's Finish, on the human's word.
+- `pr` delivery pushes the task branch, after asking the human when the brief's `Push:` line says `word`, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Go on to the router's Finish, with the PR's full URL and its head SHA, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done.
 
 **Cross-model review.** One reviewer from another model family reads the final diff before the branch leaves the worktree.
 Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed head, as a calling playbook's final `two-axis-review` does.
@@ -41,13 +41,20 @@ Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed he
 - `## Blast Radius`: 1–2 sentences on who or what it touches and why that is safe or risky. If main is red, state the cost of leaving it red.
 - `## Verification`: 1–3 bullets, each a real run path and its outcome, taken from the task's `evidence/verify.md` when it has one. Perf: one primary number with its unit, `before → after`, and a link to the arena or swarm directory for the rest. No sample-size methodology, swarm recitals, or metric tables.
 
-After the sections, attach videos or screenshots when they prove a claim. Full SHAs, swarm or arena lane recitals, lever-correction essays, file-by-file checklists, and "CLEAN" verdicts go in a linked artifact, not the body.
+After the sections, attach the images and recordings that [proof's Show it](../references/proof.md#show-it) names, as **Images** says. Full SHAs, swarm or arena lane recitals, lever-correction essays, file-by-file checklists, and "CLEAN" verdicts go in a linked artifact, not the body.
+
+**Images.** Attach each file with `gh pr create` or `gh pr edit <pr>`, repeating `--attach '<file>#<alt text>'` for each one, up to 50 per command.
+`gh` added `--attach` in 2.99.0.
+On 2026-11-21, `gh` 2.105.0 had it on `pr create`, `pr edit` and `pr comment`.
+A reference to the file in the body, such as `![Archived list, after](./evidence/proof/archived-list.png)`, becomes the uploaded image in place, and `gh` appends a file the body does not reference.
+A body file's paths resolve from that file's own folder.
+When `gh pr edit --help` lists no `--attach`, upgrade `gh` or say in the reply that the PR has no images, and why.
 
 **Forge.** Use the GitHub CLI, `gh`, for create, edit, view, watch, and merge. Do not require Graphite (`gt`).
 
 **PR tool.** Create, edit, retarget, and mark ready with `gh`, then link the PR to the thread as the runtime reference says, so the runtime tracks it.
 Before you create one, run `gh api "repos/<owner>/<repo>/pulls?head=<owner>:<branch>&state=open"`, and update the PR it lists instead of opening a second.
-Before you create or edit one, check the title and body for secrets and private details.
+Before you create or edit one, check the title, the body and every attached image for secrets and private details.
 When `gh pr create` fails because the GraphQL rate limit is spent, create the PR through REST, which has its own limit: `gh api repos/<owner>/<repo>/pulls -f title=<title> -f head=<branch> -f base=<base> -F body=@<file>`.
 
 **Size and stacks.** Prefer five narrow PRs to one large PR. In tstack a task delivers one PR, so split a large change into several tasks, stacked under [Autopilot-stack](autopilot-stack.md) when they are coupled. A stack is a base-branch chain. The root PR targets trunk. Each child branch starts from its parent's tip and its PR targets the parent branch. Create a child with `gh pr create --base <parent-branch>`, and retarget an existing child with `gh pr edit <pr> --base <parent-branch>`. As a parent merges, move its child onto trunk as [Shipping's Landing](shipping.md#landing) says. Branch from trunk only for independent work. Bring trunk and each parent in by merge, never by rebase, since a rebased pushed branch needs a force-push.
