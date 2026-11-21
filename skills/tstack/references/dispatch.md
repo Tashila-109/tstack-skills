@@ -60,8 +60,9 @@ When a seat fails to launch, because the provider is down, logged out, or lacks 
 - a panel continues with the seats that launched, and the result names each dropout.
 
 Never run a seat on a different model than the one configured without the human's word.
-Never run a seat above `xhigh`. The hardest work raises a seat one step, up to `xhigh`, and a panel seat keeps its listed effort.
+Never run a seat above `xhigh`. A seat's effort changes only through its models file line, never by hand.
 Fable runs outside a panel only when the human named it for this task, or after two runs of the same brief on the configured seat failed its check. Say which. Difficulty alone never qualifies.
+A seat that `--cross` picks from a panel role, such as `review`, still counts as that panel.
 A second opinion runs the same brief on another vendor's model.
 The standalone runtime is the one exception: every seat there runs on the caller's own model, as [its reference](runtime-standalone.md#facts-to-rely-on) says.
 

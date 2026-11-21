@@ -506,8 +506,10 @@ export function parseSeat(text) {
 	return { harness: m[1].toLowerCase(), model: effort ? m[2].slice(0, at) : m[2], effort };
 }
 
+// The vendor family: the model ID's first word, with OpenAI's o-series counted as gpt.
 function family(model) {
-	return model.split("/").pop().split("-")[0].toLowerCase();
+	const word = model.split("/").pop().split("-")[0].toLowerCase();
+	return /^o\d+$/.test(word) ? "gpt" : word;
 }
 
 function modelId(model) {

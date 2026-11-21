@@ -69,7 +69,7 @@ Tests alone are not sufficient verification. A phase is verified only when its u
 
 ### Arm the program
 
-- [ ] Read `design.md` and `spec.md`. Confirm their granted decision records and the execution authorization before implementation. Save the approval evidence path.
+- [ ] Read `design.md` and `spec.md`. Confirm each one's commit or SHA-256 still matches the Subject of its latest granted decision in the planning task before implementation. On a mismatch, stop and open the next decision. Save the approval evidence path.
 - [ ] Read dispatch.md and the applicable leaf skills. Record their paths with the task brief.
 - [ ] On an operator hold, stop new dispatch and preserve current evidence.
 The lead pauses dispatch and takes the human's steer.

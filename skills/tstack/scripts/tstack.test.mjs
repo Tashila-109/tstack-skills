@@ -107,6 +107,8 @@ test("seat --cross picks the first seat outside the caller's model family", () =
 	assert.deepEqual(kinds("openai/gpt-6.1-sol"), ["claude"]);
 	assert.deepEqual(kinds("grok-4.7"), ["claude"]);
 	assert.throws(() => seat(models, "solo", "herdr", "claude-opus-5-5"), /no "solo" seat outside the claude family/);
+	const openai = parseModels("pool: codex/o3@high, claude/claude-fable-5-2@high");
+	assert.deepEqual(seat(openai, "pool", "herdr", "gpt-6.1-sol").map((s) => s.kind), ["claude"], "an o-series model is the same vendor as gpt");
 });
 
 test("seat --avoid prefers a seat whose model ran no candidate, then the one that ran the fewest", () => {
