@@ -106,6 +106,7 @@ Read the worker's result file.
 Call `task_status` with the `taskId` only when the wake did not carry the final message.
 A fix round is a new `delegate_task` with consolidated scope, never a message to the finished worker.
 To stop a running worker, call `task_cancel` with its `taskId`.
+It has ended once `task_status` shows a `workState` other than `working` or `waiting_for_children`.
 
 ### A candidate that needs its own checkout
 

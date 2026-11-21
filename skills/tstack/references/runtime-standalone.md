@@ -72,6 +72,7 @@ To notify another task's lead, write the message to `<home>/tasks/<your id>/noti
 Read each worker's result file and verdict line once its subagent returns.
 A subagent that returns without writing its result file gets one from you: `FAILED <the subagent returned no result>`, with what it said.
 To stop a running worker, use your harness's own stop for that subagent.
+If your harness cannot confirm that the subagent ended, keep its locks and tell the human.
 
 ### A candidate that needs its own checkout
 

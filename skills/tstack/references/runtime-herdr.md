@@ -80,6 +80,7 @@ Read it with `herdr agent read`, and tell the human instead of answering it.
 A timeout is not a failure.
 Read the screen before deciding.
 To stop a running worker, close its pane with `herdr pane close <pane>`.
+It has ended once `herdr pane list` no longer shows that pane.
 
 ### A candidate that needs its own checkout
 
