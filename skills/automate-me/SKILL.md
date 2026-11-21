@@ -73,6 +73,7 @@ Use the **writing-for-agents** skill to author the skill. Placement:
 - Frontmatter `description`: trigger on their name + `/<handle>-mode` + "work in their style", not on generic keywords like "write code" or "review PR".
 - Frontmatter formatting: follow the writing-for-agents skill's [skill mechanics](../writing-for-agents/SKILL-MECHANICS.md). Keep `description` as one YAML scalar. Quote it or use `description: >-` with indented continuation lines when punctuation or wrapping requires it.
 - Frontmatter `disable-model-invocation: true` by default. Opt out only if the user explicitly wants their mode to apply on every turn.
+  Codex ignores that field, so with it also write `agents/openai.yaml` beside the skill with `policy.allow_implicit_invocation: false`, as this repo's own explicit-only skills do.
 
 ### 5. Iterate on prose
 
@@ -83,6 +84,7 @@ Show the draft to the user and take feedback. Expect multiple iterations. Cut ru
 ### 6. Land it
 
 Work in a worktree off main. Commit and open a PR. Don't push to main directly.
+A personal skill saved outside the project, such as under `~/.agents/skills/`, is saved in place instead, with its own repository's workflow only if it has one.
 
 ## Guardrails
 

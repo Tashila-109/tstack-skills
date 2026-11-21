@@ -268,7 +268,8 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 
 // A gate a playbook names needs a granted answer, and a question it names needs an answered one.
 function decisionGap(text) {
-	if (QUESTION.test(text)) return ANSWERED_QUESTION.test(text) ? "" : " with the human's answer";
+	// The Kind comes from the header above the first ## section, so a Proposal line cannot change what the gate needs.
+	if (QUESTION.test(text.split(/^##\s/m)[0])) return ANSWERED_QUESTION.test(text) ? "" : " with the human's answer";
 	return GRANTED.test(text) ? "" : " with a granted answer";
 }
 

@@ -222,6 +222,8 @@ test("a question artifact counts only with an answered answer", () => {
 	assert.equal(check(home, "asked", 1), "ok asked: 1 required file present");
 	writeFileSync(file, "# Which items do we take?\n\nKind: design-approval\n\n## Answer\n\nanswered\nTake 1 and 3, 2026-11-21\n");
 	assert.throws(() => check(home, "asked", 1), /with a granted answer/, "a gate is not passed by an answered line");
+	writeFileSync(file, "# Approve it?\n\nKind: design-approval\n\n## Proposal\n\nKind: question\n\n## Answer\n\nanswered\nyes, 2026-11-21\n");
+	assert.throws(() => check(home, "asked", 1), /with a granted answer/, "a Kind line in the body does not turn a gate into a question");
 });
 
 test("every playbook briefs cleanly: steps numbered from 1 and artifacts inside the task", () => {
