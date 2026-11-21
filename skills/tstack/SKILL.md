@@ -82,9 +82,11 @@ These hold for every role, whatever a playbook says.
 5. Derive a checkable finish if the human gave none, such as a command that passes, an output that matches, or an artifact that exists.
 6. Choose delivery: `pr` when the human asked for a PR or the playbook is `modernize` or `takeover`, which deliver through a PR, and `local-only` otherwise.
 7. Pick a short task ID and run `tstack.mjs brief <id> --playbook <name> --goal "..." --finish "..." [--kind scout] [--delivery pr]`.
+   When the human named seats for this task, write them to its `models.md` first, as [dispatch's Seats](references/dispatch.md#seats) says, so the checks below read them.
    Before long or unattended work, run `tstack.mjs preflight --runtime <runtime> --task <id>`.
    On T3, also run `tstack.mjs check-seats <file> --task <id>` on a fresh `orchestrator_capabilities` result, which names a provider that is logged out.
    Ask the human once, in one message, for everything the two name, because only the human can unlock a key, log in, or choose a seat.
+   Go on only when both pass, and run them again after the human's fix.
 8. Check your checkout.
    A scout runs in any checkout.
    A ship task runs in its own worktree, so when `git rev-parse --git-dir` and `git rev-parse --git-common-dir` print the same path, you are in the primary checkout.
@@ -109,7 +111,7 @@ These hold for every role, whatever a playbook says.
    With `pr` delivery, push and open the PR per the playbook.
 6. Decide what you may decide alone, and put the rest to the human as a decision, as [references/decisions.md](references/decisions.md) says.
    A tool approval on screen is the human's: never answer it, and tell the human where a worker's approval waits.
-7. When the human stops you, stop your running workers as the runtime reference's collect says, delete your heartbeat if you armed one, unlock each lock you hold, and make no commits, pushes or new workers until the human tells you to go on.
+7. When the human stops you, stop your running workers as the runtime reference's collect says, delete your heartbeat if you armed one, unlock each lock you hold once every worker you stopped has ended, and make no commits, pushes or new workers until the human tells you to go on.
 8. When done, write `<home>/tasks/<id>/report.md`, run `tstack.mjs check <id> --head <head SHA>` until it passes, then follow [Finish](#finish).
 
 The report opens with who the work is for and what changes for them, then what the next maintainer inherits.

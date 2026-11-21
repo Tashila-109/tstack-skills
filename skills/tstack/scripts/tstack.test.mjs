@@ -861,6 +861,7 @@ test("preflight names each seat that will not resolve, a locked signing key and 
 
 	const head = git("rev-parse", "HEAD");
 	const refs = git("for-each-ref");
+	git("config", "gpg.format", "openpgp");
 	git("config", "commit.gpgsign", "true");
 	git("config", "gpg.program", script("gpg-locked", "cat >/dev/null\necho 'gpg: signing failed: No pinentry' >&2\nexit 2"));
 	assert.throws(() => run("t3"), /commit\.gpgsign is on, and a signed commit failed \(.+\): unlock your signing key/m);
@@ -868,6 +869,11 @@ test("preflight names each seat that will not resolve, a locked signing key and 
 	assert.match(run("t3"), /; a signed commit works; /);
 	assert.equal(git("rev-parse", "HEAD"), head, "preflight moves no ref");
 	assert.equal(git("for-each-ref"), refs);
+	const fresh = join(dir, "fresh");
+	execFileSync("git", ["init", "-q", fresh]);
+	for (const [k, v] of [["user.name", "Test"], ["user.email", "test@example.com"], ["gpg.format", "openpgp"], ["commit.gpgsign", "true"], ["gpg.program", git("config", "gpg.program").trim()]])
+		execFileSync("git", ["-C", fresh, "config", k, v]);
+	assert.match(preflight(home, "t3", undefined, { cwd: fresh, env, globalDir }), /; a signed commit works; /, "a repository with no commit can still prove its key");
 	git("config", "commit.gpgsign", "false");
 
 	script("gh", "echo 'You are not logged into any GitHub hosts. To log in, run: gh auth login' >&2\nexit 1");

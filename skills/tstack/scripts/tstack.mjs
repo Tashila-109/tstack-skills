@@ -675,7 +675,9 @@ export function preflight(home, runtime, task, { cwd = process.cwd(), env = proc
 	// commit-tree writes one unreferenced commit object, which Git prunes later, and moves no ref.
 	if (signs)
 		try {
-			git(["commit-tree", "-S", "-m", "tstack preflight", "HEAD^{tree}"], { timeout: SIGN_MS, env: { ...env, GIT_TERMINAL_PROMPT: "0" } });
+			// The empty tree needs no first commit, so a new repository can be checked too.
+			const empty = git(["mktree"], { stdio: ["pipe", "pipe", "pipe"], input: "" }).trim();
+			git(["commit-tree", "-S", "-m", "tstack preflight", empty], { timeout: SIGN_MS, env: { ...env, GIT_TERMINAL_PROMPT: "0" } });
 		} catch (err) {
 			const why = err.code === "ETIMEDOUT" ? `no passphrase within ${SIGN_MS / 1000} seconds` : firstLine(err.stderr);
 			problems.push(`commit.gpgsign is on, and a signed commit failed (${why}): unlock your signing key, such as with its passphrase or your ssh-agent`);

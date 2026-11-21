@@ -21,7 +21,7 @@ Then it asks you once for everything only you can fix, such as a locked signing 
 Answer before you leave, so the run does not stop on the first commit.
 
 Two tasks on one machine can need the same simulator, port or local database.
-A lead takes a lock on it first, and when another task holds it, the two leads settle it between them without asking you to relay.
+A lead takes a lock on it first, and when another task holds it, the two leads settle it between them without asking you to relay, except on the standalone runtime, where you pass on the note the waiting lead writes.
 
 To stop a run on purpose, tell the lead to pause, or that you are about to go offline.
 The [Pause safely playbook](../../skills/tstack/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note.
