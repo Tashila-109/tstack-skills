@@ -195,7 +195,7 @@ A coordinator's prompt names its program and runs `status` with no ID.
 It deletes the schedule the same way when the human stopped or interrupted the coordinator, or the program is held or its queue has ended, and otherwise runs the program playbook's check-in.
 The prompt carries the delete because a human interrupt ends your turn without giving you another one to delete the schedule, and a schedule outlives a stop and would start the work again.
 Delete it the same way when the lead reports done, the program's queue ends, or the human stops you.
-When the human releases a hold, arm the heartbeat again and rewrite its ID file, because work that waits for a later wake has no other one.
+When the human releases a hold, keep the recorded heartbeat when `list_scheduled_tasks` still shows its ID. Otherwise arm a new one and write its ID file, because work that waits for a later wake has no other one.
 The project holds other scheduled tasks, so never delete one whose ID you did not record.
 `run_scheduled_task_now` runs it once, to prove it posts what you expect.
 
