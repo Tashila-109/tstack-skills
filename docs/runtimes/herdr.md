@@ -66,5 +66,5 @@ To stop an autopilot, tell its coordinator, which holds every lead.
 
 The lead removes its own worktree and `task/<task id>`, and tells you the tab can be closed.
 Git refuses to remove a worktree with work that has not landed, and the lead stops there instead of forcing it.
-For follow-ups, the lead lists them in its final reply and adds them to `.tstack/backlog.md`, each with an ID.
-To take one, open a new pane and name its ID in your request.
+For follow-ups, the lead lists them in its final reply and adds them to `.tstack/backlog.md`, each with an ID, or files them in the tracker the project names.
+To take one, open a new pane and name its ID, or its tracker issue, in your request.

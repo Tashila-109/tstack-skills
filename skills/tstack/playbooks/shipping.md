@@ -8,7 +8,7 @@
    Write `evidence/verdicts.md`: one row per PR, bottom to top, with its number and URL, verdict, verifier, head SHA, base SHA and patch-id, then the ceiling.
    Artifact: `evidence/verdicts.md`
 4. **Write the ship pack, when people will deploy, support or track the run.** It is for the person who runs the deploy and the people who review the change, so write it for them, not for the next maintainer.
-   When nobody deploys, migrates or tracks the run, write only a `skip:` line with the reason.
+   When nobody deploys, migrates, supports or tracks the run, write only a `skip:` line with the reason.
    Otherwise write four short sections:
    - `## Runbook`: the deploy order across PRs and services, each migration and whether it can be undone, and each command in its own code block with every value filled in, so it pastes and runs as it is.
      Say which commands you ran yourself, such as a dry run, and never run one that deploys or migrates.

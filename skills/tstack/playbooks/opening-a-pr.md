@@ -43,11 +43,11 @@ Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed he
 
 After the sections, attach the images and recordings that [proof's Show it](../references/proof.md#show-it) names, as **Images** says. Full SHAs, swarm or arena lane recitals, lever-correction essays, file-by-file checklists, and "CLEAN" verdicts go in a linked artifact, not the body.
 
-**Images.** Attach each file with `gh pr create` or `gh pr edit <pr>`, repeating `--attach '<file>#<alt text>'` for each one, up to 50 per command.
+**Images.** Attach each file with `gh pr create` or `gh pr edit <pr>`, repeating `--attach '<image>#<alt text>'` for each image and `--attach <video>` for each recording, because `gh` refuses alt text on a video, up to 50 per command.
 `gh` added `--attach` in 2.99.0.
 On 2026-11-21, `gh` 2.105.0 had it on `pr create`, `pr edit` and `pr comment`.
 A reference to the file in the body, such as `![Archived list, after](./evidence/proof/archived-list.png)`, becomes the uploaded image in place, and `gh` appends a file the body does not reference.
-A body file's paths resolve from that file's own folder.
+Write each reference as a path from the directory you run `gh` in, because `gh` 2.99.0 resolves them from there, not from the body file's folder.
 When `gh pr edit --help` lists no `--attach`, upgrade `gh` or say in the reply that the PR has no images, and why.
 
 **Forge.** Use the GitHub CLI, `gh`, for create, edit, view, watch, and merge. Do not require Graphite (`gt`).

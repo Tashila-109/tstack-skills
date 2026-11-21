@@ -14,6 +14,7 @@ The project's `verify-*` skill owns how to launch, drive and capture.
 - Trust a check only after you have seen it fail.
   Before you rely on a new assertion, break its condition once and watch it go red.
 - For a change to a screen, capture that screen on the base too, so the proof can show it before and after.
+  A screen the change adds has no base: show it after only, and say in its row that it is new.
 - After a repair, rerun the claims the repair could change.
   Run every claim once on the final head, or reuse its earlier pass as [Budget](#budget) says.
 
@@ -76,6 +77,7 @@ Prove the change against that design, not only against the brief's words.
   Then add a row for each edge case you find in the code.
 - For each row, export the matching frame from the design source, and capture the built screen in the same state at the same size.
   Join the two into one image with the design on the left, such as with `magick design.png built.png +append side-by-side.png`, and cite that image in the row's Evidence cell.
+- A state the brief names that the design has no frame for still gets a row: capture the built screen alone, cite it, and name the missing frame below the table, so the human can ask the designer for it.
 - Name each place the built screen departs from the design on purpose, and why, below the table.
 
 `tstack.mjs check` refuses a proof against a design while a row cites no file under `evidence/`, unless its verdict is `blocked`.
@@ -85,5 +87,5 @@ Prove the change against that design, not only against the brief's words.
 At Finish, show the human the table and its images, not a path to them.
 - On T3, publish `verify.md` with its images inlined as a page, following the [t3-visual skill](../../t3-visual/SKILL.md).
 - With `pr` delivery, the PR's `## Verification` bullets come from the table.
-  The PR body shows the images too, attached as [Opening a PR](../playbooks/opening-a-pr.md) says: each changed screen before and after, or a design proof's side-by-sides, and a recording when the change is motion or timing.
+  The PR body shows the images too, attached as [Opening a PR](../playbooks/opening-a-pr.md) says: each changed screen before and after, a new screen after only, or a design proof's side-by-sides, and a recording when the change is motion or timing.
 - Elsewhere, put the table in the reply and give the absolute path of `evidence/proof/`.
