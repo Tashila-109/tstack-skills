@@ -537,7 +537,7 @@ function taskFacts(home, queues, id, sized) {
 		report: Boolean(text("report.md").trim()),
 		closed: GRANTED.test(prose(text("decisions/close.md"))),
 		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
-		open: mdFiles(join(taskDir, "decisions"))
+		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
 			.filter(({ body }) => !ANSWERED_OR_DENIED.test(body))
 			.map(({ name, body }) => {
@@ -554,9 +554,20 @@ function taskFacts(home, queues, id, sized) {
 	};
 }
 
+// Keeps only the highest-numbered revision of each decision, such as design-2.md over design.md, so a revised gate is judged by its newest file.
+function latestRevisions(names) {
+	const newest = new Map();
+	for (const name of names) {
+		const m = name.match(/^(.*?)(?:-(\d+))?\.md$/);
+		const rev = Number(m[2] ?? 1);
+		if (!(newest.get(m[1])?.rev >= rev)) newest.set(m[1], { name, rev });
+	}
+	return names.filter((name) => [...newest.values()].some((v) => v.name === name));
+}
+
 function summaryLine(f) {
 	const reached = f.reached ? `step ${f.reached} of ${f.steps.length} reached` : "no step reached";
-	const created = f.task.created?.slice(0, 10) ?? "unknown";
+	const created = typeof f.task.created === "string" ? f.task.created.slice(0, 10) : "unknown";
 	return [f.task.playbook, f.task.kind, f.task.delivery, `created ${created}`, reached, ...(f.report ? ["report written"] : []), ...(f.closed ? ["closed"] : []), ...(f.size ? [f.size] : [])].join(", ");
 }
 
@@ -585,7 +596,7 @@ export function status(home, id, sized = false) {
 		const list = (label, items) => [`${label}: ${items.length || "none"}`, ...items.map((item) => `  ${item}`)];
 		return [
 			`task ${id}`,
-			`playbook: ${f.task.playbook}, ${f.task.kind}, ${f.task.delivery} delivery, created ${f.task.created?.slice(0, 10) ?? "unknown"}`,
+			`playbook: ${f.task.playbook}, ${f.task.kind}, ${f.task.delivery} delivery, created ${typeof f.task.created === "string" ? f.task.created.slice(0, 10) : "unknown"}`,
 			`goal: ${f.task.goal}`,
 			`finish: ${f.task.finish}`,
 			...(f.size ? [`size: ${f.size}`] : []),

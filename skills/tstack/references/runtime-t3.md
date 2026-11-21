@@ -187,7 +187,7 @@ A lead's prompt, with every `<...>` filled in:
 ```text
 tstack heartbeat for task <id>, until <predicate>.
 Run node <path to tstack.mjs> status <id>.
-If the human stopped or interrupted you and has not written since, or status shows the task held or closed, call delete_scheduled_task with the ID in <home>/tasks/<id>/heartbeat.txt, delete that file, and end your turn.
+If the human stopped or interrupted you and has not since told you to go on, or status shows the task held or closed, call delete_scheduled_task with the ID in <home>/tasks/<id>/heartbeat.txt, delete that file, and end your turn.
 Otherwise collect each finished worker that status lists and you have not read, then check the predicate.
 ```
 
@@ -195,6 +195,7 @@ A coordinator's prompt names its program and runs `status` with no ID.
 It deletes the schedule the same way when the human stopped or interrupted the coordinator, or the program is held or its queue has ended, and otherwise runs the program playbook's check-in.
 The prompt carries the delete because a human interrupt ends your turn without giving you another one to delete the schedule, and a schedule outlives a stop and would start the work again.
 Delete it the same way when the lead reports done, the program's queue ends, or the human stops you.
+When the human releases a hold, arm the heartbeat again and rewrite its ID file, because work that waits for a later wake has no other one.
 The project holds other scheduled tasks, so never delete one whose ID you did not record.
 `run_scheduled_task_now` runs it once, to prove it posts what you expect.
 

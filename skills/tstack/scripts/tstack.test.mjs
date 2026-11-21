@@ -855,3 +855,20 @@ test("status <id> shows one task's steps and lists every item", () => {
 	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);
 	assert.throws(() => main(["status", "--verbose", "1"]), /status takes no --verbose; its flags are --size/);
 });
+
+test("status judges a revised decision by its newest file, and one bad task never hides the rest", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "one", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	brief(home, "two", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "one");
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), "# Approve v1?\n\nKind: design-approval\n");
+	writeFileSync(join(task, "decisions/design-2.md"), "# Approve v2?\n\nKind: design-approval\n\n## Answer\n\ngranted\nyes, 2026-11-21\n");
+	assert.match(status(home, "one"), /^open decisions: none$/m, "design-2.md answers the gate design.md opened");
+	writeFileSync(join(task, "decisions/design-3.md"), "# Approve v3?\n\nKind: design-approval\n");
+	assert.match(status(home, "one"), /^  decisions\/design-3\.md: Approve v3\?$/m);
+	const json = join(home, "tasks", "two", "task.json");
+	writeFileSync(json, JSON.stringify({ ...JSON.parse(readFileSync(json, "utf8")), created: 42 }));
+	assert.match(status(home), /^two: sample, .*created unknown/m);
+	assert.match(status(home), /^one: /m);
+});
