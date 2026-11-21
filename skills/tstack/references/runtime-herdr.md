@@ -4,6 +4,7 @@ Use this when `HERDR_ENV=1` and the `t3-code` MCP tools are absent.
 [dispatch.md](dispatch.md) owns the verbs, seats and depth.
 This file owns the calls.
 The calls were measured on Herdr 0.9.3, 2026-10-05, and `herdr agent list` reporting `cwd` on 0.9.5, 2026-10-30.
+Confirming that a stopped worker ended, by its pane leaving `herdr pane list`, follows Herdr's documented commands and has not run live.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
 Every `herdr` command returns JSON.
