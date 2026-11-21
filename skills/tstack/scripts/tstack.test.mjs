@@ -755,3 +755,50 @@ test("every command refuses a flag it does not take", () => {
 	assert.throws(() => main(["check", "t1", "--trough", "1"]), /check takes no --trough/);
 	assert.throws(() => main(["home", "--verbose", "1"]), /home takes no --verbose; its flags are none/);
 });
+
+test("an away grant lets the lead take its recommendation on a question until the human returns, and never on a gate", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "away", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "away");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "decisions"));
+	const decide = (name, kind, answer) =>
+		writeFileSync(join(task, "decisions", name), `# Keep the cache key?\n\nKind: ${kind}\nSubject: the cache key\n\n## Recommendation\n\nKeep it.\n\n## Answer\n\n${answer}\n`);
+	const grant = "# Take my recommendation on questions while the human is away\n\nKind: away\nSubject: question decisions in this task until the human writes again\n\n## Answer\n\n";
+	decide("1.md", "question", "taken\nKeep it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/1\.md cites decisions\/away\.md, which is missing or not granted/);
+	writeFileSync(join(task, "decisions/away.md"), `${grant}\`\`\`\ngranted\n\`\`\`\n`);
+	assert.throws(() => check(home, "away"), /which is missing or not granted/, "a grant inside a code block is an example");
+	writeFileSync(join(task, "decisions/away.md"), `${grant}granted\nafk, take your recommendation, 2026-11-21\n`);
+	assert.equal(check(home, "away"), "ok away: 1 required file present");
+	decide("2.md", "question", "taken\nKeep it, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/2\.md is taken under no away grant/);
+	decide("2.md", "question", "answered\nKeep it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/2\.md cites decisions\/away\.md, so its answer must open with taken/);
+	decide("2.md", "question", "answered\nkeep it, 2026-11-21");
+	decide("design.md", "design-approval", "taken\nApprove it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/design\.md is a design-approval decision, which waits for the human/);
+	decide("design.md", "design-approval", "granted\nApprove it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /design-approval decision, which waits for the human/, "a gate granted under the away grant is the lead answering for the human");
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ntaken\nclose it, 2026-11-21\n");
+	assert.throws(() => check(home, "away"), /decisions\/close\.md is a decision with no Kind line/);
+	rmSync(join(task, "decisions/design.md"));
+	rmSync(join(task, "decisions/close.md"));
+	assert.equal(check(home, "away"), "ok away: 1 required file present");
+
+	mkdirSync(join(task, "evidence/reviews"));
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head def5678, round 4\n");
+	decide("review-m3.md", "question", "taken\nTwo more rounds, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /review m3 is at round 4/, "a taken answer is no review checkpoint");
+	rmSync(join(task, "evidence/reviews/m3.md"));
+	rmSync(join(task, "decisions/review-m3.md"));
+
+	writeFileSync(join(task, "decisions/away.md"), `${grant}granted\nafk, 2026-11-21\n\n## Ended\n\n2026-11-22, when the human wrote again.\nTaken: \`decisions/1.md\`\n`);
+	assert.equal(check(home, "away"), "ok away: 1 required file present");
+	decide("3.md", "question", "taken\nKeep it, under `decisions/away.md`, 2026-11-22");
+	assert.throws(() => check(home, "away"), /decisions\/3\.md is taken under decisions\/away\.md, which ended without listing it/);
+	writeFileSync(join(task, "decisions/away-2.md"), `${grant}granted\nstepping out again, 2026-11-22\n`);
+	decide("3.md", "question", "taken\nKeep it, under `decisions/away-2.md`, 2026-11-22");
+	assert.equal(check(home, "away"), "ok away: 1 required file present", "a later absence is a new grant");
+});

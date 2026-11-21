@@ -176,11 +176,11 @@ Never delete a T3 worktree yourself.
 
 ## Heartbeat
 
-When a lead's long run has no event to wake it, or a coordinator runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
+When a lead's long run has no event to wake it, a lead records an away grant, or a coordinator runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
 Give it a `title` that names the task or program.
 Each run posts that prompt into your own thread.
 Write the `scheduledTaskId` it returns to `<home>/tasks/<id>/heartbeat.txt`, or to `<home>/autopilot-<name>-heartbeat.txt` for a program.
-Delete it by that ID with `delete_scheduled_task` when the lead reports done, the program's queue ends, or the human stops you, because a schedule outlives a stop and would start the work again.
+Delete it by that ID with `delete_scheduled_task` when the lead reports done, an away grant you armed it for ends, the program's queue ends, or the human stops you, because a schedule outlives a stop and would start the work again.
 The project holds other scheduled tasks, so never delete one whose ID you did not record.
 `run_scheduled_task_now` runs it once, to prove it posts what you expect.
 

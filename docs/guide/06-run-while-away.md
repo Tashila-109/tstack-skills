@@ -1,7 +1,7 @@
 # Run work while you are away
 
 Some work runs for hours: a loop toward a target, a PR waiting on CI, a queue of changes.
-This page covers handing that work off, the one grant autopilot needs, and reading what happened when you come back.
+This page covers handing that work off, stepping away from a task that is already running, the one grant autopilot needs, and reading what happened when you come back.
 
 ## Earn the trust before the loop
 
@@ -15,10 +15,23 @@ Before you leave one running, check that it has earned it:
 Make the loop autonomous only after all four hold.
 Until then, run it while you watch.
 
-To stop a run on purpose, tell the lead to pause, or that you are about to go offline.
+To stop a run on purpose, tell the lead to pause.
 The [Pause safely playbook](../../skills/tstack/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note.
 A fresh lead picks the work up from that note through the Session pickup playbook.
-Saying "keep going" never triggers a pause.
+Saying "keep going", or that you are away, never triggers a pause.
+
+## Step away from a running task
+
+When you leave in the middle of a task, tell its lead, such as "afk", "I'm away", "stepping out", "going to bed" or "babysit the rest".
+The lead keeps running the playbook it is in, and records your words as an away grant in the task's `decisions/away.md`.
+Under that grant it answers its own question decisions with the option it recommended, and marks each answer as taken under the grant.
+Design, spec and implementation gates, merges, and anything destructive still wait for you.
+On T3 the lead also arms a heartbeat, a scheduled wake that keeps it checking on its workers while you are gone.
+
+When you write again, the lead's reply opens with every decision it took while you were away, and the grant ends.
+Overrule any of them in your reply.
+`tstack.mjs check` refuses a gate the lead answered under the grant, and, once the grant has ended, a taken question that the grant file does not list.
+[decisions.md](../../skills/tstack/references/decisions.md#while-the-human-is-away) owns the exact rules.
 
 ## A loop toward a checkable target
 
@@ -84,7 +97,7 @@ Each task's folder, `<project>/.tstack/tasks/<id>/`, holds the whole story:
 | `report.md` | What changed, how it was proved, and what is left |
 | `evidence/` | Each step's file: the baseline, the predicate, the decision log, the babysit summary |
 | `results/` | What each worker found, in its own words |
-| `decisions/` | Each question the lead asked, and your recorded answer |
+| `decisions/` | Each question the lead asked, and your recorded answer or the one it took under an away grant |
 
 Start with `report.md`, then open the evidence it cites.
 `evidence/decisions.tsv` shows every attempt in order, including the ones that were reverted.
