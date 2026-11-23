@@ -944,3 +944,15 @@ test("refPath keeps a branch name whole in a URL path", () => {
 	assert.equal(refPath("release#1"), "release%231");
 	assert.equal(refPath("fix/a?b"), "fix/a%3Fb");
 });
+
+test("status counts a closed task's denied decision as waived, as check does", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "gated.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n");
+	brief(home, "shut", { playbook: "gated", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "shut");
+	mkdirSync(join(task, "decisions"), { recursive: true });
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\n## Answer\n\ndenied\nnot now, 2026-11-21\n");
+	assert.match(status(home, "shut"), /^reached: no step$/m, "an open task still needs a granted answer");
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ngranted\nclose it, 2026-11-21\n");
+	assert.match(status(home, "shut"), /^reached: step 1/m);
+});
