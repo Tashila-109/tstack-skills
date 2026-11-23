@@ -8,11 +8,10 @@ This page fixes both: prototypes answer the open questions, a README sets the ta
 
 ## Settle the shape with architect
 
-`architect` grounds itself in the code with `how`, then runs `arena` to sketch competing designs.
-Each sketch starts from how a caller would use the code, then names the types, signatures and module map.
-The runners come from your `architect runners` seats, so on T3 and Herdr three different model families sketch independently.
-On [any other harness](../runtimes/any-harness.md) they all run on your lead's model, and the lead says so.
-The lead picks one, writes the candidates and the pick to `evidence/design.md`, and the workers build from that file.
+`architect` traces every system the change touches, then sketches two different shapes: types, signatures and module boundaries.
+It picks the shape where each piece of state has one owner, each task has one way to do it, and callers need to know least.
+A large or contested design runs `arena` instead, so several models sketch independently.
+The lead writes both shapes and the pick to `evidence/design.md`, and the workers build from that file.
 
 To see the design before any code is written, say so when you start the task:
 
@@ -23,8 +22,7 @@ $tstack design the import pipeline before writing code, and show me the design f
 The lead then opens a decision with the design, asks you in its own thread, and waits for your answer.
 
 The design is not sacred once code starts.
-If the same workaround shows up in unrelated places, or types only compile with `any` or forced casts, `architect` treats that as proof the design is wrong.
-It scraps the sketch and starts over instead of patching around it.
+If the same workaround keeps showing up, `architect` treats that as proof the design is wrong, and redesigns instead of patching around it.
 
 ## Fan out attempts with arena
 
@@ -94,8 +92,8 @@ $tstack turn this design into a plan. Small verifiable PRs, each with its own ve
 ```
 
 The [Multi-phase plan playbook](../../skills/tstack/playbooks/multi-phase-plan.md) settles open questions by prototype, then writes the design and the spec for your approval, and does not build.
-To plan and then build, ask for [Orchestrate](../../skills/tstack/playbooks/orchestrate.md).
-[Plan work across phases](08-plan-across-phases.md) covers both, and the gates they ask you to approve.
+To build the approved plan, start a [Figure it out](../../skills/tstack/playbooks/figure-it-out.md) task on it.
+[Plan work across phases](08-plan-across-phases.md) covers the plan and the gates it asks you to approve.
 
 For a migration, state the bar in the prompt, such as "the result must match the original exactly, bugs included".
 That keeps the migration from quietly fixing things on the way, which would make the old and new output impossible to compare.
@@ -103,7 +101,7 @@ That keeps the migration from quietly fixing things on the way, which would make
 ## How much design a task deserves
 
 - A small, finished change you are unsure about needs `interrogate` alone.
-- A change that crosses function boundaries or moves ownership earns `architect`, which brings `arena` with it.
+- A change that crosses function boundaries or moves ownership earns `architect`, and a large or contested one earns `arena`.
 - A standalone choice where independent attempts help, such as a format or an algorithm, is `arena` directly.
 - A coverage matrix or a set of parallel checks is `swarm`.
 - An open question you could answer by running something, such as a layout or a timing, gets a prototype.

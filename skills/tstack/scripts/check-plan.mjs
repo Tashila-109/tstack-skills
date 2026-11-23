@@ -29,8 +29,8 @@ const PROGRAM_H3 = [
 const PROGRAM_MARKERS = [
 	"design.md",
 	"spec.md",
-	"granted decision records",
-	"execution authorization",
+	"latest granted decision",
+	"On a mismatch",
 	"lead",
 	"human",
 	"no Git writes",
