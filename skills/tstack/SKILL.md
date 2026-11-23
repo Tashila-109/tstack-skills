@@ -75,6 +75,8 @@ These hold for every role, whatever a playbook says.
    **Ship** changes the project.
    **Scout** produces knowledge in `report.md` and never a PR.
    If established evidence already answers a question, answer it instead of starting a task.
+   A question about where the project's work stands, such as "where did we leave off?", is one of those.
+   Run `tstack.mjs status` with no ID and answer as [Status](#status) says, before you start anything.
    A question about tstack itself, such as which skill or playbook fits, goes to the **tstack-help** skill.
 4. Pick the playbook from [Playbooks](#playbooks).
    Take the first row that fits.
@@ -134,6 +136,14 @@ It ends with `## Remember`, short lessons a later task in this project should kn
    Delete lessons there that went stale.
 5. After a merge, clean up per the runtime reference.
    A closed task keeps its branch and worktree until the human says to drop them.
+
+### Status
+
+A status question, such as "what's the status?", "where are we?" or "are you waiting on me?", gets the reply shape of the **ketchup** skill.
+Build it from `tstack.mjs status <id>`, which lists the task's steps, its open decisions, and the finished workers no evidence file cites yet.
+Collect each of those workers before you answer, so the reply counts their work.
+Cite a result in an evidence file only after you collect it, because `status` reads a cited result as collected.
+Your own memory of the task is not the source, because a compacted thread loses it.
 
 ## Coordinator
 

@@ -88,5 +88,8 @@ Each task's folder, `<project>/.tstack/tasks/<id>/`, holds the whole story:
 | `results/` | What each worker found, in its own words |
 | `decisions/` | Each question the lead asked, and your recorded answer |
 
+Ask the lead or the coordinator "where are we?" for the short version.
+It answers from `tstack.mjs status`, which lists each task's step, the decisions waiting on you, and finished worker results nobody has read yet.
+
 Start with `report.md`, then open the evidence it cites.
 `evidence/decisions.tsv` shows every attempt in order, including the ones that were reverted.

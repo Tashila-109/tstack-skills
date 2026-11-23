@@ -4,6 +4,7 @@
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>] [--head <sha>]
+//   node tstack.mjs status [<id>]
 //   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--cross <model> [--avoid <model>,...]]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result>
 //   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
@@ -222,12 +223,10 @@ export function brief(home, id, opts) {
 	return briefPath;
 }
 
-export function check(home, id, through, head, cwd = process.cwd()) {
-	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
-	const taskDir = join(home, "tasks", id);
-	const taskPath = join(taskDir, "task.json");
-	if (!existsSync(taskPath)) throw new Refusal(`no task ${id} at ${taskDir}`);
-	const task = JSON.parse(readFileSync(taskPath, "utf8"));
+// The task's frozen steps, with every artifact its playbook names today added, so a tampered or stale task.json drops none.
+function readTask(taskDir) {
+	const task = JSON.parse(readFileSync(join(taskDir, "task.json"), "utf8"));
+	task.steps ??= [];
 	const playbookPath = ID.test(task.playbook ?? "") ? join(SKILL_DIR, "playbooks", `${task.playbook}.md`) : "";
 	if (playbookPath && existsSync(playbookPath)) {
 		for (const fresh of parseSteps(readFileSync(playbookPath, "utf8"))) {
@@ -236,6 +235,19 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 			else frozen.artifacts = [...new Set([...frozen.artifacts, ...fresh.artifacts])];
 		}
 	}
+	return task;
+}
+
+// A decision counts with a granted answer, and any other artifact once it is not blank.
+function present(taskDir, path, text) {
+	return path.startsWith("decisions/") ? GRANTED.test(prose(latestDecision(taskDir, path, text))) : Boolean(text.trim());
+}
+
+export function check(home, id, through, head, cwd = process.cwd()) {
+	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
+	const taskDir = join(home, "tasks", id);
+	if (!existsSync(join(taskDir, "task.json"))) throw new Refusal(`no task ${id} at ${taskDir}`);
+	const task = readTask(taskDir);
 	const wanted = task.steps
 		.filter((s) => through === undefined || s.n <= through)
 		.flatMap((s) => s.artifacts.map((path) => ({ step: `step ${s.n}${s.added ? " (added to the playbook after the brief)" : ""}`, path })));
@@ -244,13 +256,12 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		wanted.push({ step: "final report", path: "report.md" });
 	}
 	const problems = [];
-	// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines.
 	const closed = GRANTED.test(prose(readIfFile(insideTask(taskDir, "decisions/close.md"))));
 	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
-		if (closed && path !== "report.md" && text.trim() && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))))) continue;
-		if (path.startsWith("decisions/") ? !GRANTED.test(prose(latestDecision(taskDir, path, text))) : !text.trim())
+		if (waived(closed, path, text)) continue;
+		if (!present(taskDir, path, text))
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
@@ -276,26 +287,32 @@ function latestDecision(taskDir, path, text) {
 	return later ? readIfFile(insideTask(taskDir, `decisions/${later.f}`)) : text;
 }
 
-function proofGaps(taskDir, text) {
-	// A table row may drop its outer pipes, so split on them and drop the empty edge cells.
-	// Only rows below a table's separator line are claims, so a prose line with pipes is not one.
-	// The verdict is the column headed Verdict, or the last column when no header says so.
-	const plain = (cell) => cell.replace(/[*_`~]/g, "").trim().toLowerCase();
-	const failed = [];
-	let header = [];
-	let verdict = -1;
-	for (const line of prose(text).split("\n")) {
+const plain = (cell) => cell.replace(/[*_`~]/g, "").trim().toLowerCase();
+
+// Each table row below a separator line, with the plain header cells above that separator and the table's width.
+// A row may drop its outer pipes, so split on them and drop the empty edge cells.
+// Only rows below a separator are data, so a prose line with pipes is not one.
+function tableRows(markdown) {
+	const rows = [];
+	let previous = [];
+	let table;
+	for (const line of prose(markdown).split("\n")) {
 		// An escaped pipe, \|, belongs to its cell.
 		const cells = line.split(/(?<!\\)\|/).map((cell) => cell.trim());
 		const row = cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined);
-		if (row.length > 1 && row.every((cell) => /^:?-+:?$/.test(cell))) {
-			const named = header.map(plain).indexOf("verdict");
-			verdict = named >= 0 ? named : row.length - 1;
-		} else if (verdict >= 0 && row.length > 1) {
-			if (plain(row[verdict] ?? "") === "failed") failed.push(`has a failed claim: ${row[0]}: repair it and prove it again, or ask the human`);
-		} else verdict = -1;
-		header = row;
+		if (row.length > 1 && row.every((cell) => /^:?-+:?$/.test(cell))) table = { header: previous.map(plain), width: row.length };
+		else if (table && row.length > 1) rows.push({ ...table, cells: row });
+		else table = undefined;
+		previous = row;
 	}
+	return rows;
+}
+
+function proofGaps(taskDir, text) {
+	// The verdict is the column headed Verdict, or the last column when no header says so.
+	const failed = tableRows(text)
+		.filter(({ header, width, cells }) => plain(cells[header.includes("verdict") ? header.indexOf("verdict") : width - 1] ?? "") === "failed")
+		.map(({ cells }) => `has a failed claim: ${cells[0]}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
 	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
@@ -361,16 +378,24 @@ function readIfFile(path) {
 	return existsSync(path) && statSync(path).isFile() ? readFileSync(path, "utf8") : "";
 }
 
+// The last DONE, BLOCKED or FAILED line in a worker's result, or undefined while it has none.
+function resultVerdict(taskDir, name) {
+	return [...readIfFile(join(taskDir, "results", name)).matchAll(new RegExp(VERDICT.source, "gm"))].at(-1)?.[1];
+}
+
+function mdFiles(dir) {
+	return existsSync(dir) ? readdirSync(dir).filter((name) => name.endsWith(".md")).sort() : [];
+}
+
+// Each brief whose worker has written no verdict yet.
+function unfinishedBriefs(taskDir) {
+	return mdFiles(join(taskDir, "briefs")).filter((name) => !resultVerdict(taskDir, name));
+}
+
 function workerGaps(taskDir) {
-	const briefs = join(taskDir, "briefs");
-	if (!existsSync(briefs)) return [];
-	return readdirSync(briefs)
-		.filter((name) => name.endsWith(".md"))
-		.filter((name) => {
-			const result = join(taskDir, "results", name);
-			return !(existsSync(result) && VERDICT.test(readFileSync(result, "utf8")));
-		})
-		.map((name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`);
+	return unfinishedBriefs(taskDir).map(
+		(name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`,
+	);
 }
 
 function reviewCapGaps(taskDir, closed) {
@@ -459,6 +484,169 @@ function hasContent(path) {
 	if (!existsSync(path)) return false;
 	const stat = statSync(path);
 	return stat.isDirectory() ? readdirSync(path).length > 0 : stat.size > 0;
+}
+
+// Bytes on disk under a path, counting a link as itself so nothing outside is read.
+function diskSize(path) {
+	const stat = lstatSync(path);
+	return stat.isDirectory() ? readdirSync(path).reduce((sum, name) => sum + diskSize(join(path, name)), 0) : stat.size;
+}
+
+function humanSize(bytes) {
+	const units = ["B", "KB", "MB", "GB", "TB"];
+	let i = 0;
+	for (; bytes >= 1024 && i < units.length - 1; i++) bytes /= 1024;
+	return i ? `${bytes.toFixed(1)} ${units[i]}` : `${bytes} B`;
+}
+
+function markdownUnder(dir) {
+	if (!existsSync(dir)) return [];
+	return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+		e.isDirectory() ? markdownUnder(join(dir, e.name)) : e.isFile() && e.name.endsWith(".md") ? [join(dir, e.name)] : [],
+	);
+}
+
+const firstLine = (text) => text.trim().split("\n", 1)[0];
+
+// Each autopilot queue under home, with the state of every row in its table that has a State column.
+function programs(home) {
+	const files = existsSync(home) ? readdirSync(home).filter((f) => /^autopilot-[a-z0-9][a-z0-9-]*\.md$/.test(f)).sort() : [];
+	return files.map((file) => {
+		const items = tableRows(readFileSync(join(home, file), "utf8"))
+			.filter(({ header }) => header.includes("state"))
+			.map(({ header, cells }) => {
+				const state = cells[header.indexOf("state")] ?? "";
+				const task = plain(cells[header.includes("task") ? header.indexOf("task") : 0] ?? "");
+				return { task, state, word: plain(state).match(/^[a-z]+(-[a-z]+)*/)?.[0] ?? "blank" };
+			});
+		return { file, items, heartbeat: firstLine(readIfFile(join(home, `${file.slice(0, -3)}-heartbeat.txt`))) };
+	});
+}
+
+// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines and its decisions a denied answer.
+function waived(closed, path, text) {
+	return closed && path !== "report.md" && Boolean(text.trim()) && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))));
+}
+
+function taskFacts(home, queues, id, sized) {
+	const taskDir = join(home, "tasks", id);
+	const task = readTask(taskDir);
+	const text = (path) => readIfFile(insideTask(taskDir, path));
+	const closed = GRANTED.test(prose(text("decisions/close.md")));
+	const steps = task.steps.map((s) => ({ ...s, missing: s.artifacts.filter((path) => !present(taskDir, path, text(path)) && !waived(closed, path, text(path))) }));
+	const cited = new Set([join(taskDir, "report.md"), ...markdownUnder(join(taskDir, "evidence"))].flatMap((f) => prose(readIfFile(f)).match(RESULT) ?? []));
+	return {
+		task,
+		steps,
+		reached: Math.max(0, ...steps.filter((s) => s.artifacts.length && !s.missing.length).map((s) => s.n)),
+		report: Boolean(text("report.md").trim()),
+		closed,
+		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
+		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
+			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
+			.filter(({ body }) => !ANSWERED_OR_DENIED.test(body))
+			.map(({ name, body }) => {
+				const question = body.match(/^#\s+(.+)$/m)?.[1].trim();
+				return `decisions/${name}${question ? `: ${question}` : ""}`;
+			}),
+		uncollected: mdFiles(join(taskDir, "results"))
+			.map((name) => ({ name, verdict: resultVerdict(taskDir, name) }))
+			.filter(({ name, verdict }) => verdict && !cited.has(`results/${name}`))
+			.map(({ name, verdict }) => `results/${name} ends ${verdict}`),
+		running: unfinishedBriefs(taskDir).map((name) => `briefs/${name}`),
+		heartbeat: firstLine(text("heartbeat.txt")),
+		size: sized ? humanSize(diskSize(taskDir)) : undefined,
+	};
+}
+
+// Keeps only the highest-numbered revision of each decision, such as design-2.md over design.md, so a revised gate is judged by its newest file.
+function latestRevisions(names) {
+	const newest = new Map();
+	for (const name of names) {
+		const m = name.match(/^(.*?)(?:-(\d+))?\.md$/);
+		const rev = Number(m[2] ?? 1);
+		if (!(newest.get(m[1])?.rev >= rev)) newest.set(m[1], { name, rev });
+	}
+	return names.filter((name) => [...newest.values()].some((v) => v.name === name));
+}
+
+function summaryLine(f) {
+	const reached = f.reached ? `step ${f.reached} of ${f.steps.length} reached` : "no step reached";
+	const created = typeof f.task.created === "string" ? f.task.created.slice(0, 10) : "unknown";
+	return [f.task.playbook, f.task.kind, f.task.delivery, `created ${created}`, reached, ...(f.report ? ["report written"] : []), ...(f.closed ? ["closed"] : []), ...(f.size ? [f.size] : [])].join(", ");
+}
+
+const UNCOLLECTED = "finished workers no evidence file cites";
+const RUNNING = "briefs with no verdict yet";
+
+function queueLines(q) {
+	if (!q.items.length) return [`program ${q.file}: no queue table with a State column`];
+	const counts = new Map();
+	for (const { word } of q.items) counts.set(word, (counts.get(word) ?? 0) + 1);
+	const tally = [...counts].map(([word, n]) => `${n} ${word}`).join(", ");
+	return [
+		`program ${q.file}: ${q.items.length} item${q.items.length === 1 ? "" : "s"}, ${tally}${q.heartbeat ? `, heartbeat ${q.heartbeat}` : ""}`,
+		...q.items.filter((i) => i.word === "held").map((i) => `  held: ${i.task}: ${i.state}`),
+	];
+}
+
+// Each task's progress, what waits on the human, and what waits to be collected, so a lead or coordinator can answer "where are we?".
+export function status(home, id, sized = false) {
+	const queues = programs(home);
+	if (id !== undefined) {
+		if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
+		const taskDir = join(home, "tasks", id);
+		if (!existsSync(join(taskDir, "task.json"))) throw new Refusal(`no task ${id} at ${taskDir}`);
+		const f = taskFacts(home, queues, id, sized);
+		const list = (label, items) => [`${label}: ${items.length || "none"}`, ...items.map((item) => `  ${item}`)];
+		return [
+			`task ${id}`,
+			`playbook: ${f.task.playbook}, ${f.task.kind}, ${f.task.delivery} delivery, created ${typeof f.task.created === "string" ? f.task.created.slice(0, 10) : "unknown"}`,
+			`goal: ${f.task.goal}`,
+			`finish: ${f.task.finish}`,
+			...(f.size ? [`size: ${f.size}`] : []),
+			...f.steps.map((s) => `step ${s.n} ${!s.artifacts.length ? "names no artifact" : s.missing.length ? `missing ${s.missing.join(", ")}` : "done"}: ${s.text}`),
+			`reached: ${f.reached ? `step ${f.reached} of ${f.steps.length}` : "no step"}`,
+			`report: ${f.report ? "written" : "not written"}`,
+			`closed: ${f.closed ? "yes, decisions/close.md is granted" : "no"}`,
+			...list("held", f.held),
+			...list("open decisions", f.open),
+			...list(UNCOLLECTED, f.uncollected),
+			...list(RUNNING, f.running),
+			`heartbeat: ${f.heartbeat || "none"}`,
+		].join("\n");
+	}
+	const dir = join(home, "tasks");
+	const ids = existsSync(dir) ? readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort() : [];
+	const lines = [`${ids.length} task${ids.length === 1 ? "" : "s"} under ${dir}`];
+	for (const name of ids) {
+		if (!ID.test(name) || !existsSync(join(dir, name, "task.json"))) {
+			lines.push(`${name}: ${ID.test(name) ? "no task.json" : "not a task ID"}`);
+			continue;
+		}
+		let f;
+		try {
+			f = taskFacts(home, queues, name, sized);
+		} catch (err) {
+			lines.push(`${name}: unreadable: ${err.message}`);
+			continue;
+		}
+		// What waits on the human comes in full; workers come as counts, which status <id> lists.
+		lines.push(
+			`${name}: ${summaryLine(f)}`,
+			...f.held.map((item) => `  held: ${item}`),
+			...f.open.map((item) => `  open decision: ${item}`),
+			...[
+				[UNCOLLECTED, f.uncollected],
+				[RUNNING, f.running],
+			]
+				.filter(([, items]) => items.length)
+				.map(([label, items]) => `  ${label}: ${items.length}, which status ${name} lists`),
+			...(f.heartbeat ? [`  heartbeat: ${f.heartbeat}`] : []),
+		);
+	}
+	lines.push(...queues.flatMap(queueLines));
+	return lines.join("\n");
 }
 
 export function parseModels(text) {
@@ -821,7 +1009,7 @@ export function prState(number, waitSeconds = 0) {
 	}
 }
 
-const BOOLEAN_FLAGS = new Set(["--project-skills"]);
+const BOOLEAN_FLAGS = new Set(["--project-skills", "--size"]);
 
 function flags(args) {
 	const out = { _: [] };
@@ -838,6 +1026,7 @@ const ALLOWED = {
 	home: [],
 	brief: ["playbook", "goal", "finish", "kind", "delivery"],
 	check: ["through", "head"],
+	status: ["size"],
 	seat: ["runtime", "cross", "avoid"],
 	"check-seats": [],
 	"pr-state": ["wait"],
@@ -863,6 +1052,9 @@ export function main(argv) {
 			if (through !== undefined && !(Number.isInteger(through) && through > 0)) throw new Usage(`--through must be a step number: ${f.through}`);
 			return check(taskHome(), f._[0], through, f.head);
 		}
+		case "status":
+			if (f._.length > 1) throw new Usage("status takes at most one task id");
+			return status(taskHome(), f._[0], f.size === true);
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");
 			return seat(loadModels(taskHome()), f._.join(" "), f.runtime, f.cross, f.avoid)
@@ -882,7 +1074,7 @@ export function main(argv) {
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, seat, check-seats, pr-state, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, status, seat, check-seats, pr-state, exclude, link-skills");
 	}
 }
 
