@@ -756,7 +756,7 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 function gh(args) {
 	for (let attempt = 0; ; attempt++) {
 		try {
-			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
 		} catch (err) {
 			const message = String(err.stderr || err.message).trim();
 			if (attempt === 4 || !isTransient(message)) throw new Error(message);
@@ -765,12 +765,15 @@ function gh(args) {
 	}
 }
 
+// A branch name as a URL path, so a character such as `#` or `?` stays part of the name.
+export const refPath = (ref) => ref.split("/").map(encodeURIComponent).join("/");
+
 // The base branch's required checks, from rulesets and from classic branch protection.
 // Reading protection needs admin rights, so a refusal means only that this source is unknown.
 function requiredChecks(base) {
 	const sources = [
-		[`repos/{owner}/{repo}/rules/branches/${base}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
-		[`repos/{owner}/{repo}/branches/${base}/protection/required_status_checks`, ".contexts[]?"],
+		[`repos/{owner}/{repo}/rules/branches/${refPath(base)}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
+		[`repos/{owner}/{repo}/branches/${refPath(base)}/protection/required_status_checks`, ".contexts[]?"],
 	];
 	const names = new Set();
 	for (const [path, jq] of sources) {
@@ -784,7 +787,7 @@ function requiredChecks(base) {
 // How far the base branch is ahead of the head, and the files it changed since they parted, in one compare call.
 function baseAhead(pr) {
 	const jq = "{behind: .ahead_by, count: (.files // [] | length), files: [.files[]? | .filename, (.previous_filename // empty)]}";
-	return JSON.parse(gh(["api", `repos/{owner}/{repo}/compare/${pr.headRefOid}...${pr.baseRefName}`, "--jq", jq]));
+	return JSON.parse(gh(["api", `repos/{owner}/{repo}/compare/${pr.headRefOid}...${refPath(pr.baseRefName)}`, "--jq", jq]));
 }
 
 export function prState(number, waitSeconds = 0) {
