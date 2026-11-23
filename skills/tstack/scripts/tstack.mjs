@@ -36,7 +36,6 @@ const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{1
 const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const ANSWERED_OR_DENIED = /^##\s+Answer\s*\n+\s*(granted|answered|denied)\b/im;
-const TAKEN_QUESTION = (text) => /^Kind:\s*question\b/im.test(text) && /^##\s+Answer\s*\n+\s*taken\b/im.test(text);
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
@@ -436,29 +435,32 @@ function sections(markdown, heading) {
 }
 
 // A lead answers a question itself only under the human's granted away grant, and only until the human returns.
+// What is wrong with one decision's use of an away grant: undefined when it neither opens with taken nor cites a grant, "" when its use is sound.
+function awayGap(taskDir, name) {
+	const text = prose(readIfFile(insideTask(taskDir, `decisions/${name}`)));
+	const answer = sections(text, "Answer") ?? "";
+	const taken = /^\s*taken\b/i.test(answer);
+	const grant = answer.match(CITED_GRANT)?.[1];
+	if (!taken && !grant) return undefined;
+	const kind = text.match(/^Kind:\s*(\S+)/im)?.[1];
+	const grantText = grant ? prose(readIfFile(insideTask(taskDir, `decisions/${grant}`))) : "";
+	const ended = sections(grantText, "Ended");
+	const listed = new Set([...(ended ?? "").matchAll(/\bdecisions\/([a-z0-9][a-z0-9-]*\.md)/g)].map((m) => m[1]));
+	if (kind?.toLowerCase() !== "question")
+		return `decisions/${name} is ${kind ? `a ${kind} decision` : "a decision with no Kind line"}, which waits for the human: an away grant answers question decisions only`;
+	if (name.startsWith("review-")) return `decisions/${name} is a review checkpoint, which waits for the human: an away grant never answers one`;
+	if (!taken) return `decisions/${name} cites decisions/${grant}, so its answer must open with taken`;
+	if (!grant) return `decisions/${name} is taken under no away grant: cite the decisions/away.md the human granted`;
+	if (!GRANTED.test(grantText)) return `decisions/${name} cites decisions/${grant}, which is missing or not granted`;
+	if (!/^Kind:\s*away\b/im.test(grantText)) return `decisions/${name} cites decisions/${grant}, which is not a Kind: away grant`;
+	if (ended !== undefined && !listed.has(name))
+		return `decisions/${name} is taken under decisions/${grant}, which ended without listing it: ask the human, or list it there if you took it before they returned`;
+	return "";
+}
+
 function awayGaps(taskDir) {
 	const dir = join(taskDir, "decisions");
-	const gaps = [];
-	for (const name of existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md") && !AWAY_GRANT.test(f)) : []) {
-		const text = prose(readIfFile(join(dir, name)));
-		const answer = sections(text, "Answer") ?? "";
-		const taken = /^\s*taken\b/.test(answer);
-		const grant = answer.match(CITED_GRANT)?.[1];
-		if (!taken && !grant) continue;
-		const kind = text.match(/^Kind:\s*(\S+)/im)?.[1];
-		const grantText = grant ? prose(readIfFile(insideTask(taskDir, `decisions/${grant}`))) : "";
-		const ended = sections(grantText, "Ended");
-		const listed = new Set([...(ended ?? "").matchAll(/\bdecisions\/([a-z0-9][a-z0-9-]*\.md)/g)].map((m) => m[1]));
-		if (kind !== "question")
-			gaps.push(`decisions/${name} is ${kind ? `a ${kind} decision` : "a decision with no Kind line"}, which waits for the human: an away grant answers question decisions only`);
-		else if (!taken) gaps.push(`decisions/${name} cites decisions/${grant}, so its answer must open with taken`);
-		else if (!grant) gaps.push(`decisions/${name} is taken under no away grant: cite the decisions/away.md the human granted`);
-		else if (!GRANTED.test(grantText)) gaps.push(`decisions/${name} cites decisions/${grant}, which is missing or not granted`);
-		else if (!/^Kind:\s*away\b/im.test(grantText)) gaps.push(`decisions/${name} cites decisions/${grant}, which is not a Kind: away grant`);
-		else if (ended !== undefined && !listed.has(name))
-			gaps.push(`decisions/${name} is taken under decisions/${grant}, which ended without listing it: ask the human, or list it there if you took it before they returned`);
-	}
-	return gaps;
+	return (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md") && !AWAY_GRANT.test(f)) : []).map((name) => awayGap(taskDir, name)).filter(Boolean);
 }
 
 function sha256(path) {
@@ -579,7 +581,7 @@ function taskFacts(home, queues, id, sized) {
 		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
 		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
-			.filter(({ body }) => !ANSWERED_OR_DENIED.test(body) && !TAKEN_QUESTION(body))
+			.filter(({ name, body }) => !ANSWERED_OR_DENIED.test(body) && awayGap(taskDir, name) !== "")
 			.map(({ name, body }) => {
 				const question = body.match(/^#\s+(.+)$/m)?.[1].trim();
 				return `decisions/${name}${question ? `: ${question}` : ""}`;
