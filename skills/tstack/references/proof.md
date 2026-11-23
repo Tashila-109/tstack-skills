@@ -29,6 +29,7 @@ Every repair round runs the proof again, so a slow proof costs the human time on
   Name the paths it reads, such as its source folder, its tests and the lockfile.
   Record the comparison in its Evidence cell as the command `git diff --quiet <passed SHA> <head SHA> -- <paths>`, which exits 0 when those paths are the same in both commits.
   `tstack.mjs check --head` runs that command again against the head and refuses the proof when the paths differ.
+  It splits the paths on spaces, so prove a claim that reads a path with a space again instead of reusing it.
   A live claim reads everything that builds into the app, so name all of it.
 - After each verified phase, and once the proof passes on the final head, delete the raw run output under the task folder that no decision, `evidence/verify.md` or `report.md` names, such as the recordings, traces and logs of earlier rounds.
   The files in `evidence/proof/` and the final run's folder stay.
@@ -61,7 +62,7 @@ Name each method you used in `evidence/verify.md`.
   An inconclusive or partial run, or one on a different surface, is never `passed`.
 
 Copy only the artifacts the table cites into `evidence/proof/`, at most 12, each the clearest view of its claim.
-A proof against a design keeps one side-by-side for each row, however many rows it has.
+A proof against a design keeps one side-by-side for each row that shows a screen, however many rows it has.
 Raw run output stays where the verify skill writes it.
 Give its folder once, below the table.
 Then list what no agent could prove, such as native key delivery or a system dialog, and say whether the human should check it.
@@ -77,17 +78,18 @@ Prove the change against that design, not only against the brief's words.
 - Before you run anything, write the table's Claim and Action columns as the scenario matrix.
   Give each screen the design shows a row for each state the design or the brief names, such as empty, loading, error, long content and a narrow window.
   Then add a row for each edge case you find in the code.
-- For each row, export the matching frame from the design source, and capture the built screen in the same state at the same size.
+- For each row that shows a screen, export the matching frame from the design source, and capture the built screen in the same state at the same size.
   Join the two into one image with the design on the left, such as with `magick design.png built.png +append side-by-side.png`, and cite that image in the row's Evidence cell.
+  A row for a criterion with no screen, such as who may call an API, cites the evidence that proves it, such as the response body.
 - A state the brief names that the design has no frame for still gets a row: capture the built screen alone, cite it, and name the missing frame below the table, so the human can ask the designer for it.
 - Name each place the built screen departs from the design on purpose, and why, below the table.
 
-`tstack.mjs check` refuses a proof against a design while a row cites no file under `evidence/`, unless its verdict is `blocked`.
+`tstack.mjs check` refuses a proof against a design while a row cites no file under `evidence/`, unless its verdict is `blocked` or `verify.md` holds a `skip:` line.
 
 ## Show it
 
 At Finish, show the human the table and its images, not a path to them.
 - On T3, publish `verify.md` with its images inlined as a page, following the [t3-visual skill](../../t3-visual/SKILL.md).
 - With `pr` delivery, the PR's `## Verification` bullets come from the table.
-  The PR body shows the images too, attached as [Opening a PR](../playbooks/opening-a-pr.md) says: each changed screen before and after, a new screen after only, or a design proof's side-by-sides, and a recording when the change is motion or timing.
+  The PR body shows the images too, attached as [Opening a PR](../playbooks/opening-a-pr.md) says: each changed screen before and after, a new screen after only, a removed screen before only with what shows it is gone, such as the updated navigation, or a design proof's side-by-sides, and a recording when the change is motion or timing.
 - Elsewhere, put the table in the reply and give the absolute path of `evidence/proof/`.

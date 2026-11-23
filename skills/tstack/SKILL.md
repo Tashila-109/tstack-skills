@@ -86,7 +86,7 @@ These hold for every role, whatever a playbook says.
 6. Choose delivery: `pr` when the human asked for a PR or the playbook is `modernize` or `takeover`, which deliver through a PR, and `local-only` otherwise.
 7. Pick a short task ID and run `tstack.mjs brief <id> --playbook <name> --goal "..." --finish "..." [--kind scout] [--delivery pr]`.
    Add `--design <link or path>` when the request names a design the change must match, such as a Figma link or a design file.
-   Add `--acceptance`, `--push` and `--merge` when the request, or the `evidence/frame.md` of the plan this task builds, answers them, as [Multi-phase plan](playbooks/multi-phase-plan.md) step 1 asks.
+   Add `--acceptance` and `--push` when the request, or the `evidence/frame.md` of the plan this task builds, answers them, and `--merge` too when the delivery is `pr`, as [Multi-phase plan](playbooks/multi-phase-plan.md) step 1 asks.
    When the human named seats for this task, write them to its `models.md` first, as [dispatch's Seats](references/dispatch.md#seats) says, so the checks below read them.
    Before long or unattended work, run `tstack.mjs preflight --runtime <runtime> --task <id>`.
    On T3, also run `tstack.mjs check-seats <file> --task <id>` on a fresh `orchestrator_capabilities` result, which names a provider that is logged out.

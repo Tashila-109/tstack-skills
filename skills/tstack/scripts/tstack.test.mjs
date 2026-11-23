@@ -1321,6 +1321,7 @@ test("check --head reruns a proof's reuse command against the head", () => {
 	const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
 	mkdirSync(join(dir, "src"));
 	writeFileSync(join(dir, "src/a.txt"), "1\n");
+	writeFileSync(join(dir, "package.json"), "{}\n");
 	writeFileSync(join(dir, "README.md"), "1\n");
 	git("add", ".");
 	git("commit", "-q", "-m", "one");
@@ -1344,6 +1345,8 @@ test("check --head reruns a proof's reuse command against the head", () => {
 	assert.throws(() => check(home, "ru", undefined, code, dir), /reuses the run at 0000000, which this checkout does not hold/);
 	writeFileSync(join(task, "evidence/verify.md"), proof(docs).replace("-- src package.json", "-- 'my app'"));
 	assert.throws(() => check(home, "ru", undefined, docs, dir), /with a quoted or escaped path/, "a quoted path would split into pathspecs that match nothing");
+	writeFileSync(join(task, "evidence/verify.md"), proof(code).replace("-- src package.json", "-- src/my app"));
+	assert.throws(() => check(home, "ru", undefined, code, dir), /with src\/my, app, which neither commit holds/, "an unquoted space splits a path into words that diff as unchanged");
 });
 
 test("backlog appends each follow-up once, with an ID that a rerun keeps", () => {

@@ -421,6 +421,20 @@ function headGaps(taskDir, head, cwd, prDelivery, closed) {
 			gaps.push(`${PROOF} reuses the run at ${sha} with a quoted or escaped path: list paths without quotes, or prove the claim again`);
 			continue;
 		}
+		// A path with a space splits into words that name nothing, and a diff of nothing passes: refuse a path neither commit holds.
+		const holds = (commit, p) => {
+			try {
+				execFileSync("git", ["cat-file", "-e", `${commit}:${p.replace(/\/+$/, "")}`], { cwd, stdio: "ignore" });
+				return true;
+			} catch {
+				return false;
+			}
+		};
+		const absent = paths.trim().split(/\s+/).filter((p) => !p.startsWith(":") && !holds(sha, p) && !holds(head, p));
+		if (absent.length) {
+			gaps.push(`${PROOF} reuses the run at ${sha} with ${absent.join(", ")}, which neither commit holds: name paths that exist, and prove a claim that reads a path with a space again`);
+			continue;
+		}
 		const specs = paths.trim().split(/\s+/).map((p) => (p.startsWith(":") ? p : `:(top)${p}`));
 		try {
 			execFileSync("git", ["diff", "--quiet", sha, head, "--", ...specs], { cwd, stdio: "ignore" });
