@@ -36,6 +36,7 @@ const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{1
 const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
 const ANSWERED_OR_DENIED = /^##\s+Answer\s*\n+\s*(granted|answered|denied)\b/im;
+const TAKEN_QUESTION = (text) => /^Kind:\s*question\b/im.test(text) && /^##\s+Answer\s*\n+\s*taken\b/im.test(text);
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
 const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
@@ -453,6 +454,7 @@ function awayGaps(taskDir) {
 		else if (!taken) gaps.push(`decisions/${name} cites decisions/${grant}, so its answer must open with taken`);
 		else if (!grant) gaps.push(`decisions/${name} is taken under no away grant: cite the decisions/away.md the human granted`);
 		else if (!GRANTED.test(grantText)) gaps.push(`decisions/${name} cites decisions/${grant}, which is missing or not granted`);
+		else if (!/^Kind:\s*away\b/im.test(grantText)) gaps.push(`decisions/${name} cites decisions/${grant}, which is not a Kind: away grant`);
 		else if (ended !== undefined && !listed.has(name))
 			gaps.push(`decisions/${name} is taken under decisions/${grant}, which ended without listing it: ask the human, or list it there if you took it before they returned`);
 	}
@@ -577,7 +579,7 @@ function taskFacts(home, queues, id, sized) {
 		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
 		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
-			.filter(({ body }) => !ANSWERED_OR_DENIED.test(body))
+			.filter(({ body }) => !ANSWERED_OR_DENIED.test(body) && !TAKEN_QUESTION(body))
 			.map(({ name, body }) => {
 				const question = body.match(/^#\s+(.+)$/m)?.[1].trim();
 				return `decisions/${name}${question ? `: ${question}` : ""}`;

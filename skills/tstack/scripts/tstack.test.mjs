@@ -835,8 +835,14 @@ test("an away grant lets the lead take its recommendation on a question until th
 	assert.throws(() => check(home, "away"), /decisions\/1\.md cites decisions\/away\.md, which is missing or not granted/);
 	writeFileSync(join(task, "decisions/away.md"), `${grant}\`\`\`\ngranted\n\`\`\`\n`);
 	assert.throws(() => check(home, "away"), /which is missing or not granted/, "a grant inside a code block is an example");
+	writeFileSync(join(task, "decisions/away.md"), `${grant.replace("Kind: away", "Kind: question")}granted\nafk, 2026-11-21\n`);
+	assert.throws(() => check(home, "away"), /cites decisions\/away\.md, which is not a Kind: away grant/);
 	writeFileSync(join(task, "decisions/away.md"), `${grant}granted\nafk, take your recommendation, 2026-11-21\n`);
 	assert.equal(check(home, "away"), "ok away: 1 required file present");
+	assert.match(status(home, "away"), /^open decisions: none$/m, "a question the lead took is no longer open");
+	decide("gate.md", "design-approval", "taken\nApprove it, 2026-11-21");
+	assert.match(status(home, "away"), /decisions\/gate\.md/, "a taken gate still waits for the human");
+	rmSync(join(task, "decisions/gate.md"));
 	decide("2.md", "question", "taken\nKeep it, 2026-11-21");
 	assert.throws(() => check(home, "away"), /decisions\/2\.md is taken under no away grant/);
 	decide("2.md", "question", "answered\nKeep it, under `decisions/away.md`, 2026-11-21");
