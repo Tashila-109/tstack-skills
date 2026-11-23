@@ -260,6 +260,7 @@ Take the first row that fits, because rows run from the most specific request to
 | The request | Playbook | Status |
 | --- | --- | --- |
 | A chart of a system, a data flow, a request path or a data model, from the code or as a design ("draw", "diagram", "map out"). Brief it as a scout unless the charts go in the repo. | `charting` | Adapted |
+| Exploring another project to decide what this one should take from it ("deep dive on X", "what should we take from X", "go over upstream's latest changes"). Brief it as a scout. | `deep-dive` | Adapted |
 | A read-only question: how does X work, why was Y built this way, are we sure about Z, should we do X or Y. Brief it as a scout. | `investigation` | Adapted |
 | A read-only sweep that ranks spreading anti-patterns and proposes the strongest fix for each. Brief it as a scout. | `gardener` | Adapted |
 | A runtime symptom (leak, idle-CPU spin, glitch) to diagnose from live instrumentation. The deliverable is a diagnosis, not a fix. Brief it as a scout. | `runtime-forensics` | As written |

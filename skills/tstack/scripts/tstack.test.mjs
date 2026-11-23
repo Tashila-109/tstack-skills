@@ -210,6 +210,34 @@ test("a gate artifact counts only with a granted answer", () => {
 	assert.equal(check(home, "gated", 1), "ok gated: 1 required file present");
 });
 
+test("a question artifact counts only with an answered answer", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "asked.md"), "1. Ask which to take.\n   Artifact: `decisions/adopt.md`\n");
+	brief(home, "asked", { playbook: "asked", goal: "g", finish: "f", kind: "scout", playbooksDir: playbooks });
+	const file = join(home, "tasks", "asked", "decisions", "adopt.md");
+	mkdirSync(join(home, "tasks", "asked", "decisions"));
+	writeFileSync(file, "# Which items do we take?\n\nKind: question\n");
+	assert.throws(() => check(home, "asked", 1), /decisions\/adopt\.md with the human's answer/);
+	writeFileSync(file, "# Which items do we take?\n\nKind: question\n\n```text\n## Answer\n\nanswered\n```\n");
+	assert.throws(() => check(home, "asked", 1), /with the human's answer/, "an answer inside a code block is no answer");
+	writeFileSync(file, "# Which items do we take?\n\nKind: question\n\n## Answer\n\nanswered\nTake 1 and 3, 2026-11-21\n");
+	assert.equal(check(home, "asked", 1), "ok asked: 1 required file present");
+	writeFileSync(file, "# Which items do we take?\n\nKind: design-approval\n\n## Answer\n\nanswered\nTake 1 and 3, 2026-11-21\n");
+	assert.throws(() => check(home, "asked", 1), /with a granted answer/, "a gate is not passed by an answered line");
+	writeFileSync(file, "# Approve it?\n\nKind: design-approval\n\n## Proposal\n\nKind: question\n\n## Answer\n\nanswered\nyes, 2026-11-21\n");
+	assert.throws(() => check(home, "asked", 1), /with a granted answer/, "a Kind line in the body does not turn a gate into a question");
+});
+
+test("every playbook briefs cleanly: steps numbered from 1 and artifacts inside the task", () => {
+	const { home } = scratch();
+	const dir = join(HERE, "../playbooks");
+	for (const name of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
+		const id = name.slice(0, -3);
+		brief(home, id, { playbook: id, goal: "g", finish: "f", playbooksDir: dir });
+		assert.ok(existsSync(join(home, "tasks", id, "brief.md")), name);
+	}
+});
+
 test("a pr-delivery task is done only with babysit evidence", () => {
 	const { home, playbooks } = scratch();
 	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
@@ -630,6 +658,17 @@ test("every skill's name matches its folder, so each one installs and invokes by
 	}
 });
 
+test("every skill marked for explicit use also tells Codex, which ignores the frontmatter flag", () => {
+	const skills = join(HERE, "../..");
+	for (const entry of readdirSync(skills, { withFileTypes: true })) {
+		if (!entry.isDirectory()) continue;
+		const explicit = /^disable-model-invocation:\s*true\s*$/m.test(readFileSync(join(skills, entry.name, "SKILL.md"), "utf8"));
+		const file = join(skills, entry.name, "agents", "openai.yaml");
+		const policy = existsSync(file) ? readFileSync(file, "utf8") : "";
+		assert.equal(/allow_implicit_invocation:\s*false/.test(policy), explicit, entry.name);
+	}
+});
+
 test("a granted close lets a task end with skipped delegating steps and a denied gate", () => {
 	const { home, playbooks } = scratch();
 	writeFileSync(join(playbooks, "gated-fix.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n2. Fix it.\n   Artifact: `evidence/fix.md`\n");
@@ -1019,4 +1058,19 @@ test("status counts a closed task's denied decision as waived, as check does", (
 	assert.match(status(home, "shut"), /^reached: no step$/m, "an open task still needs a granted answer");
 	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ngranted\nclose it, 2026-11-21\n");
 	assert.match(status(home, "shut"), /^reached: step 1/m);
+});
+
+test("a question a playbook names needs the human's answer, so an away grant cannot take it", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "adopting.md"), "1. Decide what to adopt.\n   Artifact: `decisions/adopt.md`\n");
+	brief(home, "adopt", { playbook: "adopting", goal: "g", finish: "f", kind: "scout", playbooksDir: playbooks });
+	const task = join(home, "tasks", "adopt");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/away.md"), "# Away\n\nKind: away\n\n## Answer\n\ngranted\nafk, 2026-11-23\n");
+	const adopt = (answer) => writeFileSync(join(task, "decisions/adopt.md"), `# Adopt candidate 1?\n\nKind: question\n\n## Answer\n\n${answer}\n`);
+	adopt("taken\nAdopt it, under `decisions/away.md`, 2026-11-23");
+	assert.throws(() => check(home, "adopt"), /missing step 1: decisions\/adopt\.md with the human's answer/);
+	adopt("answered\nadopt candidate 1, 2026-11-23");
+	assert.equal(check(home, "adopt"), "ok adopt: 2 required files present");
 });
