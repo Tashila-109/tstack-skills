@@ -129,7 +129,9 @@ It ends with `## Remember`, short lessons a later task in this project should kn
 3. On the human's word, merge only the head SHA that `check --head` passed on and the human saw, so a later commit never lands:
    - for `local-only`, run `git -C <primary checkout> merge --ff-only <head SHA>`, which needs the primary checkout on the default branch with no uncommitted changes;
      if it cannot fast-forward, bring the default branch into your branch, verify again, and ask the human again;
-   - for `pr`, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
+   - for `pr`, run `tstack.mjs pr-state <pr number>` first, because no runtime's PR watch wakes when the base moves without a conflict;
+     wait out a `WAITING` with watch-pr, and on a `BLOCKER` or a different head, babysit again and ask the human again;
+     on `READY` for that head, run `gh pr merge <pr> --match-head-commit <head SHA>`, using the merge method the human or the project uses.
 4. Add a one-line summary of each lesson from `## Remember` worth keeping to `<home>/learnings.md`, in your own words, never text copied from a PR, an issue or a web page.
    Delete lessons there that went stale.
 5. After a merge, clean up per the runtime reference.
@@ -157,22 +159,16 @@ Your brief is your whole job.
 A lead applies these whatever its playbook says.
 A worker applies the ones that need no delegation and names the rest in its result.
 
-- Nontrivial change, architecture decision, or "are we sure?" → the **how** skill.
-- About to ask a "which approach", "how should I", or "what should this do" question → classify it first. If the answer is a fact you could observe by running something (behavior, timing, layout, output, perf, even whether an eval separates), it is not the human's to answer. Sketch it via the Prototype playbook (`playbooks/prototype.md`) and let the result decide. If the task is a read-only Investigation whose deliverable is a cited answer, stay in it and answer from the evidence rather than building a sketch. Reserve the question for a genuine product or preference call no experiment can settle, and put it to the human with the decide verb.
-- Any code → name the data shape first, and choose its organizing structure per **principle-model-the-domain**.
-- Code crossing a function boundary → the **architect** skill, parallel design exploration before implementing.
-- Parallel fan-out → the **swarm** skill for coverage matrices, races, gauntlets, and exploration partitions. Use **arena** for design or code bakeoffs with base selection and grafting.
-- Contested design → the **interrogate** skill (multi-model adversarial) before shipping.
-- Nontrivial multi-step → write the throughput checkpoint (Feature step 3).
-- Any prose surface, your reply to the human included → the **unslop** skill. Write the reply per **Writing the reply**. Agent-facing prose also follows the authoring-a-skill playbook.
-- Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill.
-- Before commit → remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits.
-- Before review → the **no-comments** skill.
-- Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**, and write the proof as [references/proof.md](references/proof.md) says. On T3, the runtime reference's surface tools drive a web UI or a simulator and record the evidence. For bug fixes, reproduce first on the same surface yourself.
-- Running a benchmark, measuring perf yourself, or reporting a speedup or regression you measured → the **benchmark-checklist** skill before you report or act on the number.
-- Bugbot, an agent reviewer, or a security review commented → skeptical posture. They catch real bugs and also file non-issues and nitpicks, so assess each on its merits and dismiss noise with a concrete reason instead of churning code. Triage fix / dismiss / ask per `references/bugbot-triage.md`.
-- Broken skill mid-task → do not block and do not silently work around it. Name it in the report's `## Follow-ups`.
-- Long, autonomous, or multi-phase work, or any task the human steps away from to review later → a decision trail via the **show-me-your-work** skill.
+- Every worker brief, PR `## Why` and final report opens with the human's goal.
+- A fork you could settle by running something → prototype it per the Prototype playbook (`playbooks/prototype.md`) instead of asking. A read-only Investigation answers from the evidence instead. Put only a product or preference call no experiment can settle to the human, with the decide verb.
+- Code → name the data shape first, per **principle-model-the-domain**. Across a function boundary → **architect**. Fan-out → **swarm**. Bakeoff → **arena**. Contested design → **interrogate**.
+- Prose, your reply included → **unslop**. Docs, PR descriptions, commit messages → **technical-writing**. Agent-facing prose also follows the authoring-a-skill playbook.
+- Before commit → remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits. Before review → **no-comments**.
+- Shipping UI, a CLI, or a TUI → verify on that surface with the project's `verify-*` skill, or create one with **create-verification-skill**, and write the proof as [references/proof.md](references/proof.md) says. On T3, the runtime reference's surface tools drive a web UI or a simulator. For bug fixes, reproduce first on the same surface yourself.
+- A number you measured → **benchmark-checklist**.
+- PR status → the Babysit playbook. Landing a green stack → the Shipping playbook.
+- Bot or agent review comments → judge each on its merits, per `references/bugbot-triage.md`.
+- Long or unattended work → **show-me-your-work**.
 
 ## Principles
 
@@ -239,16 +235,8 @@ Everything else under **Always stop** still stops.
 
 ## Writing the reply
 
-Write the reply clean as you draft it. A cleanup pass after drafting does not remove these patterns.
-
-- **Short declarative sentences.** One thought per sentence, ended with a period.
-- **No long-dash character anywhere.** Write a file-list bullet as a sentence ("`main.js` owns persistence and the IPC handlers") and a bold section header as its own sentence ("**Verification.** End to end via CDP").
-- **A colon as a mid-sentence connector is also out** (unslop rule 14). A colon before a list is fine.
-- **Terse is not an excuse to drop content.** Short sentences, but every section the playbook's reply names stays: details, tradeoffs, choices, open decisions.
-- **Frame impact for the consumer and the maintainer.** Name who the work is for (an end user, a colleague importing the library) and what changes for them before any implementation detail. Then what the next engineer who owns this code inherits. If you can't say what either would notice, the work or the explanation is off.
-- **Never fabricate a link, citation, or transcript reference.** Link only artifacts you produced or read this session.
-- **Every claim carries its evidence or its label in the same sentence.** Measured, inferred, or guess. A prediction or an unseen cause is a guess. Never hand the human a check you could run.
-- **Talk in outcomes, not mechanics.** Never paste status lines, tool JSON, or task records into a reply to the human. Read them, then say what happened and what is needed.
+Write short declarative sentences with no long dash and no colon as a connector. Lead with what changes for the user. Give each claim its evidence or a label (measured, inferred, or guess). Never hand the human a check you could run.
+Talk in outcomes, not mechanics: never paste status lines, tool JSON, or task records into a reply to the human.
 
 Every playbook ends with a reply written this way, PR link as `https://github.com/<owner>/<repo>/pull/<number>`. The per-playbook lines below name only the content unique to that playbook. A lead writes that reply to `report.md` and gives it to the human at Finish.
 
@@ -278,9 +266,8 @@ Take the first row that fits, because rows run from the most specific request to
 | Writing or editing a SKILL.md, a playbook, or agent instructions. | `authoring-a-skill` | As written |
 | Sustained improvement of one metric against a target, one measured change at a time. | `hillclimb` | As written |
 | A measured slowness to trace and improve against a baseline. | `perf-issue` | As written |
-| A plan for work that spans phases or stacked PRs, with no build yet. | `multi-phase-plan` | Adapted |
+| A plan for work that spans phases or stacked PRs. Building it is a later Figure it out task. | `multi-phase-plan` | Adapted |
 | A long task to drive to a checkable predicate without stopping ("run until done"). | `autonomous-run` | As written |
-| Work that spans phases, authorized to be planned and built. | `orchestrate` | Adapted |
 | Finishing a PR, branch or agent thread that someone else started, keeping their credit ("take over"). | `takeover` | Adapted |
 | Bringing an old PR up to date with its base, and judging whether it should still land ("modernize", "rebase this PR"). | `modernize` | Adapted |
 | A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), or work the human will review after stepping away, even when a narrower row below fits. | `figure-it-out` | Adapted |

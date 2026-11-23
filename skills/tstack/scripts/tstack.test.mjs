@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, status, taskHome } from "./tstack.mjs";
+import { Refusal, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, refPath, seat, status, taskHome } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -107,6 +107,8 @@ test("seat --cross picks the first seat outside the caller's model family", () =
 	assert.deepEqual(kinds("openai/gpt-6.1-sol"), ["claude"]);
 	assert.deepEqual(kinds("grok-4.7"), ["claude"]);
 	assert.throws(() => seat(models, "solo", "herdr", "claude-opus-5-5"), /no "solo" seat outside the claude family/);
+	const openai = parseModels("pool: codex/o3@high, claude/claude-fable-5-2@high");
+	assert.deepEqual(seat(openai, "pool", "herdr", "gpt-6.1-sol").map((s) => s.kind), ["claude"], "an o-series model is the same vendor as gpt");
 });
 
 test("seat --avoid prefers a seat whose model ran no candidate, then the one that ran the fewest", () => {
@@ -281,7 +283,7 @@ test("a models file refuses a malformed line and a role named twice", () => {
 test("the tstack-setup template is a complete, valid models file", () => {
 	const setup = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8");
 	const template = parseModels(setup.match(/```text\n(# tstack models[\s\S]*?)```/)[1]);
-	for (const role of ["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
+	for (const role of ["arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
 		assert.ok(new Set(seat(template, role, "t3").map((s) => s.model.split("/").pop().split("-")[0])).size >= 2, role);
 });
 
@@ -515,6 +517,7 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 		"an early blocker says when threads were cut off",
 	);
 	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
+	assert.match(prVerdict(pr({ reviews: { pageInfo: { hasPreviousPage: true }, nodes: [] } }), now), /^BLOCKER too-many/, "older reviews could hold a bot's findings on this head");
 	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
 	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");
 	assert.match(prVerdict(pr({ reviews: { nodes: [{ submittedAt: "2026-10-14T11:57:00Z" }] } }), now), /^WAITING settle: .*180s ago/);
@@ -527,6 +530,68 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, []), now, ["build"]), /^WAITING checks: build \(required, not started\)/);
 	assert.match(prVerdict(pr({}, [run("build", "COMPLETED", "SUCCESS")]), now, ["build"]), /^READY \(/);
 	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE")]), now, ["build"]), /^BLOCKER failing-checks: lint/);
+});
+
+const PR_FIXTURE = JSON.parse(readFileSync(new URL("./pr-state.fixture.json", import.meta.url), "utf8"));
+const fixturePr = (reviews = [], over = {}) => ({ ...PR_FIXTURE.pullRequest, reviews: { nodes: reviews.map((r) => (typeof r === "string" ? PR_FIXTURE.reviews[r] : r)) }, ...over });
+
+test("pr-state blocks on a base that moved in this PR's files, and counts the rest", () => {
+	const now = Date.parse(PR_FIXTURE.now);
+	const { even, elsewhere, shared } = PR_FIXTURE.compare;
+	assert.equal(prVerdict(fixturePr(), now, [], even), "READY (head c3c3c3c3c3c3)");
+	assert.equal(prVerdict(fixturePr(), now, [], elsewhere), "READY base: main is 1 commit ahead, in none of this PR's files (head c3c3c3c3c3c3)");
+	assert.equal(
+		prVerdict(fixturePr(), now, [], shared),
+		"BLOCKER base-moved: main is 3 commits ahead and changes files this PR changes: src/app.js; merge it in and run the proof again (head c3c3c3c3c3c3)",
+	);
+	assert.match(prVerdict(fixturePr(), now, [], { ...elsewhere, count: 300 }), /^BLOCKER base-moved: .* changes more files than pr-state reads;/, "a cut-off compare cannot rule out this PR's files");
+	const manyFiles = { files: { ...PR_FIXTURE.pullRequest.files, pageInfo: { hasNextPage: true } } };
+	assert.match(prVerdict(fixturePr([], manyFiles), now, [], elsewhere), /^BLOCKER base-moved/, "nor can a PR with more files than pr-state reads");
+	const renamed = fixturePr();
+	renamed.files = { pageInfo: { hasNextPage: false }, nodes: [{ path: "src/new-name.js", changeType: "RENAMED" }] };
+	assert.match(prVerdict(renamed, now, [], elsewhere), /^BLOCKER base-moved: .*renames a file whose old path GitHub does not report/, "a base change to a renamed file's old path is invisible, so it blocks");
+	assert.match(prVerdict(fixturePr([], { mergeable: "CONFLICTING" }), now, [], shared), /^BLOCKER conflicts/, "a conflict is the more specific cause");
+	assert.match(prVerdict(fixturePr([], { mergeStateStatus: "BEHIND" }), now, [], elsewhere), /^BLOCKER behind-base/, "a branch rule can still ask for an up-to-date branch");
+	assert.equal(prVerdict({ ...fixturePr(), state: "MERGED" }, now), "MERGED (head c3c3c3c3c3c3)");
+});
+
+test("pr-state waits for a review bot that reviews pushes, and blocks on its findings outside review threads", () => {
+	const now = Date.parse(PR_FIXTURE.now);
+	const recent = { updatedAt: "2026-11-21T11:48:00Z" };
+	const twoHeads = ["codexOnOpen", "rabbitFirst", "humanReply", "rabbitSecond"];
+	assert.equal(
+		prVerdict(fixturePr(twoHeads, recent), now),
+		"WAITING bot-review: coderabbitai reviewed earlier heads but not this one yet; the last push, comment, review or edit was 720s ago, and bots get 20 minutes (head c3c3c3c3c3c3)",
+		"past the settle, a bot that reviewed two heads still gets its own wait",
+	);
+	assert.match(prVerdict(fixturePr([...twoHeads, "rabbitReply"], recent), now), /^WAITING bot-review: coderabbitai /, "a reply in a thread is not a review of the head");
+	assert.equal(
+		prVerdict(fixturePr(twoHeads), now),
+		"READY bot-unreviewed: coderabbitai reviewed earlier heads but not this one in 20 minutes; ask once for a review of this head (head c3c3c3c3c3c3)",
+		"a bot that paused or ran out of reviews cannot hold the PR forever, and the Codex connector, with one head, is not awaited",
+	);
+	assert.equal(prVerdict(fixturePr(["codexOnOpen", "rabbitFirst"], recent), now), "READY (head c3c3c3c3c3c3)", "a bot that reviewed one head gets only the settle");
+	const restShaped = (r, oid) => ({ ...PR_FIXTURE.reviews[r], author: { login: "reviewer[bot]" }, commit: { oid } });
+	assert.match(prVerdict(fixturePr([restShaped("rabbitFirst", "a1"), restShaped("rabbitSecond", "b2")], recent), now), /^WAITING bot-review: reviewer\[bot\] /);
+
+	const onHead = [...twoHeads, "rabbitReply", "rabbitOutsideDiff"];
+	assert.equal(
+		prVerdict(fixturePr(onHead), now),
+		"BLOCKER bot-findings: comments outside any review thread in coderabbitai PRR_rabbit4 (2 outside-diff, 1 nitpick): triage them, then react to each review; bot-rounds: chatgpt-codex-connector 1, coderabbitai 3 (head c3c3c3c3c3c3)",
+	);
+	const thread = { reviewThreads: { pageInfo: { hasNextPage: false }, nodes: [{ id: "PRRT_a", isResolved: false, path: "src/app.js", line: 12 }] } };
+	assert.match(
+		prVerdict(fixturePr(onHead, thread), now),
+		/^BLOCKER review-threads: 1 unresolved: PRRT_a src\/app\.js:12; bot-findings: .*PRR_rabbit4 .*; bot-rounds: chatgpt-codex-connector 1, coderabbitai 3 \(head/,
+		"threads come first, and the bot findings ride along so one push can answer both",
+	);
+	const failing = { commits: { nodes: [{ commit: { committedDate: "2026-11-21T11:00:00Z", statusCheckRollup: { contexts: { nodes: [{ __typename: "CheckRun", name: "test", status: "COMPLETED", conclusion: "FAILURE" }] } } } }] } };
+	assert.match(prVerdict(fixturePr(onHead, failing), now), /^BLOCKER failing-checks: test; bot-findings: .*; bot-rounds: /);
+	const triaged = { ...PR_FIXTURE.reviews.rabbitOutsideDiff, reactionGroups: [{ viewerHasReacted: false }, { viewerHasReacted: true }] };
+	assert.equal(prVerdict(fixturePr([...twoHeads, triaged]), now), "READY (head c3c3c3c3c3c3)", "a reaction from the gh account marks the review triaged");
+	const inlineOnly = { ...PR_FIXTURE.reviews.rabbitFirst, id: "PRR_inline", commit: { oid: PR_FIXTURE.pullRequest.headRefOid } };
+	assert.equal(prVerdict(fixturePr([...twoHeads, inlineOnly]), now), "READY (head c3c3c3c3c3c3)", "the actionable count alone is the review's threads, so it blocks nothing");
+	assert.match(prVerdict(fixturePr(onHead, { isDraft: true }), now, [], PR_FIXTURE.compare.shared), /^BLOCKER draft: mark it ready; bot-findings: /);
 });
 
 test("check holds a rework like a fix, unless it is skipped", () => {
@@ -871,4 +936,11 @@ test("status judges a revised decision by its newest file, and one bad task neve
 	writeFileSync(json, JSON.stringify({ ...JSON.parse(readFileSync(json, "utf8")), created: 42 }));
 	assert.match(status(home), /^two: sample, .*created unknown/m);
 	assert.match(status(home), /^one: /m);
+});
+
+test("refPath keeps a branch name whole in a URL path", () => {
+	assert.equal(refPath("main"), "main");
+	assert.equal(refPath("feature/login"), "feature/login");
+	assert.equal(refPath("release#1"), "release%231");
+	assert.equal(refPath("fix/a?b"), "fix/a%3Fb");
 });

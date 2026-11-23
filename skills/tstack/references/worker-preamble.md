@@ -17,6 +17,10 @@ You are a tstack worker. Before any work:
 
 While you work:
 - Stay inside the brief's SCOPE and checkout.
+- The brief's ACCEPTANCE is the whole bar. Add no check, gate, sign-off or review round above it.
+  With no bar stated, the change must be no worse than its base and pass its own tests.
+- Stop short only for a failing run at this head or a bug a user would hit.
+  Report a problem the base already has in one line.
 - Never run git commit, push, branch, merge, rebase, stash, reset, or checkout. The lead owns Git.
 - Never start another tstack agent. Your harness's own subagents are fine for your own scope.
   Collect every subagent you start before you finish.
