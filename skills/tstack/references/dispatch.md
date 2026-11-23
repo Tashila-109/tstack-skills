@@ -40,7 +40,7 @@ A worker's first message is [worker-preamble.md](worker-preamble.md), filled in.
 
 ## Seats
 
-A role names who does the work, such as `lead`, `feature`, `how explorer`, or `architect runners`.
+A role names who does the work, such as `lead`, `feature`, `explorer`, or `arena runners`.
 The models file maps each role to seats: `~/.tstack/models.md`, overridden line by line by `<home>/models.md`.
 A seat is `harness/model@effort`, or `inherit` for the caller's own harness and model.
 A list of seats is a panel, with one agent per seat.
@@ -60,6 +60,10 @@ When a seat fails to launch, because the provider is down, logged out, or lacks 
 - a panel continues with the seats that launched, and the result names each dropout.
 
 Never run a seat on a different model than the one configured without the human's word.
+Never run a seat above `xhigh`. A seat's effort changes only through its models file line, never by hand.
+Fable runs outside a panel only when the human named it for this task, or after two runs of the same brief on the configured seat failed its check. Say which. Difficulty alone never qualifies.
+A seat that `--cross` picks from a panel role, such as `review`, still counts as that panel.
+A second opinion runs the same brief on another vendor's model.
 The standalone runtime is the one exception: every seat there runs on the caller's own model, as [its reference](runtime-standalone.md#facts-to-rely-on) says.
 
 ## Depth
@@ -72,7 +76,7 @@ tstack depth is lead → worker, or coordinator → lead → worker in an autopi
 | lead | delegate; use its harness's own subagents for its own scoped reading; launch-lead to move or hand off its own task | launch a lead for another task |
 | worker | use its harness's own subagents, on `inherit`, for its own scope | delegate, launch-lead, address the human or a coordinator, write Git |
 
-A worker that runs a skill which spawns subagents, such as `how` with explorers, uses its harness's own subagent tool instead of delegate.
+A worker that runs a skill which spawns subagents, such as `swarm` or `recall`, uses its harness's own subagent tool instead of delegate.
 Its own subagents never write Git and never write tstack records.
 
 ## Reading text written for Cursor
@@ -122,11 +126,11 @@ A one-command unit may collapse the template to a paragraph that still names goa
 ## Results
 
 A worker writes its result once, to the result path its preamble names, normally `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`, as the [worker preamble](worker-preamble.md) says.
-When a skill says a subagent returns its output in its response, such as reflect's reviewers or a swarm worker's report, that output goes in the worker's result file: on T3 you get back only its final line.
+When a skill says a subagent returns its output in its response, such as a swarm worker's report, that output goes in the worker's result file: on T3 you get back only its final line.
 You own every worker's work.
 Review the diff yourself and write your own summary.
 Do not pass on what the worker said.
-A second opinion is the same brief on a different model, and agreement is high signal.
+A second opinion is the same brief on another vendor's model, and agreement is high signal.
 
 `tstack.mjs check` refuses a task while a brief under `briefs/` has no result with a verdict line.
 It also refuses a delegating step, `evidence/dispatch.md` or `evidence/fix.md`, until at least one result it cites ends `DONE`.

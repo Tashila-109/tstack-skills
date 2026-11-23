@@ -8,7 +8,9 @@ Moving a lead with `t3_worktree_handoff` ran live on 2026-10-14.
 On 2026-10-29 these ran live on a trial project: launches with a `clientRequestId`, including a retry that returned the same thread; delegated workers and their completion wakes; a failed seat stopping for the human; worktree-isolated arena candidates; PR linking, watching and unwatching with the `pr-state` loop; and an autopilot-full coordinator that pinned its thread, launched two leads, took their `queue` reports, armed a heartbeat and deleted it by its `scheduledTaskId`, merged under its grant, and archived the leads.
 On 2026-11-01, on T3 Code 0.1.6-nightly.20261031, `html_preview` drew a chart page from `chart.mjs render --theme t3` in the thread's dark and light colors with no console errors, and `html_render` showed it.
 On 2026-11-03, on T3 Code 0.1.7-nightly.20261103.4119, a lead ran the charting playbook live on a trial project. It ran `chart.mjs check`, a verify worker reviewed the citations, the lead rendered and showed the `--theme t3` page, and a chart committed in a PR passed `stale` until a cited file changed.
-The surface tools, history, hold and worker cancellation follow T3's own tool definitions, and have not yet run in a live task, and neither has a heartbeat run firing.
+On 2026-11-02 a heartbeat run fired live in a coordinator's thread, an hour after the human interrupted its program, and the coordinator then deleted it.
+That run's T3 version was not recorded, so a heartbeat run still needs a live run on a recorded version before it counts as measured.
+The surface tools, history, hold and worker cancellation follow T3's own tool definitions, and have not yet run in a live task.
 
 `tstack.mjs` means `node <tstack skill directory>/scripts/tstack.mjs`.
 
@@ -141,6 +143,11 @@ So watch-pr on T3 pairs the watch with a `pr-state` loop inside your turn:
    The watch wakes you on their review, and you start again at step 1.
 5. When you stop, or the PR merges, call `unwatch_pull_request`.
 
+Because the watch never wakes on a moved base, a `READY` can go stale while the PR waits on the human.
+`pr-state` compares the head with the base on every read, so start every wake at step 1, even a wake for a comment you need not answer.
+The router's [Finish](../SKILL.md#finish) runs `pr-state` once more before the merge, so a base that moved after the last wake still shows as `BLOCKER base-moved`.
+Never arm a timer to poll the base.
+
 A wake is news, not a merge decision.
 
 When T3's review guides are on, `write_pull_request_guides` with the PR's `url` writes a reviewer's tour of the change into the PR's Guide tab.
@@ -176,11 +183,24 @@ Never delete a T3 worktree yourself.
 
 ## Heartbeat
 
-When a lead's long run has no event to wake it, or a coordinator runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }` and a prompt that names the task or program and its predicate.
-Give it a `title` that names the task or program.
+When a lead's long run has no event to wake it, a lead records an away grant, or a coordinator runs an autopilot program, call `schedule_task` with `schedule: { "type": "interval", "everyMs": <ms> }`, a `title` that names the task or program, and the prompt below.
 Each run posts that prompt into your own thread.
 Write the `scheduledTaskId` it returns to `<home>/tasks/<id>/heartbeat.txt`, or to `<home>/autopilot-<name>-heartbeat.txt` for a program.
-Delete it by that ID with `delete_scheduled_task` when the lead reports done, the program's queue ends, or the human stops you, because a schedule outlives a stop and would start the work again.
+
+A lead's prompt, with every `<...>` filled in:
+
+```text
+tstack heartbeat for task <id>, until <predicate>.
+Run node <path to tstack.mjs> status <id>.
+If the human stopped or interrupted you and has not since told you to go on, or status shows the task held or closed, call delete_scheduled_task with the ID in <home>/tasks/<id>/heartbeat.txt, delete that file, and end your turn.
+Otherwise collect each finished worker that status lists and you have not read, then check the predicate.
+```
+
+A coordinator's prompt names its program and runs `status` with no ID.
+It deletes the schedule the same way when the human stopped or interrupted the coordinator and has not since told it to go on, or the program is held or its queue has ended, and otherwise runs the program playbook's check-in.
+The prompt carries the delete because a human interrupt ends your turn without giving you another one to delete the schedule, and a schedule outlives a stop and would start the work again.
+Delete it the same way when the lead reports done, an away grant you armed it for ends, the program's queue ends, or the human stops you.
+When the human releases a hold, keep the recorded heartbeat when `list_scheduled_tasks` still shows its ID. Otherwise arm a new one and write its ID file, because work that waits for a later wake has no other one.
 The project holds other scheduled tasks, so never delete one whose ID you did not record.
 `run_scheduled_task_now` runs it once, to prove it posts what you expect.
 

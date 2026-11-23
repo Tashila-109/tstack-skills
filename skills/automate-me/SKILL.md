@@ -39,7 +39,7 @@ Survey recent agent conversations within that scope for recurring patterns. Run 
 
 Cross-check across slices before elevating a signal. Patterns seen in 2+ slices are high-confidence. Lone signals are weak and usually get dropped.
 
-In a tstack task, a lead delegates each slice as a read-only worker on the `how explorer` seat, with its result at `<task>/results/<name>.md`, as the tstack skill's [dispatch reference](../tstack/references/dispatch.md) says. A worker that runs this skill uses its own harness's subagents instead.
+In a tstack task, a lead delegates each slice as a read-only worker on the `explorer` seat, with its result at `<task>/results/<name>.md`, as the tstack skill's [dispatch reference](../tstack/references/dispatch.md) says. A worker that runs this skill uses its own harness's subagents instead.
 
 ### 2. Ask the user directly
 

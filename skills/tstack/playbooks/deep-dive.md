@@ -27,7 +27,7 @@ Building what the human takes is a separate ship task for each item.
    Split the source into four or five areas by directory or concern, fewer only when it is too small to split that far, and list the paths each covers.
    The areas cover the whole source, or the diff from its base, except vendored, generated and dependency paths.
    Artifact: `evidence/frame.md`
-4. **Explore.** Delegate one read-only worker per area on the `how explorer` seat, as [dispatch](../references/dispatch.md) says, and launch them all before you wait on any.
+4. **Explore.** Delegate one read-only worker per area on the `explorer` seat, as [dispatch](../references/dispatch.md) says, and launch them all before you wait on any.
    Each brief gives the clone path and commit, its area's paths, `evidence/frame.md` and the answered reuse rule.
    It asks for each candidate worth taking: what it does, how it works with `path:line` citations at that commit, what in this project it would change or replace, citing paths, and how the reuse rule lets it be taken.
    Collect every result, and write `evidence/dispatch.md`: each worker's brief and result paths, and any area a worker left unread.
