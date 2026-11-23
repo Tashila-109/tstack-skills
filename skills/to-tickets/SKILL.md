@@ -77,7 +77,7 @@ In a tstack task the approval is a decision on the index, as [decisions](../tsta
 
 ## In a tstack task
 
-No tstack playbook writes tickets: Multi-phase plan and Orchestrate keep the phases in one spec.
+No tstack playbook writes tickets: Multi-phase plan keeps the phases in one spec.
 When the human asks for tickets anyway, the lead writes them in its own context, after the spec is approved.
 Tickets are execution state, not project files: they stay uncommitted under the task home, and the committed spec stays the durable record.
 

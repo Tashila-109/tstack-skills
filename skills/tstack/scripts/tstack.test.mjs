@@ -107,6 +107,8 @@ test("seat --cross picks the first seat outside the caller's model family", () =
 	assert.deepEqual(kinds("openai/gpt-6.1-sol"), ["claude"]);
 	assert.deepEqual(kinds("grok-4.7"), ["claude"]);
 	assert.throws(() => seat(models, "solo", "herdr", "claude-opus-5-5"), /no "solo" seat outside the claude family/);
+	const openai = parseModels("pool: codex/o3@high, claude/claude-fable-5-2@high");
+	assert.deepEqual(seat(openai, "pool", "herdr", "gpt-6.1-sol").map((s) => s.kind), ["claude"], "an o-series model is the same vendor as gpt");
 });
 
 test("seat --avoid prefers a seat whose model ran no candidate, then the one that ran the fewest", () => {
@@ -281,7 +283,7 @@ test("a models file refuses a malformed line and a role named twice", () => {
 test("the tstack-setup template is a complete, valid models file", () => {
 	const setup = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8");
 	const template = parseModels(setup.match(/```text\n(# tstack models[\s\S]*?)```/)[1]);
-	for (const role of ["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
+	for (const role of ["arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
 		assert.ok(new Set(seat(template, role, "t3").map((s) => s.model.split("/").pop().split("-")[0])).size >= 2, role);
 });
 
