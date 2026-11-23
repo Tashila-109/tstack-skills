@@ -18,7 +18,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, linkSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -887,7 +887,7 @@ export function preflight(home, runtime, task, { cwd = process.cwd(), env = proc
 	const taskDir = task === undefined ? undefined : existingTask(home, task);
 	const problems = [];
 	let roles = 0;
-	if (![join(globalDir, "models.md"), join(home, "models.md")].some((p) => existsSync(p))) problems.push(`no models file at ${join(globalDir, "models.md")}: run tstack-setup`);
+	if (![join(globalDir, "models.md"), join(home, "models.md"), ...(taskDir ? [join(taskDir, "models.md")] : [])].some((p) => existsSync(p))) problems.push(`no models file at ${join(globalDir, "models.md")}: run tstack-setup`);
 	else
 		try {
 			const models = loadModels(home, globalDir, task);
@@ -939,9 +939,15 @@ function lockPath(name, globalDir) {
 	return join(globalDir, "locks", name);
 }
 
+// The lock's holder, or undefined when no lock is there, including one released while this reads it.
 function holderOf(path) {
-	if (!existsSync(path)) return undefined;
-	const text = readIfFile(path);
+	let text;
+	try {
+		text = readFileSync(path, "utf8");
+	} catch (err) {
+		if (err.code === "ENOENT") return undefined;
+		throw err;
+	}
 	const field = (key) => text.match(new RegExp(`^${key}: (.+)$`, "m"))?.[1] ?? "unknown";
 	return { task: field("task"), home: field("home"), since: field("since") };
 }
@@ -954,11 +960,16 @@ export function lock(home, name, task, globalDir = globalHome()) {
 	existingTask(home, task);
 	mkdirSync(dirname(path), { recursive: true });
 	for (let attempt = 0; ; attempt++) {
+		// The holder is written to a private file first and linked into place, so no reader sees a half-written lock and a failed write leaves none.
+		const draft = `${path}.${process.pid}.draft`;
+		writeFileSync(draft, `task: ${task}\nhome: ${home}\nsince: ${new Date().toISOString()}\n`);
 		try {
-			writeFileSync(path, `task: ${task}\nhome: ${home}\nsince: ${new Date().toISOString()}\n`, { flag: "wx" });
+			linkSync(draft, path);
 			return `locked ${name} for task ${task}`;
 		} catch (err) {
 			if (err.code !== "EEXIST") throw err;
+		} finally {
+			rmSync(draft, { force: true });
 		}
 		const holder = holderOf(path);
 		// Released between the create and the read, so try the create once more.
@@ -981,6 +992,7 @@ export function unlock(home, name, task, globalDir = globalHome()) {
 function lockGaps(home, id, globalDir) {
 	const dir = join(globalDir, "locks");
 	return (existsSync(dir) ? readdirSync(dir) : [])
+		.filter((name) => ID.test(name))
 		.filter((name) => {
 			const holder = holderOf(join(dir, name));
 			return holder?.task === id && holder.home === home;

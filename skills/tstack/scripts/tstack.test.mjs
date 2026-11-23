@@ -961,6 +961,10 @@ test("preflight names each seat that will not resolve, a locked signing key and 
 	});
 	rmSync(join(globalDir, "models.md"));
 	assert.throws(() => run("t3"), /no models file at .*models\.md: run tstack-setup$/m);
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "own", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	writeFileSync(join(home, "tasks", "own", "models.md"), TEMPLATE);
+	assert.match(run("t3", "own"), /^ok: /, "a task's own complete models file is enough");
 	writeFileSync(join(globalDir, "models.md"), TEMPLATE);
 
 	const head = git("rev-parse", "HEAD");
@@ -999,6 +1003,17 @@ test("lock is held by one task at a time, and a finished task must have released
 	writeFileSync(join(home, "tasks", "t1", "report.md"), REPORT);
 	const globalDir = withGlobal(home);
 	assert.equal(lock(home, "simulator", "t1", globalDir), "locked simulator for task t1");
+	assert.deepEqual(readdirSync(join(globalDir, "locks")), ["simulator"], "the draft the holder is written to is gone");
+	writeFileSync(join(globalDir, "locks", "simulator.99.draft"), `task: t2\nhome: ${home}\nsince: now\n`);
+	const checkT2 = () => {
+		try {
+			return check(home, "t2", undefined, undefined, process.cwd(), globalDir);
+		} catch (err) {
+			return err.message;
+		}
+	};
+	assert.doesNotMatch(checkT2(), /holds lock/, "another task's draft is no lock");
+	rmSync(join(globalDir, "locks", "simulator.99.draft"));
 	assert.match(readFileSync(join(globalDir, "locks", "simulator"), "utf8"), new RegExp(`^task: t1\nhome: ${home}\nsince: \\d{4}-`));
 	assert.match(lock(home, "simulator", "t1", globalDir), /^simulator is already locked for task t1 since /);
 	assert.throws(() => lock(home, "simulator", "t2", globalDir), /simulator is locked by task t1 in .* since .*: notify that task's lead, and never ask the human to relay$/);
