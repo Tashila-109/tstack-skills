@@ -581,7 +581,10 @@ function taskFacts(home, queues, id, sized) {
 		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
 		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
-			.filter(({ name, body }) => !ANSWERED_OR_DENIED.test(body) && awayGap(taskDir, name) !== "")
+			.filter(({ name, body }) => {
+				const gap = awayGap(taskDir, name);
+				return gap === undefined ? !ANSWERED_OR_DENIED.test(body) : gap !== "";
+			})
 			.map(({ name, body }) => {
 				const question = body.match(/^#\s+(.+)$/m)?.[1].trim();
 				return `decisions/${name}${question ? `: ${question}` : ""}`;

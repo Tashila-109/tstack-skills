@@ -846,6 +846,8 @@ test("an away grant lets the lead take its recommendation on a question until th
 	decide("4.md", "question", "Taken\nKeep it, 2026-11-21");
 	assert.throws(() => check(home, "away"), /decisions\/4\.md is taken under no away grant/, "Taken in any case is a taken answer");
 	assert.match(status(home, "away"), /decisions\/4\.md/, "a taken question that check refuses stays open");
+	decide("4.md", "question", "answered\nKeep it, under `decisions/away.md`, 2026-11-21");
+	assert.match(status(home, "away"), /decisions\/4\.md/, "an answered question that cites the grant is refused, so it stays open");
 	rmSync(join(task, "decisions/4.md"));
 	decide("review-m1.md", "question", "taken\nOne more round, under `decisions/away.md`, 2026-11-21");
 	assert.throws(() => check(home, "away"), /decisions\/review-m1\.md is a review checkpoint, which waits for the human/);
