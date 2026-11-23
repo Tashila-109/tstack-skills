@@ -15,6 +15,14 @@ Before you leave one running, check that it has earned it:
 Make the loop autonomous only after all four hold.
 Until then, run it while you watch.
 
+Before unattended work, the lead runs a preflight.
+It checks that every role resolves to a seat, that a signed commit works when your project signs commits, and that `gh` is logged in.
+Then it asks you once for everything only you can fix, such as a locked signing key, a login, or a missing seat.
+Answer before you leave, so the run does not stop on the first commit.
+
+Two tasks on one machine can need the same simulator, port or local database.
+A lead takes a lock on it first, and when another task holds it, the two leads settle it between them without asking you to relay, except on the standalone runtime, where you pass on the note the waiting lead writes.
+
 To stop a run on purpose, tell the lead to pause.
 The [Pause safely playbook](../../skills/tstack/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note.
 A fresh lead picks the work up from that note through the Session pickup playbook.

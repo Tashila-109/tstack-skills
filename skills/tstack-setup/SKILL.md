@@ -54,6 +54,7 @@ jq '.providers[] | select(.providerInstanceId == "<instance>") | .models[] | sel
 
 Use only instances with `canRunChildTask` true.
 The first command fills the `t3 instances` line: each harness name, its instance ID, and its effort option ID (`effort` on Claude, `reasoningEffort` on Codex and Grok, `thinking` on Pi).
+When the harness's models offer fast mode, its fast option follows the effort option: `fastMode` on Claude, and `serviceTier=priority` on Codex.
 The second confirms that a seat's model exists and which effort values it allows.
 
 **On Herdr**, check which agent CLIs are installed with `command -v claude codex pi grok`.
@@ -90,7 +91,7 @@ It runs the role on the caller's own harness and model.
 Never write a seat you could not confirm.
 
 ```text
-# tstack models. One line per role. A seat is harness/model@effort, a list is a panel, and inherit means the caller's own harness and model.
+# tstack models. One line per role. A seat is harness/model@effort, +fast after it runs it in fast mode on T3, a list is a panel, and inherit means the caller's own harness and model.
 # budget: large, the template's efforts
 lead: claude/claude-opus-5-5@xhigh
 feature, refactoring: claude/claude-opus-5-5@xhigh
@@ -105,7 +106,7 @@ swarm workers: claude/claude-opus-5-5@high
 comment sicko: inherit
 review: claude/claude-fable-5-2@high, codex/gpt-6.1-sol@high
 verify: claude/claude-opus-5-5@high
-t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thinking, grok=grok/reasoningEffort
+t3 instances: claude=claudeAgent/effort/fastMode, codex=codex/reasoningEffort/serviceTier=priority, pi=pi/thinking, grok=grok/reasoningEffort
 ```
 
 `lead <playbook>` lines are optional and override `lead` for one playbook.
@@ -119,6 +120,8 @@ Then run `tstack.mjs seat lead --runtime t3`, `--runtime herdr` or `--runtime st
 On T3, also run `tstack.mjs check-seats <file>` on the saved `orchestrator_capabilities` result, and fix every line it names.
 It names a provider T3 cannot run with T3's own reason, such as a CLI that is not logged in, and a panel role whose seats share one model family.
 It checks the global and the project file together, so run it again whenever either file changes, including a project file written by hand.
+Last, run `tstack.mjs preflight --runtime <runtime>` and tell the human each line it prints.
+Each names something only the human can fix, such as a locked signing key or a gh login.
 
 ## 7. Offer verification skills
 

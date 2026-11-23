@@ -54,6 +54,7 @@ That judgment stays with the lead and with you.
 Skills ask for a role, such as `explorer` or `arena runners`, never a model.
 Your models file maps each role to one or more seats, each a harness, a model and an effort.
 A panel of several seats on different model families gives a second opinion with different blind spots.
+When you name models for one task, its lead records them for that task alone.
 
 When a seat cannot launch, tstack stops and asks you.
 It never runs your work on a model you did not choose.

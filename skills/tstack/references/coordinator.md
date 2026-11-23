@@ -8,7 +8,9 @@ At the start of a session, read the newest `<home>/handoff/coordinator-*.md` whe
 The queue is a table with a `Task` column and a `State` column, because `status` reads each item's state from it.
 Answer a status question as the router's [Status](../SKILL.md#status) says, from `tstack.mjs status` with no ID.
 
-1. Run the program playbook.
+1. Before the first lead starts, run `tstack.mjs preflight --runtime <runtime>`, and on T3 `tstack.mjs check-seats <file>` on a freshly saved `orchestrator_capabilities` result, as the router's Intake does for unattended work.
+   Ask the human once for everything they name, and start the program playbook only when each check you ran passes.
+   Run the program playbook.
    For each lead it starts, run `tstack.mjs brief` for the item, then launch-lead per the runtime reference, with your own thread or agent name as the launch block's `coordinator:`.
 2. A lead reaches you with `report <id>:`, `decision <id>:` or `handoff <id>:`.
    - Progress is not news.

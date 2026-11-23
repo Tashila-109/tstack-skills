@@ -5,8 +5,11 @@
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>] [--head <sha>]
 //   node tstack.mjs status [<id>]
-//   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--cross <model> [--avoid <model>,...]]
-//   node tstack.mjs check-seats <saved orchestrator_capabilities result>
+//   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--task <id>] [--cross <model> [--avoid <model>,...]]
+//   node tstack.mjs check-seats <saved orchestrator_capabilities result> [--task <id>]
+//   node tstack.mjs preflight [--runtime t3|herdr|standalone] [--task <id>]
+//   node tstack.mjs lock <name> --task <id>
+//   node tstack.mjs unlock <name> --task <id>
 //   node tstack.mjs pr-state <pr number> [--wait <seconds, at most 540>]
 //   node tstack.mjs exclude [--project-skills]
 //   node tstack.mjs link-skills <worktree>
@@ -15,7 +18,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, linkSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,6 +52,15 @@ const CITED_GRANT = /\bdecisions\/(away(?:-\d+)?\.md)\b/;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
+
+const globalHome = () => process.env.TSTACK_GLOBAL_DIR ?? join(homedir(), ".tstack");
+
+function existingTask(home, id) {
+	if (!ID.test(id ?? "")) throw new Usage(`task id must match ${ID}: ${id}`);
+	const dir = join(home, "tasks", id);
+	if (!existsSync(join(dir, "task.json"))) throw new Refusal(`no task ${id} at ${dir}`);
+	return dir;
+}
 
 function gitCommonDir(cwd) {
 	let common;
@@ -247,7 +259,7 @@ function present(taskDir, path, text) {
 	return path.startsWith("decisions/") ? !decisionGap(prose(latestDecision(taskDir, path, text))) : Boolean(text.trim());
 }
 
-export function check(home, id, through, head, cwd = process.cwd()) {
+export function check(home, id, through, head, cwd = process.cwd(), globalDir = globalHome()) {
 	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
 	const taskDir = join(home, "tasks", id);
 	if (!existsSync(join(taskDir, "task.json"))) throw new Refusal(`no task ${id} at ${taskDir}`);
@@ -272,7 +284,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 		else if (MAYBE_DELEGATED.has(path) && !SKIPPED.test(text)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (path === "report.md") problems.push(...reportGaps(text));
 	}
-	if (through === undefined) problems.push(...workerGaps(taskDir));
+	if (through === undefined) problems.push(...workerGaps(taskDir), ...lockGaps(home, id, globalDir));
 	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, task.delivery === "pr" && through === undefined, closed));
 	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed), ...awayGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
@@ -733,14 +745,17 @@ const HERDR = {
 
 const EFFORTS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max", "ultra", "ultracode", "ultrathink"]);
 
+const FAST = /\+fast$/i;
+
 export function parseSeat(text) {
 	if (text === "inherit") return { inherit: true };
-	const m = text.match(/^([a-z0-9][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9._:/+@[\]-]*)$/i);
-	if (!m) throw new Refusal(`seat must be harness/model[@effort] or inherit, with no spaces or leading dashes: ${text}`);
+	const fast = FAST.test(text);
+	const m = text.replace(FAST, "").match(/^([a-z0-9][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9._:/+@[\]-]*)$/i);
+	if (!m) throw new Refusal(`seat must be harness/model[@effort][+fast] or inherit, with no spaces or leading dashes: ${text}`);
 	const at = m[2].lastIndexOf("@");
 	const tail = at > 0 ? m[2].slice(at + 1) : "";
 	const effort = EFFORTS.has(tail.toLowerCase()) ? tail.toLowerCase() : undefined;
-	return { harness: m[1].toLowerCase(), model: effort ? m[2].slice(0, at) : m[2], effort };
+	return { harness: m[1].toLowerCase(), model: effort ? m[2].slice(0, at) : m[2], effort, ...(fast ? { fast } : {}) };
 }
 
 // The vendor family: the model ID's first word, with OpenAI's o-series counted as gpt.
@@ -770,25 +785,26 @@ export function seat(models, role, runtime, cross, avoid) {
 	return seats.map((parsed) => {
 		if (parsed.inherit) return parsed;
 		if (runtime === "t3") {
+			// Each pair is <harness>=<instance>/<effort option>[/<fast option>[=<value>]], and a fast option with no value is on/off.
 			const instances = new Map(
 				(models.get("t3 instances") ?? "").split(",").filter(Boolean).map((pair) => {
-					const [name, target = ""] = pair.split("=").map((x) => x.trim());
-					const [instance, option] = target.split("/");
-					return [name.toLowerCase(), { instance, option }];
+					const at = pair.includes("=") ? pair.indexOf("=") : pair.length;
+					const [instance, option, fast = ""] = pair.slice(at + 1).trim().split("/");
+					const [fastId, fastValue = true] = fast.split("=");
+					return [pair.slice(0, at).trim().toLowerCase(), { instance, option, fast: fastId ? { id: fastId, value: fastValue } : undefined }];
 				}),
 			);
 			const t3 = instances.get(parsed.harness);
 			if (!t3?.instance) throw new Refusal(`no T3 instance for harness ${parsed.harness}; add it to the "t3 instances" line`);
 			if (parsed.effort && !t3.option) throw new Refusal(`no effort option ID for harness ${parsed.harness} in the "t3 instances" line`);
-			return {
-				providerInstanceId: t3.instance,
-				model: parsed.model,
-				...(parsed.effort ? { options: [{ id: t3.option, value: parsed.effort }] } : {}),
-			};
+			if (parsed.fast && !t3.fast) throw new Refusal(`no fast option for harness ${parsed.harness} in the "t3 instances" line; add it after the effort option, such as fastMode or serviceTier=priority`);
+			const options = [...(parsed.effort ? [{ id: t3.option, value: parsed.effort }] : []), ...(parsed.fast ? [t3.fast] : [])];
+			return { providerInstanceId: t3.instance, model: parsed.model, ...(options.length ? { options } : {}) };
 		}
 		if (runtime === "herdr") {
 			const flags = HERDR[parsed.harness];
 			if (!flags) throw new Refusal(`no Herdr launch flags known for harness ${parsed.harness}`);
+			if (parsed.fast) throw new Refusal(`no Herdr fast-mode flag known for harness ${parsed.harness}: drop +fast from the seat`);
 			const override = models.get(`herdr args ${parsed.harness}`);
 			const autonomy = override === undefined ? flags.autonomy : override.split(/\s+/).filter(Boolean);
 			return {
@@ -797,7 +813,7 @@ export function seat(models, role, runtime, cross, avoid) {
 			};
 		}
 		// No orchestrator: every seat runs on the caller's own model, and the configured seat is kept so the lead can name what it could not honor.
-		return { inherit: true, configured: `${parsed.harness}/${parsed.model}${parsed.effort ? `@${parsed.effort}` : ""}` };
+		return { inherit: true, configured: `${parsed.harness}/${parsed.model}${parsed.effort ? `@${parsed.effort}` : ""}${parsed.fast ? "+fast" : ""}` };
 	});
 }
 
@@ -830,10 +846,12 @@ export function checkSeats(models, caps, roles = templateRoles()) {
 				problems.add(`${where}: model not advertised${near.length ? `; advertised as ${near.join(" or ")}` : ""}`);
 			} else
 				for (const o of s.options ?? []) {
+					// T3 lists an option's choices as `values`, or in older catalogs as `options` beside a `type`.
 					const option = model.options?.find((x) => x.id === o.id);
-					const values = option?.options?.map((v) => v.id) ?? [];
-					if (option?.type === "boolean") problems.add(`${where}: ${o.id} is an on/off option, so drop the @${o.value} effort`);
-					else if (!values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
+					const values = option?.values ?? option?.options?.map((v) => v.id) ?? [];
+					const onOff = option?.type === "boolean" || (values.length > 0 && values.every((v) => typeof v === "boolean"));
+					if (onOff && o.value !== true) problems.add(`${where}: ${o.id} is an on/off option, so drop the @${o.value} effort`);
+					else if (!onOff && !values.includes(o.value)) problems.add(`${where}: ${o.id} ${o.value} not offered (${values.join(", ") || "no such option"})`);
 				}
 		}
 	}
@@ -841,15 +859,145 @@ export function checkSeats(models, caps, roles = templateRoles()) {
 	return `ok: ${checked.size} seat${checked.size === 1 ? "" : "s"} advertised`;
 }
 
-export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? join(homedir(), ".tstack")) {
+// The global file, then the project's, then with a task its own, each overriding the one before line by line.
+export function loadModels(home, globalDir = globalHome(), task) {
 	const merged = new Map();
-	const read = (path) => (existsSync(path) ? parseModels(readFileSync(path, "utf8")) : new Map());
+	const read = (path) => {
+		try {
+			return existsSync(path) ? parseModels(readFileSync(path, "utf8")) : new Map();
+		} catch (err) {
+			throw err instanceof Refusal ? new Refusal(`${path}: ${err.message}`) : err;
+		}
+	};
 	for (const [k, v] of read(join(globalDir, "models.md"))) merged.set(k, v);
-	for (const [k, v] of read(join(home, "models.md"))) {
-		if (k.startsWith("herdr args")) throw new Refusal(`"${k}" is allowed only in ${join(globalDir, "models.md")}, because launch flags can grant an agent more access`);
-		merged.set(k, v);
-	}
+	for (const path of [join(home, "models.md"), ...(task === undefined ? [] : [join(existingTask(home, task), "models.md")])])
+		for (const [k, v] of read(path)) {
+			if (k.startsWith("herdr args")) throw new Refusal(`"${k}" in ${path} is allowed only in ${join(globalDir, "models.md")}, because launch flags can grant an agent more access`);
+			merged.set(k, v);
+		}
 	return merged;
+}
+
+const SIGN_MS = 60_000;
+const errorLine = (text) => String(text ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "no output";
+
+// What has stopped unattended runs before, each as a line saying what only the human can do about it.
+export function preflight(home, runtime, task, { cwd = process.cwd(), env = process.env, globalDir = globalHome() } = {}) {
+	if (runtime !== undefined && !["t3", "herdr", "standalone"].includes(runtime)) throw new Usage(`--runtime must be t3, herdr or standalone: ${runtime}`);
+	const taskDir = task === undefined ? undefined : existingTask(home, task);
+	const problems = [];
+	let roles = 0;
+	if (![join(globalDir, "models.md"), join(home, "models.md"), ...(taskDir ? [join(taskDir, "models.md")] : [])].some((p) => existsSync(p))) problems.push(`no models file at ${join(globalDir, "models.md")}: run tstack-setup`);
+	else
+		try {
+			const models = loadModels(home, globalDir, task);
+			for (const role of new Set([...(templateRoles() ?? []), ...models.keys()])) {
+				if (role === "t3 instances" || role.startsWith("herdr args")) continue;
+				roles++;
+				try {
+					seat(models, role, runtime ?? "standalone");
+				} catch (err) {
+					if (!(err instanceof Refusal)) throw err;
+					problems.push(`seat "${role}": ${err.message}`);
+				}
+			}
+		} catch (err) {
+			if (!(err instanceof Refusal)) throw err;
+			problems.push(`${err.message}: fix that file, or run tstack-setup`);
+		}
+
+	const git = (args, opts) => execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
+	let signs = false;
+	try {
+		signs = git(["config", "--bool", "--get", "commit.gpgsign"]).trim() === "true";
+	} catch {}
+	// commit-tree writes one unreferenced commit object, which Git prunes later, and moves no ref.
+	if (signs)
+		try {
+			// The empty tree needs no first commit, so a new repository can be checked too.
+			const empty = git(["mktree"], { stdio: ["pipe", "pipe", "pipe"], input: "" }).trim();
+			git(["commit-tree", "-S", "-m", "tstack preflight", empty], { timeout: SIGN_MS, env: { ...env, GIT_TERMINAL_PROMPT: "0" } });
+		} catch (err) {
+			const why = err.code === "ETIMEDOUT" ? `no passphrase within ${SIGN_MS / 1000} seconds` : errorLine(err.stderr);
+			problems.push(`commit.gpgsign is on, and a signed commit failed (${why}): unlock your signing key, such as with its passphrase or your ssh-agent`);
+		}
+
+	const local = taskDir !== undefined && JSON.parse(readFileSync(join(taskDir, "task.json"), "utf8")).delivery === "local-only";
+	if (!local)
+		try {
+			execFileSync("gh", ["auth", "status", "--active"], { env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+		} catch (err) {
+			problems.push(err.code === "ENOENT" ? "gh is not installed: install the GitHub CLI, which PR delivery and pr-state need" : `gh is not logged in (${errorLine(err.stderr)}): run gh auth login`);
+		}
+
+	if (problems.length) throw new Refusal(problems.join("\n"));
+	return `ok: ${roles} roles resolve${runtime ? ` on ${runtime}` : ""}; ${signs ? "a signed commit works" : "commits need no signature"}; ${local ? "gh not needed for a local-only task" : "gh is logged in"}`;
+}
+
+function lockPath(name, globalDir) {
+	if (!ID.test(name ?? "")) throw new Usage(`lock name must match ${ID}: ${name}`);
+	return join(globalDir, "locks", name);
+}
+
+// The lock's holder, or undefined when no lock is there, including one released while this reads it.
+function holderOf(path) {
+	let text;
+	try {
+		text = readFileSync(path, "utf8");
+	} catch (err) {
+		if (err.code === "ENOENT") return undefined;
+		throw err;
+	}
+	const field = (key) => text.match(new RegExp(`^${key}: (.+)$`, "m"))?.[1] ?? "unknown";
+	return { task: field("task"), home: field("home"), since: field("since") };
+}
+
+const heldBy = (holder) => `task ${holder.task} in ${holder.home} since ${holder.since}`;
+
+// One machine's desktop, simulators, ports and local databases are shared by every task on it, so the lock lives in the global directory.
+export function lock(home, name, task, globalDir = globalHome()) {
+	const path = lockPath(name, globalDir);
+	existingTask(home, task);
+	mkdirSync(dirname(path), { recursive: true });
+	for (let attempt = 0; ; attempt++) {
+		// The holder is written to a private file first and linked into place, so no reader sees a half-written lock and a failed write leaves none.
+		const draft = `${path}.${process.pid}.draft`;
+		writeFileSync(draft, `task: ${task}\nhome: ${home}\nsince: ${new Date().toISOString()}\n`);
+		try {
+			linkSync(draft, path);
+			return `locked ${name} for task ${task}`;
+		} catch (err) {
+			if (err.code !== "EEXIST") throw err;
+		} finally {
+			rmSync(draft, { force: true });
+		}
+		const holder = holderOf(path);
+		// Released between the create and the read, so try the create once more.
+		if (!holder && attempt === 0) continue;
+		if (holder?.task === task && holder.home === home) return `${name} is already locked for task ${task} since ${holder.since}`;
+		throw new Refusal(`${name} is locked by ${holder ? heldBy(holder) : "another task"} (${path}): notify that task's lead, and never ask the human to relay`);
+	}
+}
+
+export function unlock(home, name, task, globalDir = globalHome()) {
+	const path = lockPath(name, globalDir);
+	if (!ID.test(task ?? "")) throw new Usage(`task id must match ${ID}: ${task}`);
+	const holder = holderOf(path);
+	if (!holder) return `${name} is not locked`;
+	if (holder.task !== task || holder.home !== home) throw new Refusal(`${name} is locked by ${heldBy(holder)}, not by task ${task}: only that task's lead unlocks it`);
+	rmSync(path);
+	return `unlocked ${name}`;
+}
+
+function lockGaps(home, id, globalDir) {
+	const dir = join(globalDir, "locks");
+	return (existsSync(dir) ? readdirSync(dir) : [])
+		.filter((name) => ID.test(name))
+		.filter((name) => {
+			const holder = holderOf(join(dir, name));
+			return holder?.task === id && holder.home === home;
+		})
+		.map((name) => `task ${id} still holds lock ${name}: run tstack.mjs unlock ${name} --task ${id}`);
 }
 
 const SETTLE_MS = 10 * 60 * 1000;
@@ -1076,8 +1224,11 @@ const ALLOWED = {
 	brief: ["playbook", "goal", "finish", "kind", "delivery"],
 	check: ["through", "head"],
 	status: ["size"],
-	seat: ["runtime", "cross", "avoid"],
-	"check-seats": [],
+	seat: ["runtime", "task", "cross", "avoid"],
+	"check-seats": ["task"],
+	preflight: ["runtime", "task"],
+	lock: ["task"],
+	unlock: ["task"],
 	"pr-state": ["wait"],
 	exclude: ["project-skills"],
 	"link-skills": [],
@@ -1106,14 +1257,22 @@ export function main(argv) {
 			return status(taskHome(), f._[0], f.size === true);
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");
-			return seat(loadModels(taskHome()), f._.join(" "), f.runtime, f.cross, f.avoid)
+			return seat(loadModels(taskHome(), undefined, f.task), f._.join(" "), f.runtime, f.cross, f.avoid)
 				.map((s) => JSON.stringify(s))
 				.join("\n");
 		case "check-seats": {
 			if (f._.length !== 1) throw new Usage("check-seats takes the path of a saved orchestrator_capabilities result");
 			const caps = JSON.parse(readFileSync(f._[0], "utf8"));
-			return checkSeats(loadModels(taskHome()), Array.isArray(caps) ? JSON.parse(caps[0].text) : caps);
+			return checkSeats(loadModels(taskHome(), undefined, f.task), Array.isArray(caps) ? JSON.parse(caps[0].text) : caps);
 		}
+		case "preflight":
+			if (f._.length) throw new Usage("preflight takes no arguments, only --runtime and --task");
+			return preflight(taskHome(), f.runtime, f.task);
+		case "lock":
+		case "unlock":
+			if (f._.length !== 1) throw new Usage(`${command} takes one lock name`);
+			if (f.task === undefined) throw new Usage(`${command} needs --task <id>`);
+			return (command === "lock" ? lock : unlock)(taskHome(), f._[0], f.task);
 		case "pr-state":
 			if (f._.length !== 1) throw new Usage("pr-state takes one PR number");
 			return prState(f._[0], f.wait === undefined ? 0 : Number(f.wait));
@@ -1123,7 +1282,7 @@ export function main(argv) {
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, status, seat, check-seats, pr-state, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, status, seat, check-seats, preflight, lock, unlock, pr-state, exclude, link-skills");
 	}
 }
 

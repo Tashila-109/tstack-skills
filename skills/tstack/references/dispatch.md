@@ -1,7 +1,7 @@
 # Dispatch
 
 Read this before you launch a lead, delegate a worker, or run a skill that spawns subagents.
-It owns the verbs, seats, depth, and how to read skill text written for Cursor.
+It owns the verbs, seats, depth, shared resources, and how to read skill text written for Cursor.
 The runtime reference owns the exact calls: [runtime-t3.md](runtime-t3.md) in a T3 Code thread, [runtime-herdr.md](runtime-herdr.md) when `HERDR_ENV=1`, and [runtime-standalone.md](runtime-standalone.md) on any other harness.
 
 `tstack.mjs` below means `node <tstack skill directory>/scripts/tstack.mjs`.
@@ -41,13 +41,21 @@ A worker's first message is [worker-preamble.md](worker-preamble.md), filled in.
 ## Seats
 
 A role names who does the work, such as `lead`, `feature`, `explorer`, or `arena runners`.
-The models file maps each role to seats: `~/.tstack/models.md`, overridden line by line by `<home>/models.md`.
+The models file maps each role to seats: `~/.tstack/models.md`, overridden line by line by `<home>/models.md`, and in a task by `<home>/tasks/<id>/models.md`.
 A seat is `harness/model@effort`, or `inherit` for the caller's own harness and model.
+On T3, a seat may end in `+fast`, such as `claude/claude-opus-5-5@xhigh+fast`, to run in fast mode.
+Herdr refuses such a seat.
 A list of seats is a panel, with one agent per seat.
 `lead <playbook>` falls back to `lead`.
-`herdr args <harness>` lines, which replace a harness's autonomy flags on Herdr, are read only from `~/.tstack/models.md`. A project's file that sets one is refused, because a cloned repository must not choose the flags an agent launches with.
+`herdr args <harness>` lines, which replace a harness's autonomy flags on Herdr, are read only from `~/.tstack/models.md`. A project's or a task's file that sets one is refused, because a cloned repository must not choose the flags an agent launches with.
 
-Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr|standalone`.
+When the human names models for this task, such as "review with Fable" or "use fast mode for the coding", the lead writes those roles' lines to `<home>/tasks/<id>/models.md`.
+Above them goes a `#` line with the date and the human's words.
+That file holds only what the human said for this task.
+A lead never edits the project or global file, which tstack-setup writes.
+
+Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr|standalone --task <id>`.
+Pass `--task <id>` to every `seat` and `check-seats` call in a task, so the task's own lines apply.
 It prints one JSON line per seat, in the shape the runtime reference passes on.
 Never hand-assemble a model ID, an effort option, or launch flags.
 
@@ -78,6 +86,18 @@ tstack depth is lead → worker, or coordinator → lead → worker in an autopi
 
 A worker that runs a skill which spawns subagents, such as `swarm` or `recall`, uses its harness's own subagent tool instead of delegate.
 Its own subagents never write Git and never write tstack records.
+
+## Shared resources
+
+The desktop, a simulator, a port and a local database are shared by every task on the machine.
+Before a step that needs one, the lead takes its lock with `tstack.mjs lock <name> --task <id>`, using a name such as `desktop`, `simulator-<device>`, `port-<number>` or `db-<name>`.
+It holds the lock while the step and its workers run.
+It runs `tstack.mjs unlock <name> --task <id>` when the step ends, and when the human stops it.
+A refusal names the task that holds the lock.
+On T3 and Herdr, notify that task's lead and wait for its reply, which comes when it unlocks, and never ask the human to relay.
+On the standalone runtime, where notify is a file the human points the other lead to, write that file and ask the human once, as [its reference](runtime-standalone.md#report-notify-and-hold) says.
+When that lead no longer runs, tell the human, who may delete the lock file the refusal names.
+`tstack.mjs check` refuses a finished task that still holds a lock.
 
 ## Reading text written for Cursor
 

@@ -10,6 +10,7 @@ The project's `verify-*` skill owns how to launch, drive and capture.
 
 - Drive the change the way a user reaches it, with the project's `verify-*` skill.
   When the project has none and the change has a UI, CLI or service surface, run **create-verification-skill** first.
+- Take the lock for a shared surface first, as [Shared resources](dispatch.md#shared-resources) says.
 - Write one claim per acceptance criterion: the task's finish, then each criterion from the brief or spec.
 - Trust a check only after you have seen it fail.
   Before you rely on a new assertion, break its condition once and watch it go red.
