@@ -616,36 +616,101 @@ export function loadModels(home, globalDir = process.env.TSTACK_GLOBAL_DIR ?? jo
 }
 
 const SETTLE_MS = 10 * 60 * 1000;
+// How long pr-state waits for a review bot to review the head, counted like the settle from the last push, comment or review.
+// The bound lets a bot that paused or ran out of reviews end as READY bot-unreviewed instead of a wait that never ends.
+const BOT_WAIT_MS = 2 * SETTLE_MS;
 const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "STALE"]);
+// Sections of a review bot's review body, such as CodeRabbit's, whose findings are in no review thread.
+// Its "Actionable comments posted" count is not one of them, because those comments are the review's threads.
+const BODY_FINDINGS = /\b(outside diff range|nitpick|duplicate) comments \((\d+)\)/gi;
+const FINDING_NAMES = { "outside diff range": "outside-diff", nitpick: "nitpick", duplicate: "duplicate" };
+// GitHub's compare API lists at most 300 changed files.
+const COMPARE_FILES = 300;
 const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
   state isDraft baseRefName mergeable mergeStateStatus reviewDecision headRefOid updatedAt
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
     __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
   reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { id isResolved path line } }
+  files(first: 100) { pageInfo { hasNextPage } nodes { path changeType } }
   comments(last: 1) { nodes { createdAt } }
-  reviews(last: 1) { nodes { submittedAt } }
+  reviews(last: 100) { pageInfo { hasPreviousPage } nodes { id submittedAt body author { __typename login } commit { oid } reactionGroups { viewerHasReacted } } }
 } } }`;
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// What the review bots said on this PR. A bot's pass is a review with a body, because a review with an empty body is a reply in a thread.
+// A bot's round count is how many heads it has passed.
+function reviewBots(pr) {
+	const bots = new Map();
+	for (const r of pr.reviews?.nodes ?? []) {
+		const login = r.author?.login;
+		if (!login || !r.body?.trim() || !(r.author.__typename === "Bot" || login.endsWith("[bot]"))) continue;
+		const bot = bots.get(login) ?? { heads: new Set(), onHead: [] };
+		if (r.commit?.oid) bot.heads.add(r.commit.oid);
+		if (r.commit?.oid === pr.headRefOid) bot.onHead.push(r);
+		bots.set(login, bot);
+	}
+	// A bot that passed two heads reviews pushes. One that passed a single head, such as the Codex connector, may review only on request.
+	const missing = [...bots].filter(([, b]) => b.heads.size >= 2 && !b.heads.has(pr.headRefOid)).map(([login]) => login);
+	// Findings in the body of a pass on this head. A reaction from the gh account on that review marks them triaged.
+	const findings = [];
+	for (const [login, b] of bots)
+		for (const r of b.onHead) {
+			if (r.reactionGroups?.some((g) => g.viewerHasReacted)) continue;
+			const counts = new Map();
+			for (const [, label, n] of r.body.matchAll(BODY_FINDINGS)) {
+				const name = FINDING_NAMES[label.toLowerCase()];
+				if (!counts.has(name)) counts.set(name, Number(n));
+			}
+			const items = [...counts].filter(([, n]) => n > 0).map(([name, n]) => `${n} ${name}`);
+			if (items.length) findings.push(`${login} ${r.id} (${items.join(", ")})`);
+		}
+	return {
+		missing,
+		findings: findings.length ? `bot-findings: comments outside any review thread in ${findings.join(", ")}: triage them, then react to each review` : "",
+		rounds: bots.size ? `bot-rounds: ${[...bots].map(([login, b]) => `${login} ${b.heads.size}`).join(", ")}` : "",
+	};
+}
 
 // One verdict for a PR from GitHub's own state. WAITING means nothing is wrong yet but it is not ready.
 // `required` names the base branch's required checks, so one that has not started yet still counts as pending.
-export function prVerdict(pr, now = Date.now(), required = []) {
+// `base` is the compare from the head to the base branch: how many commits the base is ahead, and the files those commits change.
+export function prVerdict(pr, now = Date.now(), required = [], base) {
 	const head = pr.headRefOid?.slice(0, 12) ?? "unknown";
 	// An outdated thread still counts: branch protection's resolve-conversations rule counts it.
-	// Every blocker lists the unresolved threads, so a threads-only pass can resolve them without touching the blocker.
+	// Every blocker lists the unresolved threads and the bot findings, so a threads-only pass can answer them without touching the blocker.
 	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved);
 	const more = pr.reviewThreads?.pageInfo?.hasNextPage ? " in the first 100, and more to read on GitHub" : "";
 	const list = open.map((t) => `${t.id} ${t.path ?? "?"}${t.line ? `:${t.line}` : ""}`).join(", ");
 	const threads = `review-threads: ${open.length} unresolved${more}${list ? `: ${list}` : ""}`;
+	const bots = reviewBots(pr);
+	const notes = [open.length || more ? threads : "", bots.findings, bots.rounds].filter(Boolean);
 	const say = (verdict, reason) =>
-		`${verdict}${reason ? ` ${reason}` : ""}${verdict === "BLOCKER" && (open.length || more) && reason !== threads ? `; ${threads}` : ""} (head ${head})`;
+		`${verdict}${reason ? ` ${reason}` : ""}${verdict === "BLOCKER" ? notes.filter((n) => n !== reason).map((n) => `; ${n}`).join("") : ""} (head ${head})`;
 	if (pr.state === "MERGED") return say("MERGED");
 	if (pr.state === "CLOSED") return say("CLOSED", "closed without merging");
 	if (pr.isDraft) return say("BLOCKER", "draft: mark it ready");
 	if (pr.mergeable === "CONFLICTING") return say("BLOCKER", "conflicts: merge the base branch in");
+	// A base that moved in files this PR changes can break it with no conflict, so the proof has to run again on the merged tree.
+	if (base?.behind) {
+		const mine = new Set((pr.files?.nodes ?? []).map((f) => f.path));
+		const shared = [...new Set(base.files.filter((f) => mine.has(f)))];
+		// GitHub gives a renamed file's new path only, so a base change to its old path cannot be seen: block on any base change.
+		const renamed = base.files.length > 0 && (pr.files?.nodes ?? []).some((f) => f.changeType === "RENAMED");
+		const unread = base.count >= COMPARE_FILES || (base.count > 0 && pr.files?.pageInfo?.hasNextPage);
+		const which = shared.length
+			? `files this PR changes: ${shared.slice(0, 5).join(", ")}${shared.length > 5 ? ` and ${shared.length - 5} more` : ""}`
+			: unread
+				? "more files than pr-state reads"
+				: "files, and this PR renames a file whose old path GitHub does not report";
+		if (shared.length || unread || renamed)
+			return say("BLOCKER", `base-moved: ${pr.baseRefName} is ${plural(base.behind, "commit")} ahead and changes ${which}; merge it in and run the proof again`);
+	}
 	const commit = pr.commits?.nodes?.[0]?.commit;
 	// ponytail: reads the first 100 checks and threads; page through them if a PR ever has more.
-	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage)
-		return say("BLOCKER", "too-many: over 100 checks or review threads, so read them on GitHub");
+	// It reads the last 100 reviews, and blocks when there are more, because an older bot review on this head could hold findings; and the first 100 files, so base-moved blocks when it cannot read them all.
+	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage || pr.reviews?.pageInfo?.hasPreviousPage)
+		return say("BLOCKER", "too-many: over 100 checks, review threads or reviews, so read them on GitHub");
 	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
 		c.__typename === "StatusContext"
 			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
@@ -654,14 +719,18 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 	const failed = checks.filter((c) => c.failed).map((c) => c.name);
 	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
 	if (open.length) return say("BLOCKER", threads);
+	if (bots.findings) return say("BLOCKER", bots.findings);
 	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
 	const reported = new Set(checks.map((c) => c.name));
 	const pending = [...checks.filter((c) => c.pending).map((c) => c.name), ...required.filter((name) => !reported.has(name)).map((name) => `${name} (required, not started)`)];
 	if (pending.length) return say("WAITING", `checks: ${pending.join(", ")}`);
 	const latest = Math.max(
-		...[commit?.committedDate, pr.updatedAt, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
+		...[commit?.committedDate, pr.updatedAt, pr.comments?.nodes?.[0]?.createdAt, ...(pr.reviews?.nodes ?? []).map((r) => r.submittedAt)].filter(Boolean).map((t) => Date.parse(t)),
 	);
-	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment, review or edit was ${Math.round((now - latest) / 1000)}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
+	const ago = Math.round((now - latest) / 1000);
+	if (bots.missing.length && now - latest < BOT_WAIT_MS)
+		return say("WAITING", `bot-review: ${bots.missing.join(", ")} reviewed earlier heads but not this one yet; the last push, comment, review or edit was ${ago}s ago, and bots get ${BOT_WAIT_MS / 60000} minutes`);
+	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment, review or edit was ${ago}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
 	if (pr.mergeable === "UNKNOWN" || pr.mergeStateStatus === "UNKNOWN") return say("WAITING", "mergeable-unknown: GitHub is still computing whether it merges");
 	if (pr.mergeStateStatus === "BEHIND") return say("BLOCKER", "behind-base: merge the base branch in");
 	if (pr.reviewDecision === "REVIEW_REQUIRED") return say("WAITING", "review-required: a human must review");
@@ -669,8 +738,11 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 	const approval = checks.filter((c) => c.approval).map((c) => c.name);
 	if (approval.length) return say("WAITING", `approval: ${approval.join(", ")} waits on a person`);
 	if (pr.mergeStateStatus === "BLOCKED") return say("BLOCKER", "merge-blocked: a branch rule GitHub does not name blocks the merge");
-	if (!checks.length) return say("READY", "ci-none: no checks reported; trust it only when a second run on the same head agrees");
-	return say("READY");
+	const ready = [];
+	if (!checks.length) ready.push("ci-none: no checks reported; trust it only when a second run on the same head agrees");
+	if (bots.missing.length) ready.push(`bot-unreviewed: ${bots.missing.join(", ")} reviewed earlier heads but not this one in ${BOT_WAIT_MS / 60000} minutes; ask once for a review of this head`);
+	if (base?.behind) ready.push(`base: ${pr.baseRefName} is ${plural(base.behind, "commit")} ahead, in none of this PR's files`);
+	return say("READY", ready.join("; "));
 }
 
 const TRANSIENT = /HTTP (5\d\d|429)|secondary rate limit|timed? ?out|connection (reset|refused)|\bEOF\b|temporar|could not resolve host|TLS handshake/i;
@@ -684,7 +756,7 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 function gh(args) {
 	for (let attempt = 0; ; attempt++) {
 		try {
-			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
 		} catch (err) {
 			const message = String(err.stderr || err.message).trim();
 			if (attempt === 4 || !isTransient(message)) throw new Error(message);
@@ -693,12 +765,15 @@ function gh(args) {
 	}
 }
 
+// A branch name as a URL path, so a character such as `#` or `?` stays part of the name.
+export const refPath = (ref) => ref.split("/").map(encodeURIComponent).join("/");
+
 // The base branch's required checks, from rulesets and from classic branch protection.
 // Reading protection needs admin rights, so a refusal means only that this source is unknown.
 function requiredChecks(base) {
 	const sources = [
-		[`repos/{owner}/{repo}/rules/branches/${base}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
-		[`repos/{owner}/{repo}/branches/${base}/protection/required_status_checks`, ".contexts[]?"],
+		[`repos/{owner}/{repo}/rules/branches/${refPath(base)}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
+		[`repos/{owner}/{repo}/branches/${refPath(base)}/protection/required_status_checks`, ".contexts[]?"],
 	];
 	const names = new Set();
 	for (const [path, jq] of sources) {
@@ -707,6 +782,12 @@ function requiredChecks(base) {
 		} catch {}
 	}
 	return [...names];
+}
+
+// How far the base branch is ahead of the head, and the files it changed since they parted, in one compare call.
+function baseAhead(pr) {
+	const jq = "{behind: .ahead_by, count: (.files // [] | length), files: [.files[]? | .filename, (.previous_filename // empty)]}";
+	return JSON.parse(gh(["api", `repos/{owner}/{repo}/compare/${pr.headRefOid}...${refPath(pr.baseRefName)}`, "--jq", jq]));
 }
 
 export function prState(number, waitSeconds = 0) {
@@ -724,8 +805,16 @@ export function prState(number, waitSeconds = 0) {
 		const body = JSON.parse(raw);
 		if (body.errors?.length || !body.data?.repository?.pullRequest) throw new Refusal(`gh could not read PR ${number}: ${JSON.stringify(body.errors ?? body)}`);
 		const pr = body.data.repository.pullRequest;
-		if (pr.state === "OPEN") required ??= requiredChecks(pr.baseRefName);
-		const verdict = prVerdict(pr, Date.now(), required ?? []);
+		let base;
+		if (pr.state === "OPEN") {
+			required ??= requiredChecks(pr.baseRefName);
+			try {
+				base = baseAhead(pr);
+			} catch (err) {
+				throw new Refusal(`gh could not compare PR ${number}'s head with ${pr.baseRefName}: ${err.message}`);
+			}
+		}
+		const verdict = prVerdict(pr, Date.now(), required ?? [], base);
 		const left = deadline - Date.now();
 		if (!verdict.startsWith("WAITING") || left <= 0) return verdict;
 		sleep(Math.min(60_000, left));
