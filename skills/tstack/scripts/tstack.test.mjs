@@ -517,6 +517,7 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 		"an early blocker says when threads were cut off",
 	);
 	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
+	assert.match(prVerdict(pr({ reviews: { pageInfo: { hasPreviousPage: true }, nodes: [] } }), now), /^BLOCKER too-many/, "older reviews could hold a bot's findings on this head");
 	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
 	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");
 	assert.match(prVerdict(pr({ reviews: { nodes: [{ submittedAt: "2026-10-14T11:57:00Z" }] } }), now), /^WAITING settle: .*180s ago/);

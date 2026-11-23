@@ -633,7 +633,7 @@ const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(
   reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { id isResolved path line } }
   files(first: 100) { pageInfo { hasNextPage } nodes { path changeType } }
   comments(last: 1) { nodes { createdAt } }
-  reviews(last: 100) { nodes { id submittedAt body author { __typename login } commit { oid } reactionGroups { viewerHasReacted } } }
+  reviews(last: 100) { pageInfo { hasPreviousPage } nodes { id submittedAt body author { __typename login } commit { oid } reactionGroups { viewerHasReacted } } }
 } } }`;
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -708,9 +708,9 @@ export function prVerdict(pr, now = Date.now(), required = [], base) {
 	}
 	const commit = pr.commits?.nodes?.[0]?.commit;
 	// ponytail: reads the first 100 checks and threads; page through them if a PR ever has more.
-	// It also reads the last 100 reviews, so a bot's round count stops at what they hold, and the first 100 files, so base-moved blocks when it cannot read them all.
-	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage)
-		return say("BLOCKER", "too-many: over 100 checks or review threads, so read them on GitHub");
+	// It reads the last 100 reviews, and blocks when there are more, because an older bot review on this head could hold findings; and the first 100 files, so base-moved blocks when it cannot read them all.
+	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage || pr.reviews?.pageInfo?.hasPreviousPage)
+		return say("BLOCKER", "too-many: over 100 checks, review threads or reviews, so read them on GitHub");
 	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
 		c.__typename === "StatusContext"
 			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
