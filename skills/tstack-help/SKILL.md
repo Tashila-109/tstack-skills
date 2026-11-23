@@ -23,7 +23,7 @@ The guide is at `https://github.com/Tashila-109/tstack-skills/blob/main/docs/gui
 - [05-verify-and-ship](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/05-verify-and-ship.md): proof, verification skills, merging;
 - [06-run-while-away](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/06-run-while-away.md): autonomous runs and autopilots;
 - [07-principles](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/07-principles.md): steering by principle name;
-- [08-plan-across-phases](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/08-plan-across-phases.md): multi-phase plan, orchestrate, and the grill, spec and tickets skills;
+- [08-plan-across-phases](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/08-plan-across-phases.md): multi-phase plan, and the grill, spec and tickets skills;
 - [09-recipes-and-pitfalls](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/09-recipes-and-pitfalls.md): prompts to copy and mistakes to avoid.
 
 ## Check the state
@@ -69,7 +69,7 @@ Read the skill before you recommend it, and give one example prompt.
 | Get a strict bug, security and maintainability review of a branch from two models | [thermo-review](../thermo-review/SKILL.md) |
 | Settle an open design question by running a sketch | the [prototype](../tstack/playbooks/prototype.md) playbook |
 | Plan work in phases, with no build | the [multi-phase-plan](../tstack/playbooks/multi-phase-plan.md) playbook |
-| Plan work in phases and build it | the [orchestrate](../tstack/playbooks/orchestrate.md) playbook |
+| Build an approved plan, or run a large effort | the [figure-it-out](../tstack/playbooks/figure-it-out.md) playbook |
 | Stress-test a plan, or write a spec or tickets | [grilling](../grilling/SKILL.md), [to-spec](../to-spec/SKILL.md), [to-tickets](../to-tickets/SKILL.md) |
 | Fix a bug, add a feature, or restructure code | the [bug-fix](../tstack/playbooks/bug-fix.md), [feature](../tstack/playbooks/feature.md) or [refactoring](../tstack/playbooks/refactoring.md) playbook |
 | Fix a bug test-first | [tdd](../tdd/SKILL.md) |
@@ -113,7 +113,6 @@ The `principle-*` skills are indexed in the router, and the human steers with th
   `ketchup` covers only this thread since the human's last message.
   The `session-pickup` playbook resumes one specific prior run, and starts from the newest handoff file.
 - `figure-it-out` designs one rigorous run and writes its phase list to a file.
-  `orchestrate` plans and builds work that spans phases, behind the human's three gates.
   `autonomous-run` drives one task to a checkable predicate without stopping.
 
 ## Fix a bad run

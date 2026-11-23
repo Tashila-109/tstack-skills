@@ -43,7 +43,7 @@ Two things did hold:
 So tstack builds playbooks around those two shapes.
 Each step that runs a skill names an `Artifact:` file, such as `evidence/mechanism.md`, and the next step reads it.
 `tstack.mjs check` refuses a task while any of those files is missing or blank, before the lead may report done.
-Skills that spawn subagents, such as `how` with its explorers, run those subagents as real workers: on T3 and Herdr on the models you chose, and on any other harness on the lead's model.
+Skills that spawn subagents, such as `swarm` with its workers, run those subagents as real workers: on T3 and Herdr on the models you chose, and on any other harness on the lead's model.
 
 A file proves a step happened.
 It does not prove the step was done well.
@@ -51,7 +51,7 @@ That judgment stays with the lead and with you.
 
 ## Seats and models
 
-Skills ask for a role, such as `how explorer` or `architect runners`, never a model.
+Skills ask for a role, such as `explorer` or `arena runners`, never a model.
 Your models file maps each role to one or more seats, each a harness, a model and an effort.
 A panel of several seats on different model families gives a second opinion with different blind spots.
 

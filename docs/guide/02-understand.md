@@ -22,7 +22,7 @@ $tstack investigate why background jobs time out every few hours. Give me what w
 ```
 
 "Don't change any code yet" routes this to the [Investigation playbook](../../skills/tstack/playbooks/investigation.md).
-It runs `how`, adds `why` for questions about motivation, and returns a cited explanation.
+It traces the code, adds `why` for questions about motivation, and returns a cited explanation.
 For a choice between options, it returns a recommendation with a trade-offs table.
 Asking "what data you used" makes the agent separate its evidence from its guesses.
 When the findings point at a fix, start the fix in a new thread.
@@ -30,8 +30,7 @@ When the findings point at a fix, start the fix in a new thread.
 ## Trace behavior with how
 
 `how` answers at the level of a senior engineer onboarding you onto the subsystem: the runtime flow, the key types, and the non-obvious parts.
-For a narrow question, it sends one explainer on your `how explainer` seat.
-For a large subsystem, it first sends two to four read-only explorers on your `how explorer` seats, then an explainer on your `how explainer` seat writes one account.
+It sends one read-only worker on your `judgment and prose` seat, which explores and explains in one pass.
 
 ## Dig up history with why
 
@@ -39,8 +38,8 @@ For a large subsystem, it first sends two to four read-only explorers on your `h
 $tstack why was the retry limit set to five? Does the reason still hold?
 ```
 
-`why` starts from source control, then queries whatever evidence the agent's tools reach, such as the issue tracker, docs, chat, observability and error tracking.
-Its report separates direct evidence from inference, and says "appears to" when the record is thin.
+`why` answers from the record, not the code: the commits and PR discussions behind the target, and other sources when that trail is thin.
+It cites what the authors wrote, marks its own inferences, and says what the record does not answer.
 "Nobody wrote down why" is a valid answer.
 
 `how` and `why` compose well.
