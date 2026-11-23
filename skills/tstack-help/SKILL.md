@@ -17,13 +17,13 @@ Read the file you route to before you quote it, and trust it over this map.
 Give the human the public copy of a guide page, as an absolute link.
 The guide is at `https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/<page>.md`, and its pages are:
 - [01-route-work](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/01-route-work.md): one thread per task, and what goes in the prompt;
-- [02-understand](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/02-understand.md): `how`, `why`, `explain`, `recall`;
+- [02-understand](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/02-understand.md): `how`, `why`, `explain`, `recall`, and deep dives into another project;
 - [03-design](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/03-design.md): `architect`, `arena`, `swarm`, `interrogate`, prototypes, plans;
 - [04-build-and-clean](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/04-build-and-clean.md): the build playbooks and the cleanup;
 - [05-verify-and-ship](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/05-verify-and-ship.md): proof, verification skills, merging;
 - [06-run-while-away](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/06-run-while-away.md): autonomous runs and autopilots;
 - [07-principles](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/07-principles.md): steering by principle name;
-- [08-plan-across-phases](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/08-plan-across-phases.md): multi-phase plan, orchestrate, and the grill, spec and tickets skills;
+- [08-plan-across-phases](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/08-plan-across-phases.md): multi-phase plan, and the grill, spec and tickets skills;
 - [09-recipes-and-pitfalls](https://github.com/Tashila-109/tstack-skills/blob/main/docs/guide/09-recipes-and-pitfalls.md): prompts to copy and mistakes to avoid.
 
 ## Check the state
@@ -60,6 +60,7 @@ Read the skill before you recommend it, and give one example prompt.
 | Draw a system, a data flow, a request path or a data model, from the code or as a design | [chart](../chart/SKILL.md), or the [charting](../tstack/playbooks/charting.md) playbook for charts a second agent checks |
 | See a chart, a comparison, a before and after or an evidence page inline in a T3 thread | [t3-visual](../t3-visual/SKILL.md) |
 | Get findings with no code change | the [investigation](../tstack/playbooks/investigation.md) playbook |
+| Explore another project, or upstream's latest changes, and pick what this one should take | the [deep-dive](../tstack/playbooks/deep-dive.md) playbook |
 | Diagnose a live symptom, or a captured profile, with no fix yet | [runtime-forensics](../tstack/playbooks/runtime-forensics.md) or [trace-forensics](../tstack/playbooks/trace-forensics.md) |
 | Find what a small diff could break outside itself | [blast-radius](../blast-radius/SKILL.md) |
 | Settle types and module shape before code | [architect](../architect/SKILL.md) |
@@ -69,7 +70,7 @@ Read the skill before you recommend it, and give one example prompt.
 | Get a strict bug, security and maintainability review of a branch from two models | [thermo-review](../thermo-review/SKILL.md) |
 | Settle an open design question by running a sketch | the [prototype](../tstack/playbooks/prototype.md) playbook |
 | Plan work in phases, with no build | the [multi-phase-plan](../tstack/playbooks/multi-phase-plan.md) playbook |
-| Plan work in phases and build it | the [orchestrate](../tstack/playbooks/orchestrate.md) playbook |
+| Build an approved plan, or run a large effort | the [figure-it-out](../tstack/playbooks/figure-it-out.md) playbook |
 | Stress-test a plan, or write a spec or tickets | [grilling](../grilling/SKILL.md), [to-spec](../to-spec/SKILL.md), [to-tickets](../to-tickets/SKILL.md) |
 | Fix a bug, add a feature, or restructure code | the [bug-fix](../tstack/playbooks/bug-fix.md), [feature](../tstack/playbooks/feature.md) or [refactoring](../tstack/playbooks/refactoring.md) playbook |
 | Fix a bug test-first | [tdd](../tdd/SKILL.md) |
@@ -89,8 +90,10 @@ Read the skill before you recommend it, and give one example prompt.
 | Hand a full session to a fresh one, or resume or pause work | [handoff](../handoff/SKILL.md), the [session-pickup](../tstack/playbooks/session-pickup.md) or [pause-safely](../tstack/playbooks/pause-safely.md) playbook |
 | Finish someone else's PR, branch or agent thread, or bring an old PR up to date and judge whether it should still land | the [takeover](../tstack/playbooks/takeover.md) or [modernize](../tstack/playbooks/modernize.md) playbook |
 | Carry a task to a merge-ready PR while away, or to a merged one | say "full stop" or "full send" to the lead, as the router's Autonomy section says |
+| Step away from a task that is already running | say "afk" or "I'm away" to its lead, as the router's Autonomy section says |
 | Turn what a task taught into skill edits | [reflect](../reflect/SKILL.md) |
 | Stop agents repeating a mistake in this repo | [correct](../correct/SKILL.md) |
+| Turn their own working habits into a personal mode skill | [automate-me](../automate-me/SKILL.md) |
 | Write or edit a skill, playbook or brief | [writing-for-agents](../writing-for-agents/SKILL.md) |
 | Pick models for each role | [tstack-setup](../tstack-setup/SKILL.md) |
 
@@ -112,7 +115,6 @@ The `principle-*` skills are indexed in the router, and the human steers with th
   `ketchup` covers only this thread since the human's last message.
   The `session-pickup` playbook resumes one specific prior run, and starts from the newest handoff file.
 - `figure-it-out` designs one rigorous run and writes its phase list to a file.
-  `orchestrate` plans and builds work that spans phases, behind the human's three gates.
   `autonomous-run` drives one task to a checkable predicate without stopping.
 
 ## Fix a bad run

@@ -1,7 +1,7 @@
 # Run work while you are away
 
 Some work runs for hours: a loop toward a target, a PR waiting on CI, a queue of changes.
-This page covers handing that work off, the one grant autopilot needs, and reading what happened when you come back.
+This page covers handing that work off, stepping away from a task that is already running, the one grant autopilot needs, and reading what happened when you come back.
 
 ## Earn the trust before the loop
 
@@ -15,10 +15,31 @@ Before you leave one running, check that it has earned it:
 Make the loop autonomous only after all four hold.
 Until then, run it while you watch.
 
-To stop a run on purpose, tell the lead to pause, or that you are about to go offline.
+Before unattended work, the lead runs a preflight.
+It checks that every role resolves to a seat, that a signed commit works when your project signs commits, and that `gh` is logged in.
+Then it asks you once for everything only you can fix, such as a locked signing key, a login, or a missing seat.
+Answer before you leave, so the run does not stop on the first commit.
+
+Two tasks on one machine can need the same simulator, port or local database.
+A lead takes a lock on it first, and when another task holds it, the two leads settle it between them without asking you to relay, except on the standalone runtime, where you pass on the note the waiting lead writes.
+
+To stop a run on purpose, tell the lead to pause.
 The [Pause safely playbook](../../skills/tstack/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note.
 A fresh lead picks the work up from that note through the Session pickup playbook.
-Saying "keep going" never triggers a pause.
+Saying "keep going", or that you are away, never triggers a pause.
+
+## Step away from a running task
+
+When you leave in the middle of a task, tell its lead, such as "afk", "I'm away", "stepping out", "going to bed" or "babysit the rest".
+The lead keeps running the playbook it is in, and records your words as an away grant in the task's `decisions/away.md`.
+Under that grant it answers its own question decisions with the option it recommended, and marks each answer as taken under the grant.
+Design and spec gates, merges, and anything destructive still wait for you.
+On T3 the lead also arms a heartbeat, a scheduled wake that keeps it checking on its workers while you are gone.
+
+When you write again, the lead's reply opens with every decision it took while you were away, and the grant ends.
+Overrule any of them in your reply.
+`tstack.mjs check` refuses a gate the lead answered under the grant, and, once the grant has ended, a taken question that the grant file does not list.
+[decisions.md](../../skills/tstack/references/decisions.md#while-the-human-is-away) owns the exact rules.
 
 ## A loop toward a checkable target
 
@@ -40,6 +61,8 @@ It builds a measurement harness first and proves the harness can see the change,
 
 With PR delivery, the lead opens the PR ready and babysits it to merge-ready before it reports done.
 It reads the PR's state with `tstack.mjs pr-state`, which waits for running checks and gives review bots ten minutes to post after the last push, comment or review.
+A bot that has reviewed two earlier heads gets up to twenty minutes to review the new one, and its findings outside review threads block until the lead answers them.
+When the base branch moves in files the PR changes, the lead merges it in and proves the change again, even with no conflict.
 On T3, the lead also arms T3's PR watch when it opens the PR, so when the PR waits only on your review, it ends its turn and your review wakes it.
 On any other harness, the lead tells you the PR waits on your review, and your next message wakes it.
 
@@ -84,7 +107,10 @@ Each task's folder, `<project>/.tstack/tasks/<id>/`, holds the whole story:
 | `report.md` | What changed, how it was proved, and what is left |
 | `evidence/` | Each step's file: the baseline, the predicate, the decision log, the babysit summary |
 | `results/` | What each worker found, in its own words |
-| `decisions/` | Each question the lead asked, and your recorded answer |
+| `decisions/` | Each question the lead asked, and your recorded answer or the one it took under an away grant |
+
+Ask the lead or the coordinator "where are we?" for the short version.
+It answers from `tstack.mjs status`, which lists each task's step, the decisions waiting on you, and finished worker results nobody has read yet.
 
 Start with `report.md`, then open the evidence it cites.
 `evidence/decisions.tsv` shows every attempt in order, including the ones that were reverted.

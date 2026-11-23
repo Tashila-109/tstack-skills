@@ -12,10 +12,14 @@ The calling step names both artifacts.
 - `pr` delivery pushes the task branch, after asking the human when the brief's `Push:` line says `word`, opens the PR ready against the default branch, or against the parent branch in an autopilot stack, then babysits it in `drive` mode to merge-ready, as [Babysit](babysit.md) says, and writes `evidence/babysit.md`, which `check` requires. Go on to the router's Finish, with the PR's full URL and its head SHA, only once the PR is merge-ready: ending a turn to wait for watch-pr is not done.
 
 **Cross-model review.** One reviewer from another model family reads the final diff before the branch leaves the worktree.
-Skip it when `evidence/reviews/final.md` already names `HEAD` as its reviewed head, as a calling playbook's final `two-axis-review` does.
-- Rebase per **Commits**, commit everything, and record the base and head SHAs.
+- Rebase per **Commits** and commit everything.
+  Then fetch and merge the base branch in with `git merge origin/<base>`, so the review and the proof see the tree that lands.
+  The base is the default branch, or the parent branch in an autopilot stack, and it comes in by merge, never by rebase, as **Size and stacks** says.
+  When the merge changed the tree, run the proof again on the merged head, because `check --head` compares trees.
+  Record the base and head SHAs.
+- Skip the review itself only when `evidence/reviews/final.md` already names a commit with the merged head's tree, as a calling playbook's final `two-axis-review` does when the merge changed nothing.
   Nothing writes in the checkout until the reviewer is collected.
-- Run `tstack.mjs seat review --runtime <runtime> --cross <your model ID>`.
+- Run `tstack.mjs seat review --runtime <runtime> --task <id> --cross <your model ID>`.
   It prints the first `review` seat outside your model's family, so a Claude lead gets a GPT reviewer and a GPT lead gets a Claude reviewer.
 - Write the brief to `briefs/review-final.md`: the checkout, the base and head SHAs with the `git diff <base>...<head>` command, the task's goal and finish as the spec, `AGENTS.md` and what it points at as the standards, and the line `Read <two-axis-review directory>/REVIEWER.md and review both axes.`, with the directory as an absolute path.
 - Delegate one read-only worker on that seat, named `review-final`, with its result at `results/review-final.md`, as [dispatch](../references/dispatch.md) says.

@@ -7,7 +7,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { Refusal, backlog, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, main, parseModels, parseSteps, prVerdict, seat, taskHome } from "./tstack.mjs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { Refusal, backlog, brief, check, checkSeats, exclude, isTransient, linkSkills, loadModels, lock, main, parseModels, parseSteps, preflight, prVerdict, refPath, seat, status, taskHome, unlock } from "./tstack.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPORT = "done\n\n## Remember\n\nnothing new\n\n## Follow-ups\n\nnone\n";
@@ -107,6 +109,8 @@ test("seat --cross picks the first seat outside the caller's model family", () =
 	assert.deepEqual(kinds("openai/gpt-6.1-sol"), ["claude"]);
 	assert.deepEqual(kinds("grok-4.7"), ["claude"]);
 	assert.throws(() => seat(models, "solo", "herdr", "claude-opus-5-5"), /no "solo" seat outside the claude family/);
+	const openai = parseModels("pool: codex/o3@high, claude/claude-fable-5-2@high");
+	assert.deepEqual(seat(openai, "pool", "herdr", "gpt-6.1-sol").map((s) => s.kind), ["claude"], "an o-series model is the same vendor as gpt");
 });
 
 test("seat --avoid prefers a seat whose model ran no candidate, then the one that ran the fewest", () => {
@@ -208,6 +212,34 @@ test("a gate artifact counts only with a granted answer", () => {
 	assert.equal(check(home, "gated", 1), "ok gated: 1 required file present");
 });
 
+test("a question artifact counts only with an answered answer", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "asked.md"), "1. Ask which to take.\n   Artifact: `decisions/adopt.md`\n");
+	brief(home, "asked", { playbook: "asked", goal: "g", finish: "f", kind: "scout", playbooksDir: playbooks });
+	const file = join(home, "tasks", "asked", "decisions", "adopt.md");
+	mkdirSync(join(home, "tasks", "asked", "decisions"));
+	writeFileSync(file, "# Which items do we take?\n\nKind: question\n");
+	assert.throws(() => check(home, "asked", 1), /decisions\/adopt\.md with the human's answer/);
+	writeFileSync(file, "# Which items do we take?\n\nKind: question\n\n```text\n## Answer\n\nanswered\n```\n");
+	assert.throws(() => check(home, "asked", 1), /with the human's answer/, "an answer inside a code block is no answer");
+	writeFileSync(file, "# Which items do we take?\n\nKind: question\n\n## Answer\n\nanswered\nTake 1 and 3, 2026-11-21\n");
+	assert.equal(check(home, "asked", 1), "ok asked: 1 required file present");
+	writeFileSync(file, "# Which items do we take?\n\nKind: design-approval\n\n## Answer\n\nanswered\nTake 1 and 3, 2026-11-21\n");
+	assert.throws(() => check(home, "asked", 1), /with a granted answer/, "a gate is not passed by an answered line");
+	writeFileSync(file, "# Approve it?\n\nKind: design-approval\n\n## Proposal\n\nKind: question\n\n## Answer\n\nanswered\nyes, 2026-11-21\n");
+	assert.throws(() => check(home, "asked", 1), /with a granted answer/, "a Kind line in the body does not turn a gate into a question");
+});
+
+test("every playbook briefs cleanly: steps numbered from 1 and artifacts inside the task", () => {
+	const { home } = scratch();
+	const dir = join(HERE, "../playbooks");
+	for (const name of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
+		const id = name.slice(0, -3);
+		brief(home, id, { playbook: id, goal: "g", finish: "f", playbooksDir: dir });
+		assert.ok(existsSync(join(home, "tasks", id, "brief.md")), name);
+	}
+});
+
 test("a pr-delivery task is done only with babysit evidence", () => {
 	const { home, playbooks } = scratch();
 	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
@@ -281,7 +313,7 @@ test("a models file refuses a malformed line and a role named twice", () => {
 test("the tstack-setup template is a complete, valid models file", () => {
 	const setup = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8");
 	const template = parseModels(setup.match(/```text\n(# tstack models[\s\S]*?)```/)[1]);
-	for (const role of ["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
+	for (const role of ["arena runners", "arena cross-judge pool", "interrogate reviewers", "review"])
 		assert.ok(new Set(seat(template, role, "t3").map((s) => s.model.split("/").pop().split("-")[0])).size >= 2, role);
 });
 
@@ -515,6 +547,7 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 		"an early blocker says when threads were cut off",
 	);
 	assert.match(prVerdict(pr({ reviewThreads: { pageInfo: { hasNextPage: true }, nodes: [] } }), now), /^BLOCKER too-many/);
+	assert.match(prVerdict(pr({ reviews: { pageInfo: { hasPreviousPage: true }, nodes: [] } }), now), /^BLOCKER too-many/, "older reviews could hold a bot's findings on this head");
 	assert.match(prVerdict(pr({ mergeable: "UNKNOWN", mergeStateStatus: "UNKNOWN" }), now), /^WAITING mergeable-unknown/);
 	assert.match(prVerdict(pr({ updatedAt: "2026-10-14T11:58:00Z" }), now), /^WAITING settle: .*120s ago/, "a force-push of an old commit still settles");
 	assert.match(prVerdict(pr({ reviews: { nodes: [{ submittedAt: "2026-10-14T11:57:00Z" }] } }), now), /^WAITING settle: .*180s ago/);
@@ -527,6 +560,68 @@ test("pr-state turns GitHub's state into one verdict, waiting for checks and rev
 	assert.match(prVerdict(pr({ mergeStateStatus: "BLOCKED" }, []), now, ["build"]), /^WAITING checks: build \(required, not started\)/);
 	assert.match(prVerdict(pr({}, [run("build", "COMPLETED", "SUCCESS")]), now, ["build"]), /^READY \(/);
 	assert.match(prVerdict(pr({}, [run("lint", "COMPLETED", "FAILURE")]), now, ["build"]), /^BLOCKER failing-checks: lint/);
+});
+
+const PR_FIXTURE = JSON.parse(readFileSync(new URL("./pr-state.fixture.json", import.meta.url), "utf8"));
+const fixturePr = (reviews = [], over = {}) => ({ ...PR_FIXTURE.pullRequest, reviews: { nodes: reviews.map((r) => (typeof r === "string" ? PR_FIXTURE.reviews[r] : r)) }, ...over });
+
+test("pr-state blocks on a base that moved in this PR's files, and counts the rest", () => {
+	const now = Date.parse(PR_FIXTURE.now);
+	const { even, elsewhere, shared } = PR_FIXTURE.compare;
+	assert.equal(prVerdict(fixturePr(), now, [], even), "READY (head c3c3c3c3c3c3)");
+	assert.equal(prVerdict(fixturePr(), now, [], elsewhere), "READY base: main is 1 commit ahead, in none of this PR's files (head c3c3c3c3c3c3)");
+	assert.equal(
+		prVerdict(fixturePr(), now, [], shared),
+		"BLOCKER base-moved: main is 3 commits ahead and changes files this PR changes: src/app.js; merge it in and run the proof again (head c3c3c3c3c3c3)",
+	);
+	assert.match(prVerdict(fixturePr(), now, [], { ...elsewhere, count: 300 }), /^BLOCKER base-moved: .* changes more files than pr-state reads;/, "a cut-off compare cannot rule out this PR's files");
+	const manyFiles = { files: { ...PR_FIXTURE.pullRequest.files, pageInfo: { hasNextPage: true } } };
+	assert.match(prVerdict(fixturePr([], manyFiles), now, [], elsewhere), /^BLOCKER base-moved/, "nor can a PR with more files than pr-state reads");
+	const renamed = fixturePr();
+	renamed.files = { pageInfo: { hasNextPage: false }, nodes: [{ path: "src/new-name.js", changeType: "RENAMED" }] };
+	assert.match(prVerdict(renamed, now, [], elsewhere), /^BLOCKER base-moved: .*renames a file whose old path GitHub does not report/, "a base change to a renamed file's old path is invisible, so it blocks");
+	assert.match(prVerdict(fixturePr([], { mergeable: "CONFLICTING" }), now, [], shared), /^BLOCKER conflicts/, "a conflict is the more specific cause");
+	assert.match(prVerdict(fixturePr([], { mergeStateStatus: "BEHIND" }), now, [], elsewhere), /^BLOCKER behind-base/, "a branch rule can still ask for an up-to-date branch");
+	assert.equal(prVerdict({ ...fixturePr(), state: "MERGED" }, now), "MERGED (head c3c3c3c3c3c3)");
+});
+
+test("pr-state waits for a review bot that reviews pushes, and blocks on its findings outside review threads", () => {
+	const now = Date.parse(PR_FIXTURE.now);
+	const recent = { updatedAt: "2026-11-21T11:48:00Z" };
+	const twoHeads = ["codexOnOpen", "rabbitFirst", "humanReply", "rabbitSecond"];
+	assert.equal(
+		prVerdict(fixturePr(twoHeads, recent), now),
+		"WAITING bot-review: coderabbitai reviewed earlier heads but not this one yet; the last push, comment, review or edit was 720s ago, and bots get 20 minutes (head c3c3c3c3c3c3)",
+		"past the settle, a bot that reviewed two heads still gets its own wait",
+	);
+	assert.match(prVerdict(fixturePr([...twoHeads, "rabbitReply"], recent), now), /^WAITING bot-review: coderabbitai /, "a reply in a thread is not a review of the head");
+	assert.equal(
+		prVerdict(fixturePr(twoHeads), now),
+		"READY bot-unreviewed: coderabbitai reviewed earlier heads but not this one in 20 minutes; ask once for a review of this head (head c3c3c3c3c3c3)",
+		"a bot that paused or ran out of reviews cannot hold the PR forever, and the Codex connector, with one head, is not awaited",
+	);
+	assert.equal(prVerdict(fixturePr(["codexOnOpen", "rabbitFirst"], recent), now), "READY (head c3c3c3c3c3c3)", "a bot that reviewed one head gets only the settle");
+	const restShaped = (r, oid) => ({ ...PR_FIXTURE.reviews[r], author: { login: "reviewer[bot]" }, commit: { oid } });
+	assert.match(prVerdict(fixturePr([restShaped("rabbitFirst", "a1"), restShaped("rabbitSecond", "b2")], recent), now), /^WAITING bot-review: reviewer\[bot\] /);
+
+	const onHead = [...twoHeads, "rabbitReply", "rabbitOutsideDiff"];
+	assert.equal(
+		prVerdict(fixturePr(onHead), now),
+		"BLOCKER bot-findings: comments outside any review thread in coderabbitai PRR_rabbit4 (2 outside-diff, 1 nitpick): triage them, then react to each review; bot-rounds: chatgpt-codex-connector 1, coderabbitai 3 (head c3c3c3c3c3c3)",
+	);
+	const thread = { reviewThreads: { pageInfo: { hasNextPage: false }, nodes: [{ id: "PRRT_a", isResolved: false, path: "src/app.js", line: 12 }] } };
+	assert.match(
+		prVerdict(fixturePr(onHead, thread), now),
+		/^BLOCKER review-threads: 1 unresolved: PRRT_a src\/app\.js:12; bot-findings: .*PRR_rabbit4 .*; bot-rounds: chatgpt-codex-connector 1, coderabbitai 3 \(head/,
+		"threads come first, and the bot findings ride along so one push can answer both",
+	);
+	const failing = { commits: { nodes: [{ commit: { committedDate: "2026-11-21T11:00:00Z", statusCheckRollup: { contexts: { nodes: [{ __typename: "CheckRun", name: "test", status: "COMPLETED", conclusion: "FAILURE" }] } } } }] } };
+	assert.match(prVerdict(fixturePr(onHead, failing), now), /^BLOCKER failing-checks: test; bot-findings: .*; bot-rounds: /);
+	const triaged = { ...PR_FIXTURE.reviews.rabbitOutsideDiff, reactionGroups: [{ viewerHasReacted: false }, { viewerHasReacted: true }] };
+	assert.equal(prVerdict(fixturePr([...twoHeads, triaged]), now), "READY (head c3c3c3c3c3c3)", "a reaction from the gh account marks the review triaged");
+	const inlineOnly = { ...PR_FIXTURE.reviews.rabbitFirst, id: "PRR_inline", commit: { oid: PR_FIXTURE.pullRequest.headRefOid } };
+	assert.equal(prVerdict(fixturePr([...twoHeads, inlineOnly]), now), "READY (head c3c3c3c3c3c3)", "the actionable count alone is the review's threads, so it blocks nothing");
+	assert.match(prVerdict(fixturePr(onHead, { isDraft: true }), now, [], PR_FIXTURE.compare.shared), /^BLOCKER draft: mark it ready; bot-findings: /);
 });
 
 test("check holds a rework like a fix, unless it is skipped", () => {
@@ -562,6 +657,17 @@ test("every skill's name matches its folder, so each one installs and invokes by
 		const dir = entry.name;
 		const name = readFileSync(join(skills, dir, "SKILL.md"), "utf8").match(/^name:\s*(\S+)/m)?.[1];
 		assert.equal(name, dir);
+	}
+});
+
+test("every skill marked for explicit use also tells Codex, which ignores the frontmatter flag", () => {
+	const skills = join(HERE, "../..");
+	for (const entry of readdirSync(skills, { withFileTypes: true })) {
+		if (!entry.isDirectory()) continue;
+		const explicit = /^disable-model-invocation:\s*true\s*$/m.test(readFileSync(join(skills, entry.name, "SKILL.md"), "utf8"));
+		const file = join(skills, entry.name, "agents", "openai.yaml");
+		const policy = existsSync(file) ? readFileSync(file, "utf8") : "";
+		assert.equal(/allow_implicit_invocation:\s*false/.test(policy), explicit, entry.name);
 	}
 });
 
@@ -755,6 +861,407 @@ test("every command refuses a flag it does not take", () => {
 	assert.throws(() => main(["backlog", "t1", "--all", "1"]), /backlog takes no --all; its flags are none/);
 	assert.throws(() => main(["check", "t1", "--trough", "1"]), /check takes no --trough/);
 	assert.throws(() => main(["home", "--verbose", "1"]), /home takes no --verbose; its flags are none/);
+	assert.throws(() => main(["lock", "simulator"]), /lock needs --task <id>/);
+	assert.throws(() => main(["unlock", "--task", "t1"]), /unlock takes one lock name/);
+	assert.throws(() => main(["preflight", "extra"]), /preflight takes no arguments/);
+	assert.throws(() => main(["preflight", "--runtime", "cloud"]), /--runtime must be t3, herdr or standalone/);
+	assert.throws(() => main(["seat", "lead", "--runtime", "t3", "--task", "../t1"]), /task id must match/);
+});
+
+const TEMPLATE = readFileSync(new URL("../../tstack-setup/SKILL.md", import.meta.url), "utf8").match(/```text\n(# tstack models[\s\S]*?)```/)[1];
+
+function withGlobal(home, text) {
+	const globalDir = join(home, "..", "global");
+	mkdirSync(globalDir, { recursive: true });
+	if (text !== undefined) writeFileSync(join(globalDir, "models.md"), text);
+	return globalDir;
+}
+
+test("a task's models file overrides the project's and the global one for that task only", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "t1", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	brief(home, "t2", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	const globalDir = withGlobal(home, "lead: claude/claude-opus-5-5@high\nreview: claude/claude-fable-5-2@high, codex/gpt-6.1-sol@high\nverify: claude/claude-opus-5-5@high\n");
+	writeFileSync(join(home, "models.md"), "verify: codex/gpt-6.1-sol@high\n");
+	writeFileSync(join(home, "tasks", "t1", "models.md"), "# 2026-11-21, the human: use fast mode for the coding and reviews\nreview: claude/claude-opus-5-5@high+fast, codex/gpt-6.1-sol+fast\n");
+	const configured = (task, role) => seat(loadModels(home, globalDir, task), role, "standalone").map((s) => s.configured);
+	assert.deepEqual(configured("t1", "review"), ["claude/claude-opus-5-5@high+fast", "codex/gpt-6.1-sol+fast"]);
+	assert.deepEqual(configured("t1", "verify"), ["codex/gpt-6.1-sol@high"], "a role the task file leaves out keeps the project's line");
+	assert.deepEqual(configured("t1", "lead"), ["claude/claude-opus-5-5@high"]);
+	assert.deepEqual(configured("t2", "review"), ["claude/claude-fable-5-2@high", "codex/gpt-6.1-sol@high"], "another task keeps the shared file");
+	assert.deepEqual(configured(undefined, "review"), ["claude/claude-fable-5-2@high", "codex/gpt-6.1-sol@high"]);
+	assert.throws(() => loadModels(home, globalDir, "t9"), /no task t9 at/);
+	assert.throws(() => loadModels(home, globalDir, "../t1"), /task id must match/);
+	writeFileSync(join(home, "tasks", "t1", "models.md"), "herdr args claude: --dangerously-skip-permissions\n");
+	assert.throws(() => loadModels(home, globalDir, "t1"), /tasks\/t1\/models\.md is allowed only in/);
+	writeFileSync(join(home, "tasks", "t1", "models.md"), "review claude/claude-opus-5-5\n");
+	assert.throws(() => loadModels(home, globalDir, "t1"), /tasks\/t1\/models\.md: models file line 1 is not "role: seats"/);
+});
+
+test("a +fast seat sets T3's fast option, and check-seats checks it in both catalog shapes", () => {
+	const instances = "t3 instances: claude=claudeAgent/effort/fastMode, codex=codex/reasoningEffort/serviceTier=priority, pi=pi/thinking";
+	const models = parseModels(`lead: claude/claude-opus-5-5@xhigh+fast\nfeature: codex/gpt-6.1-sol+FAST\nbug-fix: pi/openai/gpt-6.1-sol@high+fast\n${instances}`);
+	assert.deepEqual(seat(models, "lead", "t3"), [
+		{ providerInstanceId: "claudeAgent", model: "claude-opus-5-5", options: [{ id: "effort", value: "xhigh" }, { id: "fastMode", value: true }] },
+	]);
+	assert.deepEqual(seat(models, "feature", "t3"), [{ providerInstanceId: "codex", model: "gpt-6.1-sol", options: [{ id: "serviceTier", value: "priority" }] }]);
+	assert.throws(() => seat(models, "bug-fix", "t3"), /no fast option for harness pi in the "t3 instances" line/);
+	assert.throws(() => seat(models, "lead", "herdr"), /no Herdr fast-mode flag known for harness claude: drop \+fast/);
+	assert.deepEqual(seat(models, "lead", "standalone"), [{ inherit: true, configured: "claude/claude-opus-5-5@xhigh+fast" }]);
+	assert.equal(seat(models, "lead", "standalone", "gpt-6.1-sol")[0].configured, "claude/claude-opus-5-5@xhigh+fast", "--cross reads the family without +fast");
+	assert.throws(() => seat(parseModels("lead: inherit+fast"), "lead", "t3"), /seat must be harness\/model\[@effort\]\[\+fast\] or inherit/);
+
+	const template = parseModels(TEMPLATE).get("t3 instances");
+	const fixture = JSON.parse(readFileSync(new URL("./t3-catalog.fixture.json", import.meta.url), "utf8"));
+	const live = {
+		providers: [
+			{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [
+				{ id: "claude-opus-5-5", options: [{ id: "effort", values: ["low", "high", "xhigh"], default: "medium" }, { id: "fastMode", values: [false, true] }] },
+				{ id: "claude-fable-5-2", options: [{ id: "effort", values: ["high"] }] },
+			] },
+			{ providerInstanceId: "codex", canRunChildTask: true, models: [{ id: "gpt-6.1-sol", options: [{ id: "reasoningEffort", values: ["high"] }, { id: "serviceTier", values: ["default", "priority"] }] }] },
+		],
+	};
+	for (const [shape, caps] of [["fixture", fixture], ["live", live]]) {
+		const check = (lines) => checkSeats(parseModels(`${lines}\nt3 instances: ${template}`), caps, null);
+		assert.equal(check("lead: claude/claude-opus-5-5@xhigh+fast\nfeature: codex/gpt-6.1-sol@high+fast"), "ok: 2 seats advertised", shape);
+		assert.throws(() => check("lead: claude/claude-fable-5-2@high+fast"), /fastMode true not offered \(no such option\)/, shape);
+		assert.throws(() => check("lead: claude/claude-opus-5-5@ultra"), /effort ultra not offered/, shape);
+	}
+	assert.throws(() => checkSeats(parseModels("lead: codex/gpt-6.1-sol+fast\nt3 instances: codex=codex/reasoningEffort/serviceTier=turbo"), live, null), /serviceTier turbo not offered \(default, priority\)/);
+	assert.throws(() => checkSeats(parseModels("lead: claude/claude-opus-5-5@high\nt3 instances: claude=claudeAgent/fastMode"), live, null), /fastMode is an on\/off option, so drop the @high effort/);
+});
+
+test("preflight names each seat that will not resolve, a locked signing key and a logged-out gh", () => {
+	const { dir, home, playbooks } = scratch();
+	const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" });
+	git("config", "user.name", "Test");
+	git("config", "user.email", "test@example.com");
+	git("config", "commit.gpgsign", "false");
+	git("commit", "-q", "--allow-empty", "-m", "init");
+	const bin = join(dir, "..", `${dir.split("/").at(-1)}-bin`);
+	mkdirSync(bin);
+	const script = (name, body) => {
+		writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+		return join(bin, name);
+	};
+	script("gh", "exit 0");
+	const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+	const globalDir = withGlobal(home, TEMPLATE);
+	const run = (runtime, task) => preflight(home, runtime, task, { cwd: dir, env, globalDir });
+	assert.match(run("t3"), /^ok: \d+ roles resolve on t3; commits need no signature; gh is logged in$/);
+	assert.match(run("herdr"), /^ok: /);
+	assert.match(run(undefined), /^ok: \d+ roles resolve; /);
+
+	writeFileSync(join(globalDir, "models.md"), "lead: claude/claude-opus-5-5@high\nswarm workers: grok/grok-4.7\nt3 instances: claude=claudeAgent/effort\n");
+	assert.throws(() => run("t3"), (err) => {
+		assert.match(err.message, /^seat "verify": no line for role "verify" in the models file; run tstack-setup to write it$/m);
+		assert.match(err.message, /^seat "swarm workers": no T3 instance for harness grok/m);
+		assert.doesNotMatch(err.message, /seat "lead"/);
+		return true;
+	});
+	rmSync(join(globalDir, "models.md"));
+	assert.throws(() => run("t3"), /no models file at .*models\.md: run tstack-setup$/m);
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "own", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	writeFileSync(join(home, "tasks", "own", "models.md"), TEMPLATE);
+	assert.match(run("t3", "own"), /^ok: /, "a task's own complete models file is enough");
+	writeFileSync(join(globalDir, "models.md"), TEMPLATE);
+
+	const head = git("rev-parse", "HEAD");
+	const refs = git("for-each-ref");
+	git("config", "gpg.format", "openpgp");
+	git("config", "commit.gpgsign", "true");
+	git("config", "gpg.program", script("gpg-locked", "cat >/dev/null\necho 'gpg: signing failed: No pinentry' >&2\nexit 2"));
+	assert.throws(() => run("t3"), /commit\.gpgsign is on, and a signed commit failed \(.+\): unlock your signing key/m);
+	git("config", "gpg.program", script("gpg-open", "cat >/dev/null\nprintf '\\n[GNUPG:] SIG_CREATED D 1 8 00 1 X\\n' >&2\nprintf -- '-----BEGIN PGP SIGNATURE-----\\nfake\\n-----END PGP SIGNATURE-----\\n'"));
+	assert.match(run("t3"), /; a signed commit works; /);
+	assert.equal(git("rev-parse", "HEAD"), head, "preflight moves no ref");
+	assert.equal(git("for-each-ref"), refs);
+	const fresh = join(dir, "fresh");
+	execFileSync("git", ["init", "-q", fresh]);
+	for (const [k, v] of [["user.name", "Test"], ["user.email", "test@example.com"], ["gpg.format", "openpgp"], ["commit.gpgsign", "true"], ["gpg.program", git("config", "gpg.program").trim()]])
+		execFileSync("git", ["-C", fresh, "config", k, v]);
+	assert.match(preflight(home, "t3", undefined, { cwd: fresh, env, globalDir }), /; a signed commit works; /, "a repository with no commit can still prove its key");
+	git("config", "commit.gpgsign", "false");
+
+	script("gh", "echo 'You are not logged into any GitHub hosts. To log in, run: gh auth login' >&2\nexit 1");
+	assert.throws(() => run("t3"), /gh is not logged in \(You are not logged into any GitHub hosts\. To log in, run: gh auth login\): run gh auth login$/m);
+	brief(home, "local", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.match(run("t3", "local"), /gh not needed for a local-only task$/);
+	brief(home, "shipped", { playbook: "sample", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
+	assert.throws(() => run("t3", "shipped"), /gh is not logged in/);
+	writeFileSync(join(home, "tasks", "local", "models.md"), "verify: claude/claude-opus-5-5@high+fast\n");
+	assert.match(run("t3", "local"), /^ok: /);
+	assert.throws(() => run("herdr", "local"), /seat "verify": no Herdr fast-mode flag known for harness claude/m);
+	assert.throws(() => run("t3", "nope"), /no task nope at/);
+});
+
+test("lock is held by one task at a time, and a finished task must have released it", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	for (const id of ["t1", "t2"]) brief(home, id, { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	writeFileSync(join(home, "tasks", "t1", "report.md"), REPORT);
+	const globalDir = withGlobal(home);
+	assert.equal(lock(home, "simulator", "t1", globalDir), "locked simulator for task t1");
+	assert.deepEqual(readdirSync(join(globalDir, "locks")), ["simulator"], "the draft the holder is written to is gone");
+	writeFileSync(join(globalDir, "locks", "simulator.99.draft"), `task: t2\nhome: ${home}\nsince: now\n`);
+	const checkT2 = () => {
+		try {
+			return check(home, "t2", undefined, undefined, process.cwd(), globalDir);
+		} catch (err) {
+			return err.message;
+		}
+	};
+	assert.doesNotMatch(checkT2(), /holds lock/, "another task's draft is no lock");
+	rmSync(join(globalDir, "locks", "simulator.99.draft"));
+	assert.match(readFileSync(join(globalDir, "locks", "simulator"), "utf8"), new RegExp(`^task: t1\nhome: ${home}\nsince: \\d{4}-`));
+	assert.match(lock(home, "simulator", "t1", globalDir), /^simulator is already locked for task t1 since /);
+	assert.throws(() => lock(home, "simulator", "t2", globalDir), /simulator is locked by task t1 in .* since .*: notify that task's lead, and never ask the human to relay$/);
+	const other = scratch();
+	brief(other.home, "t1", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => lock(other.home, "simulator", "t1", globalDir), /locked by task t1 in /, "the same task ID in another project is another task");
+	assert.throws(() => unlock(home, "simulator", "t2", globalDir), /not by task t2: only that task's lead unlocks it/);
+	assert.throws(() => check(home, "t1", undefined, undefined, undefined, globalDir), /task t1 still holds lock simulator: run tstack\.mjs unlock simulator --task t1/);
+	assert.equal(check(home, "t1", 1, undefined, undefined, globalDir), "ok t1: 0 required files present", "a step check leaves a held lock alone");
+	assert.equal(unlock(home, "simulator", "t1", globalDir), "unlocked simulator");
+	assert.equal(unlock(home, "simulator", "t1", globalDir), "simulator is not locked");
+	assert.equal(check(home, "t1", undefined, undefined, undefined, globalDir), "ok t1: 1 required file present");
+	assert.equal(lock(home, "simulator", "t2", globalDir), "locked simulator for task t2");
+	assert.throws(() => lock(home, "../desktop", "t1", globalDir), /lock name must match/);
+	assert.throws(() => lock(home, "desktop", "t9", globalDir), /no task t9 at/);
+});
+
+test("lock is atomic: of many tasks racing for one lock, exactly one gets it", async () => {
+	const { dir, home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	const ids = Array.from({ length: 8 }, (_, i) => `racer-${i}`);
+	for (const id of ids) brief(home, id, { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const env = { ...process.env, TSTACK_GLOBAL_DIR: withGlobal(home) };
+	const runs = await Promise.all(
+		ids.map((id) =>
+			promisify(execFile)(process.execPath, [join(HERE, "tstack.mjs"), "lock", "port-5432", "--task", id], { cwd: dir, env }).then(
+				() => 0,
+				(err) => err.code,
+			),
+		),
+	);
+	assert.deepEqual(runs.sort(), [0, 1, 1, 1, 1, 1, 1, 1]);
+});
+
+test("an away grant lets the lead take its recommendation on a question until the human returns, and never on a gate", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "plain.md"), "1. Ship it.\n");
+	brief(home, "away", { playbook: "plain", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "away");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "decisions"));
+	const decide = (name, kind, answer) =>
+		writeFileSync(join(task, "decisions", name), `# Keep the cache key?\n\nKind: ${kind}\nSubject: the cache key\n\n## Recommendation\n\nKeep it.\n\n## Answer\n\n${answer}\n`);
+	const grant = "# Take my recommendation on questions while the human is away\n\nKind: away\nSubject: question decisions in this task until the human writes again\n\n## Answer\n\n";
+	decide("1.md", "question", "taken\nKeep it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/1\.md cites decisions\/away\.md, which is missing or not granted/);
+	writeFileSync(join(task, "decisions/away.md"), `${grant}\`\`\`\ngranted\n\`\`\`\n`);
+	assert.throws(() => check(home, "away"), /which is missing or not granted/, "a grant inside a code block is an example");
+	writeFileSync(join(task, "decisions/away.md"), `${grant.replace("Kind: away", "Kind: question")}granted\nafk, 2026-11-21\n`);
+	assert.throws(() => check(home, "away"), /cites decisions\/away\.md, which is not a Kind: away grant/);
+	writeFileSync(join(task, "decisions/away.md"), `${grant}granted\nafk, take your recommendation, 2026-11-21\n`);
+	assert.equal(check(home, "away"), "ok away: 1 required file present");
+	assert.match(status(home, "away"), /^open decisions: none$/m, "a question the lead took is no longer open");
+	decide("gate.md", "design-approval", "taken\nApprove it, 2026-11-21");
+	assert.match(status(home, "away"), /decisions\/gate\.md/, "a taken gate still waits for the human");
+	rmSync(join(task, "decisions/gate.md"));
+	decide("4.md", "question", "Taken\nKeep it, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/4\.md is taken under no away grant/, "Taken in any case is a taken answer");
+	assert.match(status(home, "away"), /decisions\/4\.md/, "a taken question that check refuses stays open");
+	decide("4.md", "question", "answered\nKeep it, under `decisions/away.md`, 2026-11-21");
+	assert.match(status(home, "away"), /decisions\/4\.md/, "an answered question that cites the grant is refused, so it stays open");
+	rmSync(join(task, "decisions/4.md"));
+	decide("review-m1.md", "question", "taken\nOne more round, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/review-m1\.md is a review checkpoint, which waits for the human/);
+	rmSync(join(task, "decisions/review-m1.md"));
+	decide("2.md", "question", "taken\nKeep it, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/2\.md is taken under no away grant/);
+	decide("2.md", "question", "answered\nKeep it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/2\.md cites decisions\/away\.md, so its answer must open with taken/);
+	decide("2.md", "question", "answered\nkeep it, 2026-11-21");
+	decide("design.md", "design-approval", "taken\nApprove it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /decisions\/design\.md is a design-approval decision, which waits for the human/);
+	decide("design.md", "design-approval", "granted\nApprove it, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /design-approval decision, which waits for the human/, "a gate granted under the away grant is the lead answering for the human");
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\nKind: design-approval\n\n## ANSWER\n\ngranted\nApprove it, under `decisions/away.md`, 2026-11-21\n");
+	assert.throws(() => check(home, "away"), /design-approval decision, which waits for the human/, "an uppercase heading is still the answer");
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ntaken\nclose it, 2026-11-21\n");
+	assert.throws(() => check(home, "away"), /decisions\/close\.md is a decision with no Kind line/);
+	rmSync(join(task, "decisions/design.md"));
+	rmSync(join(task, "decisions/close.md"));
+	assert.equal(check(home, "away"), "ok away: 1 required file present");
+
+	mkdirSync(join(task, "evidence/reviews"));
+	writeFileSync(join(task, "evidence/reviews/m3.md"), "Head def5678, round 4\n");
+	decide("review-m3.md", "question", "taken\nTwo more rounds, under `decisions/away.md`, 2026-11-21");
+	assert.throws(() => check(home, "away"), /review m3 is at round 4/, "a taken answer is no review checkpoint");
+	rmSync(join(task, "evidence/reviews/m3.md"));
+	rmSync(join(task, "decisions/review-m3.md"));
+
+	writeFileSync(join(task, "decisions/away.md"), `${grant}granted\nafk, 2026-11-21\n\n## Ended\n\n2026-11-22, when the human wrote again.\nTaken: \`decisions/1.md\`\n`);
+	assert.equal(check(home, "away"), "ok away: 1 required file present");
+	decide("3.md", "question", "taken\nKeep it, under `decisions/away.md`, 2026-11-22");
+	assert.throws(() => check(home, "away"), /decisions\/3\.md is taken under decisions\/away\.md, which ended without listing it/);
+	writeFileSync(join(task, "decisions/away-2.md"), `${grant}granted\nstepping out again, 2026-11-22\n`);
+	decide("3.md", "question", "taken\nKeep it, under `decisions/away-2.md`, 2026-11-22");
+	assert.equal(check(home, "away"), "ok away: 1 required file present", "a later absence is a new grant");
+});
+
+test("status lists every task's step, what waits on the human, finished workers nobody cited, held programs and size", () => {
+	const { home, playbooks } = scratch();
+	assert.equal(status(home), `0 tasks under ${join(home, "tasks")}`);
+	brief(home, "beta", { playbook: "sample", goal: "g", finish: "f", delivery: "pr", playbooksDir: playbooks });
+	brief(home, "alpha", { playbook: "sample", goal: "g", finish: "f", kind: "scout", playbooksDir: playbooks });
+	const task = join(home, "tasks", "beta");
+	for (const d of ["briefs", "results", "decisions", "evidence/reviews"]) mkdirSync(join(task, d), { recursive: true });
+	writeFileSync(join(task, "evidence/grounding.md"), "traced\n");
+	writeFileSync(join(task, "evidence/design.md"), "pick A\n");
+	for (const name of ["fix", "review", "fenced", "late", "running"]) writeFileSync(join(task, "briefs", `${name}.md`), "GOAL x\n");
+	writeFileSync(join(task, "results/fix.md"), "changed a.js\nDONE fixed\n");
+	writeFileSync(join(task, "results/review.md"), "BLOCKED needs a key\n");
+	writeFileSync(join(task, "results/fenced.md"), "FAILED broke\n");
+	writeFileSync(join(task, "results/late.md"), "DONE first\nFAILED rerun\n");
+	writeFileSync(join(task, "results/running.md"), "half written\n");
+	writeFileSync(join(task, "evidence/dispatch.md"), "Result `results/fix.md`.\n\n```text\nresults/fenced.md\n```\n");
+	writeFileSync(join(task, "evidence/reviews/final.md"), "Head abc1234, round 1\n\nresults/review.md\n");
+	writeFileSync(join(task, "decisions/merge.md"), "# Merge PR #3?\n\nKind: question\n");
+	writeFileSync(join(task, "decisions/fenced.md"), "# Fenced answer?\n\n```text\n## Answer\n\ngranted\n```\n");
+	writeFileSync(join(task, "decisions/scope.md"), "# Widen scope?\n\n## Answer\n\nanswered\nno, 2026-11-21\n");
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\n## Answer\n\ndenied\nnot yet, 2026-11-21\n");
+	writeFileSync(join(task, "heartbeat.txt"), "sched-123\n");
+	writeFileSync(join(task, "evidence/big.bin"), Buffer.alloc(2 * 1024 * 1024));
+	mkdirSync(join(home, "tasks", "stray"));
+	mkdirSync(join(home, "tasks", "Odd_Name"));
+	writeFileSync(
+		join(home, "autopilot-fixes.md"),
+		"# Queue\n\n| # | Task | State |\n| --- | --- | --- |\n| 1 | `alpha` | **held**: the human stopped it, 2026-11-03 |\n| 2 | beta | waiting |\n| 3 | gamma | merged #4 |\n",
+	);
+	writeFileSync(join(home, "autopilot-fixes-heartbeat.txt"), "sched-9\n");
+	writeFileSync(join(home, "autopilot-notes.md"), "No table yet.\n");
+	assert.doesNotMatch(status(home), /\d (B|KB|MB)$/m, "size is opt-in, because walking a large task folder is slow");
+	const lines = status(home, undefined, true).split("\n");
+	assert.equal(lines[0], `4 tasks under ${join(home, "tasks")}`);
+	assert.equal(lines[1], "Odd_Name: not a task ID");
+	lines.splice(1, 1);
+	assert.match(lines[1], /^alpha: sample, scout, local-only, created \d{4}-\d\d-\d\d, no step reached, \d+(\.\d)? (B|KB)$/);
+	assert.deepEqual(lines.slice(2), [
+		"  held: autopilot-fixes.md says **held**: the human stopped it, 2026-11-03",
+		lines[3],
+		"  open decision: decisions/fenced.md: Fenced answer?",
+		"  open decision: decisions/merge.md: Merge PR #3?",
+		"  finished workers no evidence file cites: 2, which status beta lists",
+		"  briefs with no verdict yet: 1, which status beta lists",
+		"  heartbeat: sched-123",
+		"stray: no task.json",
+		"program autopilot-fixes.md: 3 items, 1 held, 1 waiting, 1 merged, heartbeat sched-9",
+		"  held: alpha: **held**: the human stopped it, 2026-11-03",
+		"program autopilot-notes.md: no queue table with a State column",
+	]);
+	assert.match(lines[3], /^beta: sample, ship, pr, created \d{4}-\d\d-\d\d, step 1 of 3 reached, 2\.0 MB$/, "step 2 still lacks evidence/alternatives.md");
+	writeFileSync(join(task, "evidence/alternatives.md"), "A, B\n");
+	writeFileSync(join(task, "report.md"), REPORT);
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ngranted\nclose it, 2026-11-21\n");
+	assert.match(status(home, undefined, true), /^beta: .*, step 2 of 3 reached, report written, closed, 2\.0 MB$/m);
+});
+
+test("status <id> shows one task's steps and lists every item", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "one", { playbook: "sample", goal: "make it work", finish: "tests pass", playbooksDir: playbooks });
+	const task = join(home, "tasks", "one");
+	mkdirSync(join(task, "briefs"));
+	mkdirSync(join(task, "results"));
+	writeFileSync(join(task, "evidence/grounding.md"), "traced\n");
+	writeFileSync(join(task, "evidence/alternatives.md"), "A, B\n");
+	writeFileSync(join(task, "briefs/fix.md"), "GOAL x\n");
+	writeFileSync(join(task, "results/fix.md"), "DONE fixed\n");
+	writeFileSync(join(task, "briefs/probe.md"), "GOAL y\n");
+	writeFileSync(join(home, "autopilot-q.md"), "| Task | State |\n| --- | --- |\n| one | held: stopped by the human, 2026-11-21 |\n");
+	assert.doesNotMatch(status(home, "one"), /^size:/m);
+	const lines = status(home, "one", true).split("\n");
+	assert.match(lines[1], /^playbook: sample, ship, local-only delivery, created \d{4}-\d\d-\d\d$/);
+	assert.match(lines[4], /^size: \d+(\.\d)? (B|KB)$/);
+	assert.deepEqual([lines[0], lines[2], lines[3], ...lines.slice(5)], [
+		"task one",
+		"goal: make it work",
+		"finish: tests pass",
+		"step 1 done: Ground the change.",
+		"step 2 missing evidence/design.md: Design it.",
+		"step 3 names no artifact: Ship it.",
+		"reached: step 1 of 3",
+		"report: not written",
+		"closed: no",
+		"held: 1",
+		"  autopilot-q.md says held: stopped by the human, 2026-11-21",
+		"open decisions: none",
+		"finished workers no evidence file cites: 1",
+		"  results/fix.md ends DONE",
+		"briefs with no verdict yet: 1",
+		"  briefs/probe.md",
+		"heartbeat: none",
+	]);
+	writeFileSync(join(task, "evidence/dispatch.md"), "Brief `briefs/fix.md`, result `results/fix.md`.\n");
+	assert.match(status(home, "one"), /^finished workers no evidence file cites: none$/m, "a citation under evidence/ collects it");
+	assert.throws(() => status(home, "missing"), /no task missing at/);
+	assert.throws(() => status(home, "../one"), /task id must match/);
+	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);
+	assert.throws(() => main(["status", "--verbose", "1"]), /status takes no --verbose; its flags are --size/);
+});
+
+test("status judges a revised decision by its newest file, and one bad task never hides the rest", () => {
+	const { home, playbooks } = scratch();
+	brief(home, "one", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	brief(home, "two", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "one");
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/design.md"), "# Approve v1?\n\nKind: design-approval\n");
+	writeFileSync(join(task, "decisions/design-2.md"), "# Approve v2?\n\nKind: design-approval\n\n## Answer\n\ngranted\nyes, 2026-11-21\n");
+	assert.match(status(home, "one"), /^open decisions: none$/m, "design-2.md answers the gate design.md opened");
+	writeFileSync(join(task, "decisions/design-3.md"), "# Approve v3?\n\nKind: design-approval\n");
+	assert.match(status(home, "one"), /^  decisions\/design-3\.md: Approve v3\?$/m);
+	const json = join(home, "tasks", "two", "task.json");
+	writeFileSync(json, JSON.stringify({ ...JSON.parse(readFileSync(json, "utf8")), created: 42 }));
+	assert.match(status(home), /^two: sample, .*created unknown/m);
+	assert.match(status(home), /^one: /m);
+});
+
+test("refPath keeps a branch name whole in a URL path", () => {
+	assert.equal(refPath("main"), "main");
+	assert.equal(refPath("feature/login"), "feature/login");
+	assert.equal(refPath("release#1"), "release%231");
+	assert.equal(refPath("fix/a?b"), "fix/a%3Fb");
+});
+
+test("status counts a closed task's denied decision as waived, as check does", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "gated.md"), "1. Design it.\n   Artifact: `decisions/design.md`\n");
+	brief(home, "shut", { playbook: "gated", goal: "g", finish: "f", playbooksDir: playbooks });
+	const task = join(home, "tasks", "shut");
+	mkdirSync(join(task, "decisions"), { recursive: true });
+	writeFileSync(join(task, "decisions/design.md"), "# Approve?\n\n## Answer\n\ndenied\nnot now, 2026-11-21\n");
+	assert.match(status(home, "shut"), /^reached: no step$/m, "an open task still needs a granted answer");
+	writeFileSync(join(task, "decisions/close.md"), "# Close?\n\n## Answer\n\ngranted\nclose it, 2026-11-21\n");
+	assert.match(status(home, "shut"), /^reached: step 1/m);
+});
+
+test("a question a playbook names needs the human's answer, so an away grant cannot take it", () => {
+	const { home, playbooks } = scratch();
+	writeFileSync(join(playbooks, "adopting.md"), "1. Decide what to adopt.\n   Artifact: `decisions/adopt.md`\n");
+	brief(home, "adopt", { playbook: "adopting", goal: "g", finish: "f", kind: "scout", playbooksDir: playbooks });
+	const task = join(home, "tasks", "adopt");
+	writeFileSync(join(task, "report.md"), REPORT);
+	mkdirSync(join(task, "decisions"));
+	writeFileSync(join(task, "decisions/away.md"), "# Away\n\nKind: away\n\n## Answer\n\ngranted\nafk, 2026-11-23\n");
+	const adopt = (answer) => writeFileSync(join(task, "decisions/adopt.md"), `# Adopt candidate 1?\n\nKind: question\n\n## Answer\n\n${answer}\n`);
+	adopt("taken\nAdopt it, under `decisions/away.md`, 2026-11-23");
+	assert.throws(() => check(home, "adopt"), /missing step 1: decisions\/adopt\.md with the human's answer/);
+	adopt("answered\nadopt candidate 1, 2026-11-23");
+	assert.equal(check(home, "adopt"), "ok adopt: 2 required files present");
 });
 
 test("brief carries the design source and the delivery answers, and refuses values it does not know", () => {

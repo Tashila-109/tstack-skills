@@ -1,7 +1,7 @@
 # Dispatch
 
 Read this before you launch a lead, delegate a worker, or run a skill that spawns subagents.
-It owns the verbs, seats, depth, and how to read skill text written for Cursor.
+It owns the verbs, seats, depth, shared resources, and how to read skill text written for Cursor.
 The runtime reference owns the exact calls: [runtime-t3.md](runtime-t3.md) in a T3 Code thread, [runtime-herdr.md](runtime-herdr.md) when `HERDR_ENV=1`, and [runtime-standalone.md](runtime-standalone.md) on any other harness.
 
 `tstack.mjs` below means `node <tstack skill directory>/scripts/tstack.mjs`.
@@ -40,14 +40,22 @@ A worker's first message is [worker-preamble.md](worker-preamble.md), filled in.
 
 ## Seats
 
-A role names who does the work, such as `lead`, `feature`, `how explorer`, or `architect runners`.
-The models file maps each role to seats: `~/.tstack/models.md`, overridden line by line by `<home>/models.md`.
+A role names who does the work, such as `lead`, `feature`, `explorer`, or `arena runners`.
+The models file maps each role to seats: `~/.tstack/models.md`, overridden line by line by `<home>/models.md`, and in a task by `<home>/tasks/<id>/models.md`.
 A seat is `harness/model@effort`, or `inherit` for the caller's own harness and model.
+On T3, a seat may end in `+fast`, such as `claude/claude-opus-5-5@xhigh+fast`, to run in fast mode.
+Herdr refuses such a seat.
 A list of seats is a panel, with one agent per seat.
 `lead <playbook>` falls back to `lead`.
-`herdr args <harness>` lines, which replace a harness's autonomy flags on Herdr, are read only from `~/.tstack/models.md`. A project's file that sets one is refused, because a cloned repository must not choose the flags an agent launches with.
+`herdr args <harness>` lines, which replace a harness's autonomy flags on Herdr, are read only from `~/.tstack/models.md`. A project's or a task's file that sets one is refused, because a cloned repository must not choose the flags an agent launches with.
 
-Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr|standalone`.
+When the human names models for this task, such as "review with Fable" or "use fast mode for the coding", the lead writes those roles' lines to `<home>/tasks/<id>/models.md`.
+Above them goes a `#` line with the date and the human's words.
+That file holds only what the human said for this task.
+A lead never edits the project or global file, which tstack-setup writes.
+
+Resolve a role with `tstack.mjs seat "<role>" --runtime t3|herdr|standalone --task <id>`.
+Pass `--task <id>` to every `seat` and `check-seats` call in a task, so the task's own lines apply.
 It prints one JSON line per seat, in the shape the runtime reference passes on.
 Never hand-assemble a model ID, an effort option, or launch flags.
 
@@ -60,6 +68,10 @@ When a seat fails to launch, because the provider is down, logged out, or lacks 
 - a panel continues with the seats that launched, and the result names each dropout.
 
 Never run a seat on a different model than the one configured without the human's word.
+Never run a seat above `xhigh`. A seat's effort changes only through its models file line, never by hand.
+Fable runs outside a panel only when the human named it for this task, or after two runs of the same brief on the configured seat failed its check. Say which. Difficulty alone never qualifies.
+A seat that `--cross` picks from a panel role, such as `review`, still counts as that panel.
+A second opinion runs the same brief on another vendor's model.
 The standalone runtime is the one exception: every seat there runs on the caller's own model, as [its reference](runtime-standalone.md#facts-to-rely-on) says.
 
 ## Depth
@@ -72,8 +84,20 @@ tstack depth is lead → worker, or coordinator → lead → worker in an autopi
 | lead | delegate; use its harness's own subagents for its own scoped reading; launch-lead to move or hand off its own task | launch a lead for another task |
 | worker | use its harness's own subagents, on `inherit`, for its own scope | delegate, launch-lead, address the human or a coordinator, write Git |
 
-A worker that runs a skill which spawns subagents, such as `how` with explorers, uses its harness's own subagent tool instead of delegate.
+A worker that runs a skill which spawns subagents, such as `swarm` or `recall`, uses its harness's own subagent tool instead of delegate.
 Its own subagents never write Git and never write tstack records.
+
+## Shared resources
+
+The desktop, a simulator, a port and a local database are shared by every task on the machine.
+Before a step that needs one, the lead takes its lock with `tstack.mjs lock <name> --task <id>`, using a name such as `desktop`, `simulator-<device>`, `port-<number>` or `db-<name>`.
+It holds the lock while the step and its workers run.
+It runs `tstack.mjs unlock <name> --task <id>` when the step ends, and when the human stops it.
+A refusal names the task that holds the lock.
+On T3 and Herdr, notify that task's lead and wait for its reply, which comes when it unlocks, and never ask the human to relay.
+On the standalone runtime, where notify is a file the human points the other lead to, write that file and ask the human once, as [its reference](runtime-standalone.md#report-notify-and-hold) says.
+When that lead no longer runs, tell the human, who may delete the lock file the refusal names.
+`tstack.mjs check` refuses a finished task that still holds a lock.
 
 ## Reading text written for Cursor
 
@@ -122,11 +146,11 @@ A one-command unit may collapse the template to a paragraph that still names goa
 ## Results
 
 A worker writes its result once, to the result path its preamble names, normally `<home>/tasks/<id>/results/<name>.md`, and ends with one verdict line: `DONE <summary>`, `BLOCKED <why>`, or `FAILED <why>`, as the [worker preamble](worker-preamble.md) says.
-When a skill says a subagent returns its output in its response, such as reflect's reviewers or a swarm worker's report, that output goes in the worker's result file: on T3 you get back only its final line.
+When a skill says a subagent returns its output in its response, such as a swarm worker's report, that output goes in the worker's result file: on T3 you get back only its final line.
 You own every worker's work.
 Review the diff yourself and write your own summary.
 Do not pass on what the worker said.
-A second opinion is the same brief on a different model, and agreement is high signal.
+A second opinion is the same brief on another vendor's model, and agreement is high signal.
 
 `tstack.mjs check` refuses a task while a brief under `briefs/` has no result with a verdict line.
 It also refuses a delegating step, `evidence/dispatch.md` or `evidence/fix.md`, until at least one result it cites ends `DONE`.

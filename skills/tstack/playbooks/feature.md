@@ -2,11 +2,11 @@
 
 **You own the design. Plan, review, verify.** Delegate implementation. Stay in the lead.
 
-1. `how` over the affected subsystem.
-   Write its traced model to `evidence/grounding.md`. Step 2 passes that file to `architect` as its Phase A grounding.
-   Artifact: `results/how.md`, `evidence/grounding.md`
-2. `architect` for parallel design exploration.
-   Write `evidence/design.md`: each candidate in a few lines, the pick, why it beat the others, and the caller's usage sketch.
+1. Trace the affected subsystem.
+   Write the traced model to `evidence/grounding.md`. Step 2 passes that file to `architect`.
+   Artifact: `evidence/grounding.md`
+2. `architect` for the shape.
+   Write `evidence/design.md`: the two shapes in a few lines each, the pick, why it beat the other, and the caller's usage sketch.
    Artifact: `evidence/design.md`
 3. Write the throughput checkpoint as four todo items. A dimension that genuinely does not apply (single file, no fan-out) keeps its item with `n/a: <reason>` rather than being dropped:
    - **Blocking first steps.** Gates run before fan-out.

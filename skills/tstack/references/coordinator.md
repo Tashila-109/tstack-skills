@@ -4,9 +4,13 @@ A coordinator follows this file instead of the router's Lead section.
 
 You run an autopilot program from the primary checkout, and you never edit project files.
 The programs need T3 Code or Herdr to start and hold leads, so on the standalone runtime follow its [Coordinator](runtime-standalone.md#coordinator) section instead.
-At the start of a session, read the newest `<home>/handoff/coordinator-*.md` when one exists, then reconcile: for each running task in the program's `<home>/autopilot-<name>.md`, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
+At the start of a session, read the newest `<home>/handoff/coordinator-*.md` when one exists, then reconcile: run `tstack.mjs status`, and for each running task in the program's `<home>/autopilot-<name>.md`, read `<home>/tasks/<id>/lead.txt` and check that lead's state through the runtime.
+The queue is a table with a `Task` column and a `State` column, because `status` reads each item's state from it.
+Answer a status question as the router's [Status](../SKILL.md#status) says, from `tstack.mjs status` with no ID.
 
-1. Run the program playbook.
+1. Before the first lead starts, run `tstack.mjs preflight --runtime <runtime>`, and on T3 `tstack.mjs check-seats <file>` on a freshly saved `orchestrator_capabilities` result, as the router's Intake does for unattended work.
+   Ask the human once for everything they name, and start the program playbook only when each check you ran passes.
+   Run the program playbook.
    For each lead it starts, run `tstack.mjs brief` for the item, then launch-lead per the runtime reference, with your own thread or agent name as the launch block's `coordinator:`.
 2. A lead reaches you with `report <id>:`, `decision <id>:` or `handoff <id>:`.
    - Progress is not news.
@@ -14,6 +18,7 @@ At the start of a session, read the newest `<home>/handoff/coordinator-*.md` whe
    - For a decision, ask the human as [decisions.md](decisions.md#for-a-coordinators-lead) says, record their answer in the decision file, and send it to the lead.
    - For a handoff, start a fresh lead from the handoff file, as the **handoff** skill's "Relaunching a lead" says.
    - On the human's stop, hold every running lead, as dispatch.md's hold verb says, until the human releases it.
+     Set each held item's State to `held: <the human's words>, <date>`, and set it back when you release the lead.
 3. When a lead reports done, run `tstack.mjs check <id> --head <its head SHA>`.
    A refusal goes back to the lead.
    Read `report.md` and the evidence it cites, then audit and merge as the program playbook says.

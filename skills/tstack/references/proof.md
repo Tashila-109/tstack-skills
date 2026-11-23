@@ -10,6 +10,7 @@ The project's `verify-*` skill owns how to launch, drive and capture.
 
 - Drive the change the way a user reaches it, with the project's `verify-*` skill.
   When the project has none and the change has a UI, CLI or service surface, run **create-verification-skill** first.
+- Take the lock for a shared surface first, as [Shared resources](dispatch.md#shared-resources) says.
 - Write one claim per acceptance criterion: the task's finish, then each criterion from the brief or spec.
 - Trust a check only after you have seen it fail.
   Before you rely on a new assertion, break its condition once and watch it go red.
@@ -32,6 +33,7 @@ Every repair round runs the proof again, so a slow proof costs the human time on
 - After each verified phase, and once the proof passes on the final head, delete the raw run output under the task folder that no decision, `evidence/verify.md` or `report.md` names, such as the recordings, traces and logs of earlier rounds.
   The files in `evidence/proof/` and the final run's folder stay.
   This deletes only output that this task's own runs wrote.
+  The final head has the base branch merged in, as the cross-model review in [Opening a PR](../playbooks/opening-a-pr.md) says.
 
 ## Permission to test
 

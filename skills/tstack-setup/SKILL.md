@@ -54,6 +54,7 @@ jq '.providers[] | select(.providerInstanceId == "<instance>") | .models[] | sel
 
 Use only instances with `canRunChildTask` true.
 The first command fills the `t3 instances` line: each harness name, its instance ID, and its effort option ID (`effort` on Claude, `reasoningEffort` on Codex and Grok, `thinking` on Pi).
+When the harness's models offer fast mode, its fast option follows the effort option: `fastMode` on Claude, and `serviceTier=priority` on Codex.
 The second confirms that a seat's model exists and which effort values it allows.
 
 **On Herdr**, check which agent CLIs are installed with `command -v claude codex pi grok`.
@@ -70,18 +71,19 @@ Tell the human to run tstack-setup again on T3 Code or Herdr before using tstack
 ## 4. Choose the budget
 
 Ask the human for one:
-- `unlimited`: `max`;
-- `large`: `xhigh`;
-- `medium`: `high`;
-- `small`: `medium`.
+- `large`: the template's efforts;
+- `medium`: one step lower;
+- `small`: two steps lower.
 
-The budget sets every seat's effort.
-With no budget, the template's efforts stay, from `high` to `max`.
+The budget moves every seat's effort by steps, and no seat goes above `xhigh`.
+An `unlimited` budget from an older file becomes `large`.
 When a model does not allow that value, use the highest value it allows at or below it.
 
 ## 5. Confirm the roles
 
 Start from the existing models file, or the template below.
+In an existing file, drop the retired roles: `hardest tasks`, `how explainer`, `why investigators`, `why synthesizer`, `architect runners`, and the four `reflect` roles.
+Rename `how explorer` to `explorer`, and lower any effort above `xhigh` to `xhigh`.
 Replace every seat on a harness or model you could not confirm with the human's choice.
 Show every role with its seats, then ask whether to accept them or change specific roles.
 `inherit` is always valid.
@@ -89,28 +91,22 @@ It runs the role on the caller's own harness and model.
 Never write a seat you could not confirm.
 
 ```text
-# tstack models. One line per role. A seat is harness/model@effort, a list is a panel, and inherit means the caller's own harness and model.
-# budget: none, the template's efforts
+# tstack models. One line per role. A seat is harness/model@effort, +fast after it runs it in fast mode on T3, a list is a panel, and inherit means the caller's own harness and model.
+# budget: large, the template's efforts
 lead: claude/claude-opus-5-5@xhigh
-feature, refactoring: pi/openai/gpt-6.1-sol@xhigh
-bug-fix: pi/openai/gpt-6.1-sol@xhigh
-perf-issue, hillclimb: pi/openai/gpt-6.1-sol@xhigh
-judgment and prose, hardest tasks: claude/claude-fable-5-2@high
-how explorer: claude/claude-sonnet-5-5@max
-how explainer: claude/claude-opus-5-5@high
-why investigators: grok/grok-4.7@xhigh
-why synthesizer: claude/claude-opus-5-5@high
-reflect tooling: codex/gpt-6.1-sol@xhigh
-reflect judgment, reflect divergent, reflect synthesizer: claude/claude-opus-5-5@high
-architect runners: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
-arena runners: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
-arena cross-judge pool: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
-interrogate reviewers: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high, grok/grok-4.7@xhigh
-swarm workers: grok/grok-4.7@xhigh
+feature, refactoring: claude/claude-opus-5-5@xhigh
+bug-fix: claude/claude-opus-5-5@xhigh
+perf-issue, hillclimb: claude/claude-opus-5-5@xhigh
+judgment and prose: claude/claude-opus-5-5@xhigh
+explorer: claude/claude-opus-5-5@high
+arena runners: claude/claude-fable-5-2@high, claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
+arena cross-judge pool: claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
+interrogate reviewers: claude/claude-fable-5-2@high, claude/claude-opus-5-5@high, codex/gpt-6.1-sol@high
+swarm workers: claude/claude-opus-5-5@high
 comment sicko: inherit
 review: claude/claude-fable-5-2@high, codex/gpt-6.1-sol@high
 verify: claude/claude-opus-5-5@high
-t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thinking, grok=grok/reasoningEffort
+t3 instances: claude=claudeAgent/effort/fastMode, codex=codex/reasoningEffort/serviceTier=priority, pi=pi/thinking, grok=grok/reasoningEffort
 ```
 
 `lead <playbook>` lines are optional and override `lead` for one playbook.
@@ -124,6 +120,8 @@ Then run `tstack.mjs seat lead --runtime t3`, `--runtime herdr` or `--runtime st
 On T3, also run `tstack.mjs check-seats <file>` on the saved `orchestrator_capabilities` result, and fix every line it names.
 It names a provider T3 cannot run with T3's own reason, such as a CLI that is not logged in, and a panel role whose seats share one model family.
 It checks the global and the project file together, so run it again whenever either file changes, including a project file written by hand.
+Last, run `tstack.mjs preflight --runtime <runtime>` and tell the human each line it prints.
+Each names something only the human can fix, such as a locked signing key or a gh login.
 
 ## 7. Offer verification skills
 

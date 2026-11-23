@@ -1,6 +1,6 @@
 # Multi-phase plan
 
-The plan is the deliverable. Do not implement. A small change with an obvious approach can use Feature directly; explain that choice rather than manufacturing phases. To plan and then build, use [Orchestrate](orchestrate.md), which runs these same steps and continues into implementation.
+The plan is the deliverable. Do not implement. A small change with an obvious approach can use Feature directly; explain that choice rather than manufacturing phases. To build the approved spec, start a [Figure it out](figure-it-out.md) task on it.
 
 Read [dispatch](../references/dispatch.md) and [decisions](../references/decisions.md).
 Use the principles index in the `tstack` skill and read each applicable leaf.
@@ -9,7 +9,7 @@ When the frame keeps planning documents out of Git, they live in the task folder
 Run state and evidence stay under `tasks/<id>/` in the task home, with a decision trail at `tasks/<id>/evidence/decisions.tsv` when one helps.
 
 1. **Frame and explore.** State the outcome, scope boundaries, constraints and definition of done. Resolve empirical questions with scoped probes through [Prototype](prototype.md). Preserve the actual commands, code identity and artifacts, including inconclusive results. A read-only request does not authorize a prototype that changes the project or a live system.
-   Inspect the affected code, conventions, dependencies and verification routes, with read-only workers on the `how explorer` seat for large reads. Workers return file pointers and findings.
+   Inspect the affected code, conventions, dependencies and verification routes, with read-only workers on the `explorer` seat for large reads. Workers return file pointers and findings.
    Settle three questions before any design, because each one reshapes the design when it arrives late: whether planning documents are committed or stay in the task folder, which platforms the work targets, and how code from reference projects may be reused, whether copied with its notice, adapted, or taken as ideas only.
    Settle three delivery questions too, because the build runs on them: whether the human accepts each phase before the next one starts or reviews the whole branch once, whether the lead pushes the task branch after each verified stage or only on the human's word, and which method merges a PR, squash, merge or rebase.
    Take each answer from the human's request, and ask through decide when it is silent.
@@ -62,7 +62,7 @@ Run this in the planning task's own thread when the human changes a design or sp
 
 One box is one unit of work. Every box names the evidence that checks it. Check a box only when its evidence exists. The body is a how-to. The appendices explain and record.
 
-Execution follows the orchestrate playbook in playbooks/ of the tstack skill, in its own task.
+Execution follows the figure-it-out playbook in playbooks/ of the tstack skill, in its own task.
 <Name who owns each phase and the authorized delivery boundary.>
 
 Tests alone are not sufficient verification. A phase is verified only when its unit, live, and perf boxes are all checked.
@@ -71,7 +71,7 @@ Tests alone are not sufficient verification. A phase is verified only when its u
 
 ### Arm the program
 
-- [ ] Read `design.md` and `spec.md`. Confirm their granted decision records and the execution authorization before implementation. Save the approval evidence path.
+- [ ] Read `design.md` and `spec.md`. Confirm each one's commit or SHA-256 still matches the Subject of its latest granted decision in the planning task before implementation. On a mismatch, stop and open the next decision. Save the approval evidence path.
 - [ ] Read dispatch.md and the applicable leaf skills. Record their paths with the task brief.
 - [ ] On an operator hold, stop new dispatch and preserve current evidence.
 The lead pauses dispatch and takes the human's steer.

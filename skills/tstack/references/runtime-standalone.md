@@ -17,10 +17,10 @@ So the human does the steps T3 and Herdr automate, workers run as your harness's
 
 - Every worker runs on your own harness and model, whatever seat the models file names.
   This is the exception to dispatch.md's rule against running a seat on another model.
-- Seats come from `tstack.mjs seat "<role>" --runtime standalone`, which prints one line per seat, so a panel keeps its size.
+- Seats come from `tstack.mjs seat "<role>" --runtime standalone --task <id>`, which prints one line per seat, so a panel keeps its size.
   A configured seat prints as `{ "inherit": true, "configured": "<seat>" }`, and an `inherit` seat as `{ "inherit": true }`.
 - Your harness may have a subagent tool, such as Claude Code's `Agent` or `Task`, Codex's subagents, Cursor's `Task`, or OpenCode's `task`.
-- A role whose seats span model families, such as `review`, `interrogate reviewers` or `architect runners`, runs on one model here.
+- A role whose seats span model families, such as `review`, `interrogate reviewers` or `arena runners`, runs on one model here.
   Say so in the result and in the report, because the second opinion from a different family is missing.
 - `seat review --cross <your model>` prints a seat from another family, or refuses when the line has none.
   Here either outcome means the review runs on your own model: run it, and record it in the review and the report as a same-family review.
@@ -59,7 +59,7 @@ To notify another task's lead, write the message to `<home>/tasks/<your id>/noti
 
 ### delegate
 
-1. Run `tstack.mjs seat "<role>" --runtime standalone`.
+1. Run `tstack.mjs seat "<role>" --runtime standalone --task <id>`.
    A panel prints one line per seat.
 2. Write each worker's brief, per dispatch.md.
 3. If your harness has a subagent tool, start one subagent per seat with the filled worker preamble as its prompt.
@@ -72,6 +72,7 @@ To notify another task's lead, write the message to `<home>/tasks/<your id>/noti
 Read each worker's result file and verdict line once its subagent returns.
 A subagent that returns without writing its result file gets one from you: `FAILED <the subagent returned no result>`, with what it said.
 To stop a running worker, use your harness's own stop for that subagent.
+If your harness cannot confirm that the subagent ended, keep its locks and tell the human.
 
 ### A candidate that needs its own checkout
 

@@ -27,7 +27,7 @@ Surface the unified verdict, the highest-signal findings, and any remaining unce
 ## In a tstack task
 
 A lead delegates the two reviewers as read-only workers, as the tstack skill's [dispatch reference](../tstack/references/dispatch.md) says, both in one response.
-Resolve the seats with `node <tstack skill directory>/scripts/tstack.mjs seat "interrogate reviewers" --runtime <runtime>`.
+Resolve the seats with `node <tstack skill directory>/scripts/tstack.mjs seat "interrogate reviewers" --runtime <runtime> --task <id>`.
 Run the bug and security reviewer on the first seat.
 Run the code-quality reviewer on the first seat of a different model family on that line.
 
