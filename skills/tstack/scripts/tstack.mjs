@@ -3,7 +3,9 @@
 //
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
+//                         [--design <link or path>] [--acceptance phase|branch] [--push stage|word] [--merge squash|merge|rebase]
 //   node tstack.mjs check <id> [--through <step>] [--head <sha>]
+//   node tstack.mjs backlog <id>
 //   node tstack.mjs status [<id>]
 //   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--task <id>] [--cross <model> [--avoid <model>,...]]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result> [--task <id>]
@@ -47,7 +49,18 @@ const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
 const COMMITTED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{7,40})\b/im;
 const REVIEW_HEAD = /^Head ([0-9a-f]{7,40}), round (\d+)\s*$/;
 const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
-const AWAY_GRANT = /^away(-\d+)?\.md$/;
+// A proof that reuses an earlier run records the comparison as this command, and check --head runs it again against the head.
+const REUSED = /`git diff --quiet ([0-9a-f]{7,40}) \S+ -- ([^`]+)`/g;
+const LIST_ITEM = /^\s{0,3}(?:[-*+]|\d+[.)])\s+(.*\S)\s*$/;
+const ACCEPTANCE = {
+	phase: "The human accepts each phase before the next one starts: show its commit, its proof and a summary to review the code from, and wait for their word.",
+	branch: "The human reviews the whole branch once, at Finish, so the phases run on without stopping for review.",
+};
+const PUSH = {
+	stage: "Push the task branch after each verified stage commit, whatever the delivery.",
+	word: "Push nothing until the human says so, not even the push that opens a PR.",
+};
+const MERGE_METHODS = ["squash", "merge", "rebase"];const AWAY_GRANT = /^away(-\d+)?\.md$/;
 const CITED_GRANT = /\bdecisions\/(away(?:-\d+)?\.md)\b/;
 
 export class Refusal extends Error {}
@@ -190,6 +203,11 @@ export function brief(home, id, opts) {
 	if (!["ship", "scout"].includes(kind)) throw new Usage(`--kind must be ship or scout: ${kind}`);
 	if (!["local-only", "pr"].includes(delivery)) throw new Usage(`--delivery must be local-only or pr: ${delivery}`);
 	if (kind === "scout" && delivery === "pr") throw new Usage("a scout writes report.md and never opens a PR");
+	if (opts.design !== undefined && !opts.design.trim()) throw new Usage("--design needs a link or a path");
+	if (opts.acceptance !== undefined && !Object.hasOwn(ACCEPTANCE, opts.acceptance)) throw new Usage(`--acceptance must be phase or branch: ${opts.acceptance}`);
+	if (opts.push !== undefined && !Object.hasOwn(PUSH, opts.push)) throw new Usage(`--push must be stage or word: ${opts.push}`);
+	if (opts.merge !== undefined && !MERGE_METHODS.includes(opts.merge)) throw new Usage(`--merge must be squash, merge or rebase: ${opts.merge}`);
+	if (opts.merge !== undefined && delivery !== "pr") throw new Usage("--merge names how a PR merges, and a local-only task fast-forwards: drop it, or pass --delivery pr");
 	const playbookPath = join(opts.playbooksDir ?? join(SKILL_DIR, "playbooks"), `${opts.playbook}.md`);
 	if (!existsSync(playbookPath)) throw new Refusal(`no playbook named ${opts.playbook} at ${playbookPath}`);
 	const taskDir = join(home, "tasks", id);
@@ -198,7 +216,8 @@ export function brief(home, id, opts) {
 	const steps = parseSteps(readFileSync(playbookPath, "utf8"));
 	if (steps.some((s, i) => s.n !== i + 1)) throw new Refusal(`playbook ${opts.playbook} numbers its steps ${steps.map((s) => s.n).join(", ")}; they must run from 1 without gaps`);
 	for (const step of steps) for (const path of step.artifacts) insideTask(taskDir, path);
-	const task = { id, playbook: opts.playbook, kind, delivery, goal: opts.goal, finish: opts.finish, created: new Date().toISOString(), steps };
+	const answers = Object.fromEntries(["design", "acceptance", "push", "merge"].filter((key) => opts[key] !== undefined).map((key) => [key, opts[key]]));
+	const task = { id, playbook: opts.playbook, kind, delivery, ...answers, goal: opts.goal, finish: opts.finish, created: new Date().toISOString(), steps };
 
 	mkdirSync(join(taskDir, "evidence"), { recursive: true });
 	writeFileSync(join(taskDir, "task.json"), `${JSON.stringify(task, null, "\t")}\n`);
@@ -210,6 +229,10 @@ export function brief(home, id, opts) {
 		`Goal: ${opts.goal}`,
 		`Finish: ${opts.finish}`,
 		`Kind: ${kind}. Delivery: ${delivery}.`,
+		...(opts.design ? [`Design source: ${opts.design}. Prove the change against it, as the Prove against a design section of ${join(SKILL_DIR, "references", "proof.md")} says.`] : []),
+		...(opts.acceptance ? [`Acceptance: ${opts.acceptance}. ${ACCEPTANCE[opts.acceptance]}`] : []),
+		...(opts.push ? [`Push: ${opts.push}. ${PUSH[opts.push]}`] : []),
+		...(opts.merge ? [`Merge: ${opts.merge}. At Finish, merge with \`gh pr merge <pr> --${opts.merge} --match-head-commit <head SHA>\`.`] : []),
 		`Playbook: ${opts.playbook}, at ${playbookPath}. Read it in full.`,
 		`Task directory: ${taskDir}`,
 		"",
@@ -279,7 +302,7 @@ export function check(home, id, through, head, cwd = process.cwd(), globalDir = 
 		if (waived(closed, path, text)) continue;
 		if (!present(taskDir, path, text))
 			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? decisionGap(prose(latestDecision(taskDir, path, text))) : ""}`);
-		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
+		else if (path === PROOF) problems.push(...proofGaps(taskDir, text, Boolean(task.design)).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (MAYBE_DELEGATED.has(path) && !SKIPPED.test(text)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (path === "report.md") problems.push(...reportGaps(text));
@@ -331,16 +354,20 @@ function tableRows(markdown) {
 	return rows;
 }
 
-function proofGaps(taskDir, text) {
+function proofGaps(taskDir, text, design) {
 	// The verdict is the column headed Verdict, or the last column when no header says so.
-	const failed = tableRows(text)
-		.filter(({ header, width, cells }) => plain(cells[header.includes("verdict") ? header.indexOf("verdict") : width - 1] ?? "") === "failed")
-		.map(({ cells }) => `has a failed claim: ${cells[0]}: repair it and prove it again, or ask the human`);
+	const claims = tableRows(text).map(({ header, width, cells }) => ({ cells, said: plain(cells[header.includes("verdict") ? header.indexOf("verdict") : width - 1] ?? "") }));
+	const failed = claims.filter(({ said }) => said === "failed").map(({ cells }) => `has a failed claim: ${cells[0]}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
+	// Against a design, every claim but a blocked one shows its side-by-side.
+	const uncited = design ? claims.filter(({ said, cells }) => said !== "blocked" && ![...cells.join(" | ").matchAll(CITED)].some((m) => m[1] !== PROOF)).map(({ cells }) => cells[0]) : [];
 	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
 	if (!cited.length) return ["cites no file under evidence/ and has no skip: line (see references/proof.md)"];
-	return cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`);
+	return [
+		...uncited.map((claim) => `has a claim that cites no file under evidence/: ${claim}: a task with a design source shows a side-by-side of the design and the built screen in every row (see references/proof.md)`),
+		...cited.filter((path) => !hasContent(insideTask(taskDir, path))).map((path) => `cites ${path}, which is missing or empty`),
+	];
 }
 
 function delegationGaps(taskDir, path, text) {
@@ -388,6 +415,40 @@ function headGaps(taskDir, head, cwd, prDelivery, closed) {
 			return !shas.some((sha) => tree(sha) === want);
 		})
 		.map((path) => `${path} names no commit with the same tree as ${head}: verify or review again on this head`);
+	for (const [, sha, paths] of prose(readIfFile(join(taskDir, PROOF))).matchAll(REUSED)) {
+		// Paths are split on spaces, so a quoted or escaped path would compare the wrong files: refuse it.
+		if (/['"\\]/.test(paths)) {
+			gaps.push(`${PROOF} reuses the run at ${sha} with a quoted or escaped path: list paths without quotes, or prove the claim again`);
+			continue;
+		}
+		const words = paths.trim().split(/\s+/);
+		// :(top) reads a path from the repository root, but :(top). and :(top)./src match nothing, so drop the dot first.
+		const specs = words.map((p) => (p.startsWith(":") ? p : `:(top)${p.replace(/^\.(\/+|$)/, "")}`));
+		// A path with a space splits into words that name nothing, and a diff of nothing passes: refuse a pathspec that matches no file in either commit.
+		// Listing a commit's files against the empty tree reads each pathspec as git diff does, magic and all.
+		const empty = execFileSync("git", ["hash-object", "-t", "tree", "--stdin"], { cwd, input: "", encoding: "utf8" }).trim();
+		const holds = (commit, spec) => {
+			try {
+				return execFileSync("git", ["diff", "--name-only", empty, commit, "--", spec], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() !== "";
+			} catch {
+				return false;
+			}
+		};
+		const absent = words.filter((p, i) => !holds(sha, specs[i]) && !holds(head, specs[i]));
+		if (absent.length) {
+			gaps.push(`${PROOF} reuses the run at ${sha} with ${absent.join(", ")}, which neither commit holds: name paths that exist, and prove a claim that reads a path with a space again`);
+			continue;
+		}
+		try {
+			execFileSync("git", ["diff", "--quiet", sha, head, "--", ...specs], { cwd, stdio: "ignore" });
+		} catch (err) {
+			gaps.push(
+				err.status === 1
+					? `${PROOF} reuses the run at ${sha}, but ${paths.trim()} changed before ${head}: run that claim again on this head`
+					: `${PROOF} reuses the run at ${sha}, which this checkout does not hold: run check from the task's worktree`,
+			);
+		}
+	}
 	if (prDelivery) {
 		const text = readIfFile(join(taskDir, "evidence", "babysit.md"));
 		const latest = [...text.matchAll(PR_VERDICT)].filter((m) => tree(m[2]) === want).at(-1)?.[1];
@@ -395,6 +456,37 @@ function headGaps(taskDir, head, cwd, prDelivery, closed) {
 			gaps.push(`evidence/babysit.md's latest pr-state line for ${head} is ${latest ?? "missing"}, not READY or MERGED: paste the pr-state output for this head`);
 	}
 	return gaps;
+}
+
+// Appends each list item under report.md's ## Follow-ups to <home>/backlog.md, once, with an ID that stays the same on a rerun.
+export function backlog(home, id) {
+	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
+	const reportPath = join(home, "tasks", id, "report.md");
+	if (!existsSync(reportPath)) throw new Refusal(`no report.md for task ${id} at ${reportPath}`);
+	const lines = prose(readFileSync(reportPath, "utf8")).split("\n");
+	const start = lines.findIndex((line) => /^##\s+Follow-ups\s*$/.test(line));
+	if (start < 0) throw new Refusal(`${reportPath} has no ## Follow-ups heading`);
+	const items = [];
+	let open = false;
+	for (const line of lines.slice(start + 1)) {
+		if (/^#{1,6}\s/.test(line)) break;
+		const item = line.match(LIST_ITEM);
+		if (item) items.push(item[1]);
+		else if (open && /^\s+\S/.test(line)) items[items.length - 1] += ` ${line.trim()}`;
+		if (item || /^\S/.test(line)) open = Boolean(item);
+	}
+	const path = join(home, "backlog.md");
+	const existing = readIfFile(path);
+	const rows = new Map();
+	for (const text of items.map((t) => t.replace(/\s+/g, " ")).filter((t) => !/^(none|n\/a)\.?$/i.test(t))) {
+		const key = `${id}-${createHash("sha256").update(text).digest("hex").slice(0, 6)}`;
+		if (!existing.includes(`\`${key}\``)) rows.set(key, text);
+	}
+	if (!rows.size) return `ok ${id}: no new follow-ups for ${path}`;
+	const date = new Date().toISOString().slice(0, 10);
+	const top = existing ? (existing.endsWith("\n") ? "" : "\n") : "# Backlog\n\nFollow-ups from finished tasks. Name an item's ID in a request to take it.\n\n";
+	appendFileSync(path, `${top}${[...rows].map(([key, text]) => `- \`${key}\` ${text} (task \`${id}\`, ${date})`).join("\n")}\n`);
+	return `ok ${id}: added ${rows.size} follow-up${rows.size === 1 ? "" : "s"} to ${path}`;
 }
 
 function readIfFile(path) {
@@ -1221,8 +1313,9 @@ function flags(args) {
 
 const ALLOWED = {
 	home: [],
-	brief: ["playbook", "goal", "finish", "kind", "delivery"],
+	brief: ["playbook", "goal", "finish", "kind", "delivery", "design", "acceptance", "push", "merge"],
 	check: ["through", "head"],
+	backlog: [],
 	status: ["size"],
 	seat: ["runtime", "task", "cross", "avoid"],
 	"check-seats": ["task"],
@@ -1252,7 +1345,9 @@ export function main(argv) {
 			if (through !== undefined && !(Number.isInteger(through) && through > 0)) throw new Usage(`--through must be a step number: ${f.through}`);
 			return check(taskHome(), f._[0], through, f.head);
 		}
-		case "status":
+		case "backlog":
+			if (f._.length !== 1) throw new Usage("backlog takes one task id");
+			return backlog(taskHome(), f._[0]);		case "status":
 			if (f._.length > 1) throw new Usage("status takes at most one task id");
 			return status(taskHome(), f._[0], f.size === true);
 		case "seat":
@@ -1282,7 +1377,7 @@ export function main(argv) {
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, status, seat, check-seats, preflight, lock, unlock, pr-state, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, backlog, status, seat, check-seats, preflight, lock, unlock, pr-state, exclude, link-skills");
 	}
 }
 

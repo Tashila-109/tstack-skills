@@ -35,6 +35,18 @@ A worker puts its open questions in its result file.
 `handoff` writes the file a fresh session starts from, and `two-axis-review` reviews a frozen diff or document on standards and on spec.
 You rarely call these yourself.
 
+## What it asks first
+
+Before any design, the lead settles six questions, from your request when it answers them, and by asking you when it does not:
+- whether the planning documents are committed or stay in the task folder;
+- which platforms the work targets;
+- how code from reference projects may be reused;
+- whether you accept each phase before the next one starts, or review the whole branch once;
+- whether the lead pushes after each verified stage, or only on your word;
+- which method merges a PR, squash, merge or rebase.
+
+A task that builds from the plan carries the last three in its brief.
+
 ## The gates
 
 | Gate | What you approve | Where it is |

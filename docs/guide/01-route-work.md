@@ -71,6 +71,18 @@ Correct it there, and it costs one message instead of one wrong fix.
 4. It writes the brief with `tstack.mjs brief`, which freezes the playbook's steps and the files each step must leave.
 5. It tells you in one line which playbook, finish and delivery it chose, then runs the playbook.
 
+## Take an item from the backlog
+
+When a task finishes, its lead adds each follow-up from its report to `.tstack/backlog.md`, one line each with an ID such as `fix-login-3f9a1c`.
+Name the ID in a request to take the item:
+
+```text
+$tstack fix-login-3f9a1c from the backlog
+```
+
+The lead reads the item and the report it came from before it picks a playbook.
+When your project tracks work in a tracker instead, say so in `AGENTS.md`, and leads file their follow-ups there.
+
 ## Prompts that route well
 
 A feature names the behavior and what must not change:

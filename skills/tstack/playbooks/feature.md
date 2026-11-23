@@ -20,6 +20,7 @@
    Write `evidence/dispatch.md`: each worker's brief and result paths, and your review of each diff with anything you sent back.
    Artifact: `evidence/dispatch.md`
 5. Prove it on the surface a user touches, and write the proof as [proof](../references/proof.md) says.
+   When the brief names a design source, write the scenario matrix before you test, and prove each row against the design, as [proof's Prove against a design](../references/proof.md#prove-against-a-design) says.
    Artifact: `evidence/verify.md`
 6. Rebase into small, ordered commits. Stack follow-ups.
    Use the **sequence-verifiable-units** principle skill, building, verifying, and committing each small unit before the next.
