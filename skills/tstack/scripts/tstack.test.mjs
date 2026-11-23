@@ -1347,6 +1347,12 @@ test("check --head reruns a proof's reuse command against the head", () => {
 	assert.throws(() => check(home, "ru", undefined, docs, dir), /with a quoted or escaped path/, "a quoted path would split into pathspecs that match nothing");
 	writeFileSync(join(task, "evidence/verify.md"), proof(code).replace("-- src package.json", "-- src/my app"));
 	assert.throws(() => check(home, "ru", undefined, code, dir), /with src\/my, app, which neither commit holds/, "an unquoted space splits a path into words that diff as unchanged");
+	writeFileSync(join(task, "evidence/verify.md"), proof(code).replace("-- src package.json", "-- :(top)src/missing"));
+	assert.throws(() => check(home, "ru", undefined, code, dir), /with :\(top\)src\/missing, which neither commit holds/, "a magic pathspec is checked too");
+	writeFileSync(join(task, "evidence/verify.md"), proof(docs).replace("-- src package.json", "-- ."));
+	assert.throws(() => check(home, "ru", undefined, docs, dir), /but \. changed before/, "the repository root is a path both commits hold");
+	writeFileSync(join(task, "evidence/verify.md"), proof(code).replace("-- src package.json", "-- ./src"));
+	assert.throws(() => check(home, "ru", undefined, code, dir), /but \.\/src changed before/, "a ./ path reads from the root");
 });
 
 test("backlog appends each follow-up once, with an ID that a rerun keeps", () => {

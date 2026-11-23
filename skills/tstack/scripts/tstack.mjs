@@ -421,21 +421,24 @@ function headGaps(taskDir, head, cwd, prDelivery, closed) {
 			gaps.push(`${PROOF} reuses the run at ${sha} with a quoted or escaped path: list paths without quotes, or prove the claim again`);
 			continue;
 		}
-		// A path with a space splits into words that name nothing, and a diff of nothing passes: refuse a path neither commit holds.
-		const holds = (commit, p) => {
+		const words = paths.trim().split(/\s+/);
+		// :(top) reads a path from the repository root, but :(top). and :(top)./src match nothing, so drop the dot first.
+		const specs = words.map((p) => (p.startsWith(":") ? p : `:(top)${p.replace(/^\.(\/+|$)/, "")}`));
+		// A path with a space splits into words that name nothing, and a diff of nothing passes: refuse a pathspec that matches no file in either commit.
+		// Listing a commit's files against the empty tree reads each pathspec as git diff does, magic and all.
+		const empty = execFileSync("git", ["hash-object", "-t", "tree", "--stdin"], { cwd, input: "", encoding: "utf8" }).trim();
+		const holds = (commit, spec) => {
 			try {
-				execFileSync("git", ["cat-file", "-e", `${commit}:${p.replace(/\/+$/, "")}`], { cwd, stdio: "ignore" });
-				return true;
+				return execFileSync("git", ["diff", "--name-only", empty, commit, "--", spec], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() !== "";
 			} catch {
 				return false;
 			}
 		};
-		const absent = paths.trim().split(/\s+/).filter((p) => !p.startsWith(":") && !holds(sha, p) && !holds(head, p));
+		const absent = words.filter((p, i) => !holds(sha, specs[i]) && !holds(head, specs[i]));
 		if (absent.length) {
 			gaps.push(`${PROOF} reuses the run at ${sha} with ${absent.join(", ")}, which neither commit holds: name paths that exist, and prove a claim that reads a path with a space again`);
 			continue;
 		}
-		const specs = paths.trim().split(/\s+/).map((p) => (p.startsWith(":") ? p : `:(top)${p}`));
 		try {
 			execFileSync("git", ["diff", "--quiet", sha, head, "--", ...specs], { cwd, stdio: "ignore" });
 		} catch (err) {
