@@ -5,7 +5,7 @@
 1. Capture a baseline trace with the project's `verify-*` skill. Vet the baseline, and each later number, with the **benchmark-checklist** skill.
    Write the baseline, how it was captured, and the checklist's answers to `evidence/baseline.md`.
    Artifact: `evidence/baseline.md`
-2. `how` to ground hypotheses. Don't claim a perf ceiling without running it first.
+2. Trace the code to ground hypotheses. Don't claim a perf ceiling without running it first.
    Try the performance mantras in order, cheapest first:
    1. Don't do it. Stop work whose result nothing uses rather than cheapening it.
    2. Do it, but don't do it again.
@@ -16,7 +16,6 @@
    7. Do it cheaper.
 
    When an earlier mantra meets the target, stop.
-   Artifact: `results/how.md`
 3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a worker on the `perf-issue` seat. Review the diff. Capture a post-fix trace.
    Apply the **sequence-verifiable-units** principle skill, verifying each attempt before trying the next.
 4. Parse and compare the artifacts (JSON to sqlite, diff). "Inconclusive" or wrong-surface is not a pass. Flag it.

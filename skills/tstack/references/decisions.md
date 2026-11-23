@@ -1,7 +1,7 @@
 # Decisions
 
 Read this before a lead decides a worker's question or a review finding, and before it opens a decision.
-A lead opens a decision, and only the human answers it.
+A lead opens a decision, and only the human answers it, except a `question` the lead takes under an away grant.
 
 ## What a lead decides alone
 
@@ -40,7 +40,7 @@ Use these sections:
 ```markdown
 # <one-line question>
 
-Kind: question | design-approval | spec-approval | implement-authorization | close
+Kind: question | design-approval | spec-approval | close
 Subject: <the path and commit, the path and its SHA-256 for a document kept out of Git, the action, or the head SHA this decision is about>
 
 ## Requirement
@@ -61,7 +61,7 @@ Your pick, and why it best serves the accepted intent.
 
 Then ask the human, as [Ask the human](#ask-the-human) says.
 
-Gates come in order: `design-approval` before `spec-approval`, and both before `implement-authorization`.
+Gates come in order: `design-approval` before `spec-approval`.
 A gate covers its subject as it was when you opened it.
 After a grant, a changed design or spec is a new decision under a new name, such as `design-2`, and the gates after it follow again.
 Write the Subject of a committed document as its path from the repository root in backticks, then `at` and the SHA, 7 to 40 hex characters, of the commit that holds the version you ask about, never a name such as `HEAD`.
@@ -83,17 +83,69 @@ For a document kept out of Git, write its path in backticks followed by its SHA-
    ```
 
    A gate's first answer line is `granted` or `denied`.
-   A `question` is `answered`.
+   A `question` is `answered`, or `taken` under an away grant, as [While the human is away](#while-the-human-is-away) says.
 4. Continue with the work the decision gated.
 
-Never answer for the human, and never turn a silence into a grant.
+Never answer for the human, except a `question` under an away grant, and never turn a silence into a grant.
 Record the human's words as they wrote them.
-`tstack.mjs check` refuses a task while a gate its playbook names lacks a `granted` answer.
+`tstack.mjs check` refuses a task while a gate its playbook names lacks a `granted` answer, and while a `question` its playbook names lacks an `answered` one.
 
 A `denied` gate stops the work it gates.
 When the human said what to change, revise and open the gate again under its next name, such as `design-2`.
 `tstack.mjs check` reads a gate from its highest-numbered file, so the newest answer decides it.
-Otherwise close the task, as below.
+Otherwise close the task, as [Close a task](#close-a-task) says.
+
+### While the human is away
+
+When the human says they are away, such as "afk", "I'm away", "stepping out", "going to bed" or "babysit the rest", record an away grant before you go on.
+Write `<home>/tasks/<id>/decisions/away.md`, or `away-2.md` and so on for a later absence:
+
+```markdown
+# Take the lead's recommendation on questions while the human is away
+
+Kind: away
+Subject: question decisions in this task until the human writes again
+
+## Answer
+
+granted
+<the human's words>, <date>
+```
+
+Arm your heartbeat if none is armed, when the runtime has one, as its reference's Heartbeat says.
+Keep running the playbook you are in, because away mode never switches playbooks.
+
+Under the grant, answer a `question` decision yourself instead of asking it.
+Take the option your Recommendation names, append the answer, and go on:
+
+```markdown
+## Answer
+
+taken
+<the option you took>, under `decisions/away.md`, <date>
+```
+
+Everything else still waits for the human: every gate, a question about anything destructive, irreversible or security-sensitive, a seat that cannot launch, and a `review-<label>` checkpoint, whose taken answer allows no more rounds.
+Ask those as before, and keep doing the work they do not gate.
+
+The grant ends at the human's next message.
+Before you reply, append to the grant file:
+
+```markdown
+## Ended
+
+<date>, when the human wrote again.
+Taken: `decisions/3.md`, `decisions/4.md`
+```
+
+Open your reply with each decision you took under it: its question, the option you took, and its path.
+Delete the heartbeat you armed for it.
+When the human overrules a taken decision, record their answer in the next free decision file and revise the work it changed.
+
+`tstack.mjs check` refuses a `taken` answer on any kind but `question`, and an answer that cites an away grant but does not open with `taken`.
+It also refuses a taken answer whose grant is missing or not granted, or whose grant's `## Ended` section does not list it.
+
+A coordinator and the leads it launched take no away grant, because the coordinator never decides for the human.
 
 ## Close a task
 

@@ -145,6 +145,7 @@ To release it, wait for it to be idle, then prompt `release <id>:`.
 
 Herdr has no scheduler, so there is no time-based heartbeat.
 Your wakes are a worker finishing, a lead's report, and a background `pr-state` exiting.
+On each wake, a lead runs `tstack.mjs status <id>` and collects each finished worker it lists and has not read, because one worker can finish while the lead waits on another.
 An autonomous run with nothing to wake it keeps working inside its turn.
 Before you end a turn with work left, tell the human what is left and what message continues it.
 

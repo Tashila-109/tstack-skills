@@ -1,0 +1,73 @@
+{
+	"now": "2026-11-21T12:00:00Z",
+	"pullRequest": {
+		"state": "OPEN",
+		"isDraft": false,
+		"baseRefName": "main",
+		"mergeable": "MERGEABLE",
+		"mergeStateStatus": "CLEAN",
+		"reviewDecision": null,
+		"headRefOid": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+		"updatedAt": "2026-11-21T11:05:00Z",
+		"commits": { "nodes": [{ "commit": { "committedDate": "2026-11-21T11:00:00Z", "statusCheckRollup": { "contexts": { "pageInfo": { "hasNextPage": false }, "nodes": [{ "__typename": "CheckRun", "name": "test", "status": "COMPLETED", "conclusion": "SUCCESS" }] } } } }] },
+		"reviewThreads": { "pageInfo": { "hasNextPage": false }, "nodes": [] },
+		"files": { "pageInfo": { "hasNextPage": false }, "nodes": [{ "path": "src/app.js" }, { "path": "test/app.test.js" }] },
+		"comments": { "nodes": [{ "createdAt": "2026-11-21T10:05:00Z" }] },
+		"reviews": { "nodes": [] }
+	},
+	"reviews": {
+		"codexOnOpen": {
+			"id": "PRR_codex1",
+			"submittedAt": "2026-11-21T10:02:00Z",
+			"body": "<!-- codex-review-receipt:v1 -->\n\n\n### 💡 Codex Review\n\nHere are some automated review suggestions for this pull request.\n\n**Reviewed commit:** `a1a1a1a1a1`\n\n<details> <summary>ℹ️ About Codex in GitHub</summary>\n<br/>\n\nReviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment \"@codex review\".\n\nIf Codex has suggestions, it will comment; otherwise it will react with 👍.\n</details>",
+			"author": { "__typename": "Bot", "login": "chatgpt-codex-connector" },
+			"commit": { "oid": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1" },
+			"reactionGroups": [{ "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }]
+		},
+		"rabbitFirst": {
+			"id": "PRR_rabbit1",
+			"submittedAt": "2026-11-21T10:10:00Z",
+			"body": "<!-- coderabbit-ai-generated:v1 -->\n\n**Actionable comments posted: 2**\n\n---\n\n<details>\n<summary>Prompt to fix all issues</summary>\n<dl>\n<dd>\n\n```\nInline comments:\nReview comments at @src/app.js:\n- Line 12: Return the parsed value instead of the raw string.\n- Line 30: Close the handle when the read fails.\n```\n\n</dd>\n</dl>\n</details>\n\n<h6>\n<details>\n<summary>Review info</summary>\n\nReviewing files that changed from the base of the PR and between 0000000000000000000000000000000000000000 and a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1.\n\n</details>\n</h6>\n\n<!-- This is an auto-generated comment by CodeRabbit for review status -->",
+			"author": { "__typename": "Bot", "login": "coderabbitai" },
+			"commit": { "oid": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1" },
+			"reactionGroups": [{ "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }]
+		},
+		"humanReply": {
+			"id": "PRR_user1",
+			"submittedAt": "2026-11-21T10:30:00Z",
+			"body": "",
+			"author": { "__typename": "User", "login": "octocat" },
+			"commit": { "oid": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2" },
+			"reactionGroups": [{ "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }]
+		},
+		"rabbitSecond": {
+			"id": "PRR_rabbit2",
+			"submittedAt": "2026-11-21T10:40:00Z",
+			"body": "<!-- coderabbit-ai-generated:v1 -->\n\n\n\n---\n\n<h6>\n<details>\n<summary>Review info</summary>\n\nReviewing files that changed from the base of the PR and between a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 and b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2.\n\n</details>\n</h6>\n\n<!-- This is an auto-generated comment by CodeRabbit for review status -->",
+			"author": { "__typename": "Bot", "login": "coderabbitai" },
+			"commit": { "oid": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2" },
+			"reactionGroups": [{ "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }]
+		},
+		"rabbitReply": {
+			"id": "PRR_rabbit3",
+			"submittedAt": "2026-11-21T11:02:00Z",
+			"body": "",
+			"author": { "__typename": "Bot", "login": "coderabbitai" },
+			"commit": { "oid": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3" },
+			"reactionGroups": [{ "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }]
+		},
+		"rabbitOutsideDiff": {
+			"id": "PRR_rabbit4",
+			"submittedAt": "2026-11-21T11:04:00Z",
+			"body": "<!-- coderabbit-ai-generated:v1 -->\n\n**Actionable comments posted: 1**\n\n> [!CAUTION]\n> Some comments are outside the diff and can’t be posted inline due to GitHub limitations.\n> \n> **⚠️ Outside diff range comments (2)**\n> \n> <details>\n> <summary><strong>Minor</strong> · Close the handle when the read fails. · <code>app.js:40-44</code></summary><blockquote>\n> \n> `src/app.js:40-44`\n> **Close the handle when the read fails.**\n> \n> </blockquote></details>\n> <details>\n> <summary><strong>Minor</strong> · Keep the old default for `limit(0)`. · <code>app.js:88</code></summary><blockquote>\n> \n> `src/app.js:88`\n> **Keep the old default for `limit(0)`.**\n> \n> </blockquote></details>\n\n<details>\n<summary>🧹 Nitpick comments (1)</summary><blockquote>\n\n`test/app.test.js:5`: name the case after the behavior it proves.\n\n</blockquote></details>\n\n<details>\n<summary>Prompt to fix all issues</summary>\n<dl>\n<dd>\n\n```\nInline comments:\nReview comments at @src/app.js:\n- Line 12: Return the parsed value instead of the raw string.\n\nOutside diff comments:\nReview comments at @src/app.js:\n- Line 40: Close the handle when the read fails.\n- Line 88: Keep the old default for limit(0).\n\nNitpick comments:\nIn @test/app.test.js line 5: name the case after the behavior it proves (see issue(3)).\n```\n\n</dd>\n</dl>\n</details>\n\n<h6>\n<details>\n<summary>Review info</summary>\n\nReviewing files that changed from the base of the PR and between b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2 and c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3.\n\n</details>\n</h6>\n\n<!-- This is an auto-generated comment by CodeRabbit for review status -->",
+			"author": { "__typename": "Bot", "login": "coderabbitai" },
+			"commit": { "oid": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3" },
+			"reactionGroups": [{ "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }, { "viewerHasReacted": false }]
+		}
+	},
+	"compare": {
+		"even": { "behind": 0, "count": 0, "files": [] },
+		"elsewhere": { "behind": 1, "count": 1, "files": ["docs/guide.md"] },
+		"shared": { "behind": 3, "count": 2, "files": ["README.md", "src/app.js"] }
+	}
+}

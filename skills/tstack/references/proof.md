@@ -16,6 +16,7 @@ The project's `verify-*` skill owns how to launch, drive and capture.
   Before you rely on a new assertion, break its condition once and watch it go red.
 - After a repair, rerun the claims the repair could change.
   Run every claim once on the final head.
+  The final head has the base branch merged in, as the cross-model review in [Opening a PR](../playbooks/opening-a-pr.md) says.
 
 ## Permission to test
 

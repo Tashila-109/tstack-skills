@@ -22,7 +22,7 @@ $tstack investigate why background jobs time out every few hours. Give me what w
 ```
 
 "Don't change any code yet" routes this to the [Investigation playbook](../../skills/tstack/playbooks/investigation.md).
-It runs `how`, adds `why` for questions about motivation, and returns a cited explanation.
+It traces the code, adds `why` for questions about motivation, and returns a cited explanation.
 For a choice between options, it returns a recommendation with a trade-offs table.
 Asking "what data you used" makes the agent separate its evidence from its guesses.
 When the findings point at a fix, start the fix in a new thread.
@@ -30,8 +30,7 @@ When the findings point at a fix, start the fix in a new thread.
 ## Trace behavior with how
 
 `how` answers at the level of a senior engineer onboarding you onto the subsystem: the runtime flow, the key types, and the non-obvious parts.
-For a narrow question, it sends one explainer on your `how explainer` seat.
-For a large subsystem, it first sends two to four read-only explorers on your `how explorer` seats, then an explainer on your `how explainer` seat writes one account.
+It sends one read-only worker on your `judgment and prose` seat, which explores and explains in one pass.
 
 ## Dig up history with why
 
@@ -39,8 +38,8 @@ For a large subsystem, it first sends two to four read-only explorers on your `h
 $tstack why was the retry limit set to five? Does the reason still hold?
 ```
 
-`why` starts from source control, then queries whatever evidence the agent's tools reach, such as the issue tracker, docs, chat, observability and error tracking.
-Its report separates direct evidence from inference, and says "appears to" when the record is thin.
+`why` answers from the record, not the code: the commits and PR discussions behind the target, and other sources when that trail is thin.
+It cites what the authors wrote, marks its own inferences, and says what the record does not answer.
 "Nobody wrote down why" is a valid answer.
 
 `how` and `why` compose well.
@@ -91,6 +90,20 @@ Your old sessions hold context that a fresh agent lacks, so load it first, then 
 ```text
 $tstack recall my work on the virtualized list from yesterday, then read this bug report.
 ```
+
+## Learn from another project with a deep dive
+
+```text
+$tstack deep dive on https://github.com/acme/widgets. Which of its features would improve this project? Ideas only, copy nothing.
+```
+
+The [Deep dive playbook](../../skills/tstack/playbooks/deep-dive.md) clones the other project into the task folder at a recorded commit, and changes neither project.
+Before anyone reads the code, it settles how much you may take: copy with a notice in your license file, adapt in your own words, or ideas only.
+Name the rule in your request, as "Ideas only, copy nothing" does, and the lead records your words instead of asking.
+Four or five read-only explorers each read one area, and the lead checks every claim their candidates rest on against both codebases.
+You get a table ranked against your current design and one question: which candidates to take.
+Each one you take becomes a line you start as its own task, and the rest go in the report's follow-ups with the reason each was left.
+To review only what changed since you last took from the project, name the commit you took last.
 
 ## Why this comes first
 

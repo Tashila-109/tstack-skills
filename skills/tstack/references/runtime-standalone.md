@@ -20,7 +20,7 @@ So the human does the steps T3 and Herdr automate, workers run as your harness's
 - Seats come from `tstack.mjs seat "<role>" --runtime standalone --task <id>`, which prints one line per seat, so a panel keeps its size.
   A configured seat prints as `{ "inherit": true, "configured": "<seat>" }`, and an `inherit` seat as `{ "inherit": true }`.
 - Your harness may have a subagent tool, such as Claude Code's `Agent` or `Task`, Codex's subagents, Cursor's `Task`, or OpenCode's `task`.
-- A role whose seats span model families, such as `review`, `interrogate reviewers` or `architect runners`, runs on one model here.
+- A role whose seats span model families, such as `review`, `interrogate reviewers` or `arena runners`, runs on one model here.
   Say so in the result and in the report, because the second opinion from a different family is missing.
 - `seat review --cross <your model>` prints a seat from another family, or refuses when the line has none.
   Here either outcome means the review runs on your own model: run it, and record it in the review and the report as a same-family review.

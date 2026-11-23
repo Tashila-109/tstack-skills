@@ -190,7 +190,7 @@ tstack spends extra tokens on workers and review panels, which is the price of t
 To spend fewer:
 - On any harness without T3 or Herdr, every worker runs on your lead's model, so pick a cheaper model in your harness.
 - On T3 or Herdr, rerun setup and pick a smaller budget.
-  `unlimited` runs every seat at `max`, `large` at `xhigh`, `medium` at `high`, and `small` at `medium`.
+  `large` keeps the template's efforts, `medium` lowers each seat one step, and `small` two steps. No seat runs above `xhigh`.
 - On T3 or Herdr, set a role to `inherit`, so it runs on the caller's own model.
 - Shorten a panel, a role with several seats such as `review`, in `~/.tstack/models.md`, because each seat runs one agent.
 - Save tstack for work that needs rigor.

@@ -4,6 +4,7 @@
 //   node tstack.mjs home
 //   node tstack.mjs brief <id> --playbook <name> --goal <text> --finish <text> [--kind ship|scout] [--delivery local-only|pr]
 //   node tstack.mjs check <id> [--through <step>] [--head <sha>]
+//   node tstack.mjs status [<id>]
 //   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--task <id>] [--cross <model> [--avoid <model>,...]]
 //   node tstack.mjs check-seats <saved orchestrator_capabilities result> [--task <id>]
 //   node tstack.mjs preflight [--runtime t3|herdr|standalone] [--task <id>]
@@ -37,6 +38,8 @@ const WHOLLY_SKIPPED = /^\s*skip:\s*\S/;
 const PR_VERDICT = /^(READY|MERGED|WAITING|BLOCKER|CLOSED)\b.*\(head ([0-9a-f]{12})\)\s*$/gm;
 const LOOSE_COMMIT = /^Subject:[^\n`]*`[^`]+`\s+at\s+(?![0-9a-f]{7,40}\b)(\S+)/im;
 const ANSWERED = /^##\s+Answer\s*\n+\s*(granted|answered)\b/im;
+const QUESTION = /^Kind:\s*question\s*$/im;
+const ANSWERED_QUESTION = /^##\s+Answer\s*\n+\s*answered\b/im;
 const ANSWERED_OR_DENIED = /^##\s+Answer\s*\n+\s*(granted|answered|denied)\b/im;
 const REVIEW_ROUNDS = 3;
 const VERDICT = /^(DONE|BLOCKED|FAILED)\b/m;
@@ -44,6 +47,8 @@ const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
 const COMMITTED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{7,40})\b/im;
 const REVIEW_HEAD = /^Head ([0-9a-f]{7,40}), round (\d+)\s*$/;
 const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
+const AWAY_GRANT = /^away(-\d+)?\.md$/;
+const CITED_GRANT = /\bdecisions\/(away(?:-\d+)?\.md)\b/;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
@@ -234,12 +239,10 @@ export function brief(home, id, opts) {
 	return briefPath;
 }
 
-export function check(home, id, through, head, cwd = process.cwd(), globalDir = globalHome()) {
-	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
-	const taskDir = join(home, "tasks", id);
-	const taskPath = join(taskDir, "task.json");
-	if (!existsSync(taskPath)) throw new Refusal(`no task ${id} at ${taskDir}`);
-	const task = JSON.parse(readFileSync(taskPath, "utf8"));
+// The task's frozen steps, with every artifact its playbook names today added, so a tampered or stale task.json drops none.
+function readTask(taskDir) {
+	const task = JSON.parse(readFileSync(join(taskDir, "task.json"), "utf8"));
+	task.steps ??= [];
 	const playbookPath = ID.test(task.playbook ?? "") ? join(SKILL_DIR, "playbooks", `${task.playbook}.md`) : "";
 	if (playbookPath && existsSync(playbookPath)) {
 		for (const fresh of parseSteps(readFileSync(playbookPath, "utf8"))) {
@@ -248,6 +251,19 @@ export function check(home, id, through, head, cwd = process.cwd(), globalDir = 
 			else frozen.artifacts = [...new Set([...frozen.artifacts, ...fresh.artifacts])];
 		}
 	}
+	return task;
+}
+
+// A decision counts with a granted answer, and any other artifact once it is not blank.
+function present(taskDir, path, text) {
+	return path.startsWith("decisions/") ? !decisionGap(prose(latestDecision(taskDir, path, text))) : Boolean(text.trim());
+}
+
+export function check(home, id, through, head, cwd = process.cwd(), globalDir = globalHome()) {
+	if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
+	const taskDir = join(home, "tasks", id);
+	if (!existsSync(join(taskDir, "task.json"))) throw new Refusal(`no task ${id} at ${taskDir}`);
+	const task = readTask(taskDir);
 	const wanted = task.steps
 		.filter((s) => through === undefined || s.n <= through)
 		.flatMap((s) => s.artifacts.map((path) => ({ step: `step ${s.n}${s.added ? " (added to the playbook after the brief)" : ""}`, path })));
@@ -256,14 +272,13 @@ export function check(home, id, through, head, cwd = process.cwd(), globalDir = 
 		wanted.push({ step: "final report", path: "report.md" });
 	}
 	const problems = [];
-	// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines.
 	const closed = GRANTED.test(prose(readIfFile(insideTask(taskDir, "decisions/close.md"))));
 	for (const { step, path } of wanted) {
 		const full = insideTask(taskDir, path);
 		const text = existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "";
-		if (closed && path !== "report.md" && text.trim() && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))))) continue;
-		if (path.startsWith("decisions/") ? !GRANTED.test(prose(latestDecision(taskDir, path, text))) : !text.trim())
-			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? " with a granted answer" : ""}`);
+		if (waived(closed, path, text)) continue;
+		if (!present(taskDir, path, text))
+			problems.push(`missing ${step}: ${path}${path.startsWith("decisions/") ? decisionGap(prose(latestDecision(taskDir, path, text))) : ""}`);
 		else if (path === PROOF) problems.push(...proofGaps(taskDir, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (DELEGATED.has(path)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
 		else if (MAYBE_DELEGATED.has(path) && !SKIPPED.test(text)) problems.push(...delegationGaps(taskDir, path, text).map((gap) => `${step}: ${path} ${gap}`));
@@ -271,9 +286,16 @@ export function check(home, id, through, head, cwd = process.cwd(), globalDir = 
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir), ...lockGaps(home, id, globalDir));
 	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, task.delivery === "pr" && through === undefined, closed));
-	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed));
+	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed), ...awayGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
+}
+
+// A gate a playbook names needs a granted answer, and a question it names needs an answered one.
+function decisionGap(text) {
+	// The Kind comes from the header above the first ## section, so a Proposal line cannot change what the gate needs.
+	if (QUESTION.test(text.split(/^##\s/m)[0])) return ANSWERED_QUESTION.test(text) ? "" : " with the human's answer";
+	return GRANTED.test(text) ? "" : " with a granted answer";
 }
 
 // A gate denied and reopened as <name>-2, -3 and so on is decided by its highest-numbered file.
@@ -288,26 +310,32 @@ function latestDecision(taskDir, path, text) {
 	return later ? readIfFile(insideTask(taskDir, `decisions/${later.f}`)) : text;
 }
 
-function proofGaps(taskDir, text) {
-	// A table row may drop its outer pipes, so split on them and drop the empty edge cells.
-	// Only rows below a table's separator line are claims, so a prose line with pipes is not one.
-	// The verdict is the column headed Verdict, or the last column when no header says so.
-	const plain = (cell) => cell.replace(/[*_`~]/g, "").trim().toLowerCase();
-	const failed = [];
-	let header = [];
-	let verdict = -1;
-	for (const line of prose(text).split("\n")) {
+const plain = (cell) => cell.replace(/[*_`~]/g, "").trim().toLowerCase();
+
+// Each table row below a separator line, with the plain header cells above that separator and the table's width.
+// A row may drop its outer pipes, so split on them and drop the empty edge cells.
+// Only rows below a separator are data, so a prose line with pipes is not one.
+function tableRows(markdown) {
+	const rows = [];
+	let previous = [];
+	let table;
+	for (const line of prose(markdown).split("\n")) {
 		// An escaped pipe, \|, belongs to its cell.
 		const cells = line.split(/(?<!\\)\|/).map((cell) => cell.trim());
 		const row = cells.slice(cells[0] === "" ? 1 : 0, cells.at(-1) === "" ? -1 : undefined);
-		if (row.length > 1 && row.every((cell) => /^:?-+:?$/.test(cell))) {
-			const named = header.map(plain).indexOf("verdict");
-			verdict = named >= 0 ? named : row.length - 1;
-		} else if (verdict >= 0 && row.length > 1) {
-			if (plain(row[verdict] ?? "") === "failed") failed.push(`has a failed claim: ${row[0]}: repair it and prove it again, or ask the human`);
-		} else verdict = -1;
-		header = row;
+		if (row.length > 1 && row.every((cell) => /^:?-+:?$/.test(cell))) table = { header: previous.map(plain), width: row.length };
+		else if (table && row.length > 1) rows.push({ ...table, cells: row });
+		else table = undefined;
+		previous = row;
 	}
+	return rows;
+}
+
+function proofGaps(taskDir, text) {
+	// The verdict is the column headed Verdict, or the last column when no header says so.
+	const failed = tableRows(text)
+		.filter(({ header, width, cells }) => plain(cells[header.includes("verdict") ? header.indexOf("verdict") : width - 1] ?? "") === "failed")
+		.map(({ cells }) => `has a failed claim: ${cells[0]}: repair it and prove it again, or ask the human`);
 	if (failed.length) return failed;
 	if (SKIPPED.test(text)) return [];
 	const cited = [...new Set([...text.matchAll(CITED)].map((m) => m[1]))].filter((path) => path !== PROOF);
@@ -373,16 +401,24 @@ function readIfFile(path) {
 	return existsSync(path) && statSync(path).isFile() ? readFileSync(path, "utf8") : "";
 }
 
+// The last DONE, BLOCKED or FAILED line in a worker's result, or undefined while it has none.
+function resultVerdict(taskDir, name) {
+	return [...readIfFile(join(taskDir, "results", name)).matchAll(new RegExp(VERDICT.source, "gm"))].at(-1)?.[1];
+}
+
+function mdFiles(dir) {
+	return existsSync(dir) ? readdirSync(dir).filter((name) => name.endsWith(".md")).sort() : [];
+}
+
+// Each brief whose worker has written no verdict yet.
+function unfinishedBriefs(taskDir) {
+	return mdFiles(join(taskDir, "briefs")).filter((name) => !resultVerdict(taskDir, name));
+}
+
 function workerGaps(taskDir) {
-	const briefs = join(taskDir, "briefs");
-	if (!existsSync(briefs)) return [];
-	return readdirSync(briefs)
-		.filter((name) => name.endsWith(".md"))
-		.filter((name) => {
-			const result = join(taskDir, "results", name);
-			return !(existsSync(result) && VERDICT.test(readFileSync(result, "utf8")));
-		})
-		.map((name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`);
+	return unfinishedBriefs(taskDir).map(
+		(name) => `briefs/${name} has no results/${name} with a DONE, BLOCKED or FAILED line: collect its worker, or write why it never ran`,
+	);
 }
 
 function reviewCapGaps(taskDir, closed) {
@@ -411,6 +447,41 @@ function reviewCapGaps(taskDir, closed) {
 			);
 	}
 	return gaps;
+}
+
+// The bodies of every `## <heading>` section, joined, or undefined when the markdown has none.
+function sections(markdown, heading) {
+	const parts = markdown.split(/^(?=##\s)/m).filter((part) => new RegExp(`^##\\s+${heading}\\s*$`, "i").test(part.split("\n", 1)[0]));
+	return parts.length ? parts.map((part) => part.slice(part.indexOf("\n") + 1)).join("\n") : undefined;
+}
+
+// A lead answers a question itself only under the human's granted away grant, and only until the human returns.
+// What is wrong with one decision's use of an away grant: undefined when it neither opens with taken nor cites a grant, "" when its use is sound.
+function awayGap(taskDir, name) {
+	const text = prose(readIfFile(insideTask(taskDir, `decisions/${name}`)));
+	const answer = sections(text, "Answer") ?? "";
+	const taken = /^\s*taken\b/i.test(answer);
+	const grant = answer.match(CITED_GRANT)?.[1];
+	if (!taken && !grant) return undefined;
+	const kind = text.match(/^Kind:\s*(\S+)/im)?.[1];
+	const grantText = grant ? prose(readIfFile(insideTask(taskDir, `decisions/${grant}`))) : "";
+	const ended = sections(grantText, "Ended");
+	const listed = new Set([...(ended ?? "").matchAll(/\bdecisions\/([a-z0-9][a-z0-9-]*\.md)/g)].map((m) => m[1]));
+	if (kind?.toLowerCase() !== "question")
+		return `decisions/${name} is ${kind ? `a ${kind} decision` : "a decision with no Kind line"}, which waits for the human: an away grant answers question decisions only`;
+	if (name.startsWith("review-")) return `decisions/${name} is a review checkpoint, which waits for the human: an away grant never answers one`;
+	if (!taken) return `decisions/${name} cites decisions/${grant}, so its answer must open with taken`;
+	if (!grant) return `decisions/${name} is taken under no away grant: cite the decisions/away.md the human granted`;
+	if (!GRANTED.test(grantText)) return `decisions/${name} cites decisions/${grant}, which is missing or not granted`;
+	if (!/^Kind:\s*away\b/im.test(grantText)) return `decisions/${name} cites decisions/${grant}, which is not a Kind: away grant`;
+	if (ended !== undefined && !listed.has(name))
+		return `decisions/${name} is taken under decisions/${grant}, which ended without listing it: ask the human, or list it there if you took it before they returned`;
+	return "";
+}
+
+function awayGaps(taskDir) {
+	const dir = join(taskDir, "decisions");
+	return (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md") && !AWAY_GRANT.test(f)) : []).map((name) => awayGap(taskDir, name)).filter(Boolean);
 }
 
 function sha256(path) {
@@ -473,6 +544,172 @@ function hasContent(path) {
 	return stat.isDirectory() ? readdirSync(path).length > 0 : stat.size > 0;
 }
 
+// Bytes on disk under a path, counting a link as itself so nothing outside is read.
+function diskSize(path) {
+	const stat = lstatSync(path);
+	return stat.isDirectory() ? readdirSync(path).reduce((sum, name) => sum + diskSize(join(path, name)), 0) : stat.size;
+}
+
+function humanSize(bytes) {
+	const units = ["B", "KB", "MB", "GB", "TB"];
+	let i = 0;
+	for (; bytes >= 1024 && i < units.length - 1; i++) bytes /= 1024;
+	return i ? `${bytes.toFixed(1)} ${units[i]}` : `${bytes} B`;
+}
+
+function markdownUnder(dir) {
+	if (!existsSync(dir)) return [];
+	return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+		e.isDirectory() ? markdownUnder(join(dir, e.name)) : e.isFile() && e.name.endsWith(".md") ? [join(dir, e.name)] : [],
+	);
+}
+
+const firstLine = (text) => text.trim().split("\n", 1)[0];
+
+// Each autopilot queue under home, with the state of every row in its table that has a State column.
+function programs(home) {
+	const files = existsSync(home) ? readdirSync(home).filter((f) => /^autopilot-[a-z0-9][a-z0-9-]*\.md$/.test(f)).sort() : [];
+	return files.map((file) => {
+		const items = tableRows(readFileSync(join(home, file), "utf8"))
+			.filter(({ header }) => header.includes("state"))
+			.map(({ header, cells }) => {
+				const state = cells[header.indexOf("state")] ?? "";
+				const task = plain(cells[header.includes("task") ? header.indexOf("task") : 0] ?? "");
+				return { task, state, word: plain(state).match(/^[a-z]+(-[a-z]+)*/)?.[0] ?? "blank" };
+			});
+		return { file, items, heartbeat: firstLine(readIfFile(join(home, `${file.slice(0, -3)}-heartbeat.txt`))) };
+	});
+}
+
+// A granted close ends a task with nothing to merge, so its remaining steps may hold skip lines and its decisions a denied answer.
+function waived(closed, path, text) {
+	return closed && path !== "report.md" && Boolean(text.trim()) && (SKIPPED.test(text) || (path.startsWith("decisions/") && ANSWERED_OR_DENIED.test(prose(text))));
+}
+
+function taskFacts(home, queues, id, sized) {
+	const taskDir = join(home, "tasks", id);
+	const task = readTask(taskDir);
+	const text = (path) => readIfFile(insideTask(taskDir, path));
+	const closed = GRANTED.test(prose(text("decisions/close.md")));
+	const steps = task.steps.map((s) => ({ ...s, missing: s.artifacts.filter((path) => !present(taskDir, path, text(path)) && !waived(closed, path, text(path))) }));
+	const cited = new Set([join(taskDir, "report.md"), ...markdownUnder(join(taskDir, "evidence"))].flatMap((f) => prose(readIfFile(f)).match(RESULT) ?? []));
+	return {
+		task,
+		steps,
+		reached: Math.max(0, ...steps.filter((s) => s.artifacts.length && !s.missing.length).map((s) => s.n)),
+		report: Boolean(text("report.md").trim()),
+		closed,
+		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
+		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
+			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
+			.filter(({ name, body }) => {
+				const gap = awayGap(taskDir, name);
+				return gap === undefined ? !ANSWERED_OR_DENIED.test(body) : gap !== "";
+			})
+			.map(({ name, body }) => {
+				const question = body.match(/^#\s+(.+)$/m)?.[1].trim();
+				return `decisions/${name}${question ? `: ${question}` : ""}`;
+			}),
+		uncollected: mdFiles(join(taskDir, "results"))
+			.map((name) => ({ name, verdict: resultVerdict(taskDir, name) }))
+			.filter(({ name, verdict }) => verdict && !cited.has(`results/${name}`))
+			.map(({ name, verdict }) => `results/${name} ends ${verdict}`),
+		running: unfinishedBriefs(taskDir).map((name) => `briefs/${name}`),
+		heartbeat: firstLine(text("heartbeat.txt")),
+		size: sized ? humanSize(diskSize(taskDir)) : undefined,
+	};
+}
+
+// Keeps only the highest-numbered revision of each decision, such as design-2.md over design.md, so a revised gate is judged by its newest file.
+function latestRevisions(names) {
+	const newest = new Map();
+	for (const name of names) {
+		const m = name.match(/^(.*?)(?:-(\d+))?\.md$/);
+		const rev = Number(m[2] ?? 1);
+		if (!(newest.get(m[1])?.rev >= rev)) newest.set(m[1], { name, rev });
+	}
+	return names.filter((name) => [...newest.values()].some((v) => v.name === name));
+}
+
+function summaryLine(f) {
+	const reached = f.reached ? `step ${f.reached} of ${f.steps.length} reached` : "no step reached";
+	const created = typeof f.task.created === "string" ? f.task.created.slice(0, 10) : "unknown";
+	return [f.task.playbook, f.task.kind, f.task.delivery, `created ${created}`, reached, ...(f.report ? ["report written"] : []), ...(f.closed ? ["closed"] : []), ...(f.size ? [f.size] : [])].join(", ");
+}
+
+const UNCOLLECTED = "finished workers no evidence file cites";
+const RUNNING = "briefs with no verdict yet";
+
+function queueLines(q) {
+	if (!q.items.length) return [`program ${q.file}: no queue table with a State column`];
+	const counts = new Map();
+	for (const { word } of q.items) counts.set(word, (counts.get(word) ?? 0) + 1);
+	const tally = [...counts].map(([word, n]) => `${n} ${word}`).join(", ");
+	return [
+		`program ${q.file}: ${q.items.length} item${q.items.length === 1 ? "" : "s"}, ${tally}${q.heartbeat ? `, heartbeat ${q.heartbeat}` : ""}`,
+		...q.items.filter((i) => i.word === "held").map((i) => `  held: ${i.task}: ${i.state}`),
+	];
+}
+
+// Each task's progress, what waits on the human, and what waits to be collected, so a lead or coordinator can answer "where are we?".
+export function status(home, id, sized = false) {
+	const queues = programs(home);
+	if (id !== undefined) {
+		if (!ID.test(id)) throw new Usage(`task id must match ${ID}: ${id}`);
+		const taskDir = join(home, "tasks", id);
+		if (!existsSync(join(taskDir, "task.json"))) throw new Refusal(`no task ${id} at ${taskDir}`);
+		const f = taskFacts(home, queues, id, sized);
+		const list = (label, items) => [`${label}: ${items.length || "none"}`, ...items.map((item) => `  ${item}`)];
+		return [
+			`task ${id}`,
+			`playbook: ${f.task.playbook}, ${f.task.kind}, ${f.task.delivery} delivery, created ${typeof f.task.created === "string" ? f.task.created.slice(0, 10) : "unknown"}`,
+			`goal: ${f.task.goal}`,
+			`finish: ${f.task.finish}`,
+			...(f.size ? [`size: ${f.size}`] : []),
+			...f.steps.map((s) => `step ${s.n} ${!s.artifacts.length ? "names no artifact" : s.missing.length ? `missing ${s.missing.join(", ")}` : "done"}: ${s.text}`),
+			`reached: ${f.reached ? `step ${f.reached} of ${f.steps.length}` : "no step"}`,
+			`report: ${f.report ? "written" : "not written"}`,
+			`closed: ${f.closed ? "yes, decisions/close.md is granted" : "no"}`,
+			...list("held", f.held),
+			...list("open decisions", f.open),
+			...list(UNCOLLECTED, f.uncollected),
+			...list(RUNNING, f.running),
+			`heartbeat: ${f.heartbeat || "none"}`,
+		].join("\n");
+	}
+	const dir = join(home, "tasks");
+	const ids = existsSync(dir) ? readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort() : [];
+	const lines = [`${ids.length} task${ids.length === 1 ? "" : "s"} under ${dir}`];
+	for (const name of ids) {
+		if (!ID.test(name) || !existsSync(join(dir, name, "task.json"))) {
+			lines.push(`${name}: ${ID.test(name) ? "no task.json" : "not a task ID"}`);
+			continue;
+		}
+		let f;
+		try {
+			f = taskFacts(home, queues, name, sized);
+		} catch (err) {
+			lines.push(`${name}: unreadable: ${err.message}`);
+			continue;
+		}
+		// What waits on the human comes in full; workers come as counts, which status <id> lists.
+		lines.push(
+			`${name}: ${summaryLine(f)}`,
+			...f.held.map((item) => `  held: ${item}`),
+			...f.open.map((item) => `  open decision: ${item}`),
+			...[
+				[UNCOLLECTED, f.uncollected],
+				[RUNNING, f.running],
+			]
+				.filter(([, items]) => items.length)
+				.map(([label, items]) => `  ${label}: ${items.length}, which status ${name} lists`),
+			...(f.heartbeat ? [`  heartbeat: ${f.heartbeat}`] : []),
+		);
+	}
+	lines.push(...queues.flatMap(queueLines));
+	return lines.join("\n");
+}
+
 export function parseModels(text) {
 	const lines = new Map();
 	for (const [i, raw] of text.split("\n").entries()) {
@@ -490,7 +727,7 @@ export function parseModels(text) {
 	return lines;
 }
 
-const PANELS = new Set(["architect runners", "arena runners", "arena cross-judge pool", "interrogate reviewers", "review"]);
+const PANELS = new Set(["arena runners", "arena cross-judge pool", "interrogate reviewers", "review"]);
 
 function templateRoles() {
 	const path = join(SKILL_DIR, "..", "tstack-setup", "SKILL.md");
@@ -521,8 +758,10 @@ export function parseSeat(text) {
 	return { harness: m[1].toLowerCase(), model: effort ? m[2].slice(0, at) : m[2], effort, ...(fast ? { fast } : {}) };
 }
 
+// The vendor family: the model ID's first word, with OpenAI's o-series counted as gpt.
 function family(model) {
-	return model.split("/").pop().split("-")[0].toLowerCase();
+	const word = model.split("/").pop().split("-")[0].toLowerCase();
+	return /^o\d+$/.test(word) ? "gpt" : word;
 }
 
 function modelId(model) {
@@ -640,7 +879,7 @@ export function loadModels(home, globalDir = globalHome(), task) {
 }
 
 const SIGN_MS = 60_000;
-const firstLine = (text) => String(text ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "no output";
+const errorLine = (text) => String(text ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "no output";
 
 // What has stopped unattended runs before, each as a line saying what only the human can do about it.
 export function preflight(home, runtime, task, { cwd = process.cwd(), env = process.env, globalDir = globalHome() } = {}) {
@@ -679,7 +918,7 @@ export function preflight(home, runtime, task, { cwd = process.cwd(), env = proc
 			const empty = git(["mktree"], { stdio: ["pipe", "pipe", "pipe"], input: "" }).trim();
 			git(["commit-tree", "-S", "-m", "tstack preflight", empty], { timeout: SIGN_MS, env: { ...env, GIT_TERMINAL_PROMPT: "0" } });
 		} catch (err) {
-			const why = err.code === "ETIMEDOUT" ? `no passphrase within ${SIGN_MS / 1000} seconds` : firstLine(err.stderr);
+			const why = err.code === "ETIMEDOUT" ? `no passphrase within ${SIGN_MS / 1000} seconds` : errorLine(err.stderr);
 			problems.push(`commit.gpgsign is on, and a signed commit failed (${why}): unlock your signing key, such as with its passphrase or your ssh-agent`);
 		}
 
@@ -688,7 +927,7 @@ export function preflight(home, runtime, task, { cwd = process.cwd(), env = proc
 		try {
 			execFileSync("gh", ["auth", "status", "--active"], { env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
 		} catch (err) {
-			problems.push(err.code === "ENOENT" ? "gh is not installed: install the GitHub CLI, which PR delivery and pr-state need" : `gh is not logged in (${firstLine(err.stderr)}): run gh auth login`);
+			problems.push(err.code === "ENOENT" ? "gh is not installed: install the GitHub CLI, which PR delivery and pr-state need" : `gh is not logged in (${errorLine(err.stderr)}): run gh auth login`);
 		}
 
 	if (problems.length) throw new Refusal(problems.join("\n"));
@@ -750,36 +989,101 @@ function lockGaps(home, id, globalDir) {
 }
 
 const SETTLE_MS = 10 * 60 * 1000;
+// How long pr-state waits for a review bot to review the head, counted like the settle from the last push, comment or review.
+// The bound lets a bot that paused or ran out of reviews end as READY bot-unreviewed instead of a wait that never ends.
+const BOT_WAIT_MS = 2 * SETTLE_MS;
 const FAILED_RUN = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "STALE"]);
+// Sections of a review bot's review body, such as CodeRabbit's, whose findings are in no review thread.
+// Its "Actionable comments posted" count is not one of them, because those comments are the review's threads.
+const BODY_FINDINGS = /\b(outside diff range|nitpick|duplicate) comments \((\d+)\)/gi;
+const FINDING_NAMES = { "outside diff range": "outside-diff", nitpick: "nitpick", duplicate: "duplicate" };
+// GitHub's compare API lists at most 300 changed files.
+const COMPARE_FILES = 300;
 const PR_QUERY = `query($owner: String!, $repo: String!, $n: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $n) {
   state isDraft baseRefName mergeable mergeStateStatus reviewDecision headRefOid updatedAt
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage } nodes {
     __typename ... on CheckRun { name status conclusion } ... on StatusContext { context state } } } } } } }
   reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { id isResolved path line } }
+  files(first: 100) { pageInfo { hasNextPage } nodes { path changeType } }
   comments(last: 1) { nodes { createdAt } }
-  reviews(last: 1) { nodes { submittedAt } }
+  reviews(last: 100) { pageInfo { hasPreviousPage } nodes { id submittedAt body author { __typename login } commit { oid } reactionGroups { viewerHasReacted } } }
 } } }`;
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// What the review bots said on this PR. A bot's pass is a review with a body, because a review with an empty body is a reply in a thread.
+// A bot's round count is how many heads it has passed.
+function reviewBots(pr) {
+	const bots = new Map();
+	for (const r of pr.reviews?.nodes ?? []) {
+		const login = r.author?.login;
+		if (!login || !r.body?.trim() || !(r.author.__typename === "Bot" || login.endsWith("[bot]"))) continue;
+		const bot = bots.get(login) ?? { heads: new Set(), onHead: [] };
+		if (r.commit?.oid) bot.heads.add(r.commit.oid);
+		if (r.commit?.oid === pr.headRefOid) bot.onHead.push(r);
+		bots.set(login, bot);
+	}
+	// A bot that passed two heads reviews pushes. One that passed a single head, such as the Codex connector, may review only on request.
+	const missing = [...bots].filter(([, b]) => b.heads.size >= 2 && !b.heads.has(pr.headRefOid)).map(([login]) => login);
+	// Findings in the body of a pass on this head. A reaction from the gh account on that review marks them triaged.
+	const findings = [];
+	for (const [login, b] of bots)
+		for (const r of b.onHead) {
+			if (r.reactionGroups?.some((g) => g.viewerHasReacted)) continue;
+			const counts = new Map();
+			for (const [, label, n] of r.body.matchAll(BODY_FINDINGS)) {
+				const name = FINDING_NAMES[label.toLowerCase()];
+				if (!counts.has(name)) counts.set(name, Number(n));
+			}
+			const items = [...counts].filter(([, n]) => n > 0).map(([name, n]) => `${n} ${name}`);
+			if (items.length) findings.push(`${login} ${r.id} (${items.join(", ")})`);
+		}
+	return {
+		missing,
+		findings: findings.length ? `bot-findings: comments outside any review thread in ${findings.join(", ")}: triage them, then react to each review` : "",
+		rounds: bots.size ? `bot-rounds: ${[...bots].map(([login, b]) => `${login} ${b.heads.size}`).join(", ")}` : "",
+	};
+}
 
 // One verdict for a PR from GitHub's own state. WAITING means nothing is wrong yet but it is not ready.
 // `required` names the base branch's required checks, so one that has not started yet still counts as pending.
-export function prVerdict(pr, now = Date.now(), required = []) {
+// `base` is the compare from the head to the base branch: how many commits the base is ahead, and the files those commits change.
+export function prVerdict(pr, now = Date.now(), required = [], base) {
 	const head = pr.headRefOid?.slice(0, 12) ?? "unknown";
 	// An outdated thread still counts: branch protection's resolve-conversations rule counts it.
-	// Every blocker lists the unresolved threads, so a threads-only pass can resolve them without touching the blocker.
+	// Every blocker lists the unresolved threads and the bot findings, so a threads-only pass can answer them without touching the blocker.
 	const open = (pr.reviewThreads?.nodes ?? []).filter((t) => !t.isResolved);
 	const more = pr.reviewThreads?.pageInfo?.hasNextPage ? " in the first 100, and more to read on GitHub" : "";
 	const list = open.map((t) => `${t.id} ${t.path ?? "?"}${t.line ? `:${t.line}` : ""}`).join(", ");
 	const threads = `review-threads: ${open.length} unresolved${more}${list ? `: ${list}` : ""}`;
+	const bots = reviewBots(pr);
+	const notes = [open.length || more ? threads : "", bots.findings, bots.rounds].filter(Boolean);
 	const say = (verdict, reason) =>
-		`${verdict}${reason ? ` ${reason}` : ""}${verdict === "BLOCKER" && (open.length || more) && reason !== threads ? `; ${threads}` : ""} (head ${head})`;
+		`${verdict}${reason ? ` ${reason}` : ""}${verdict === "BLOCKER" ? notes.filter((n) => n !== reason).map((n) => `; ${n}`).join("") : ""} (head ${head})`;
 	if (pr.state === "MERGED") return say("MERGED");
 	if (pr.state === "CLOSED") return say("CLOSED", "closed without merging");
 	if (pr.isDraft) return say("BLOCKER", "draft: mark it ready");
 	if (pr.mergeable === "CONFLICTING") return say("BLOCKER", "conflicts: merge the base branch in");
+	// A base that moved in files this PR changes can break it with no conflict, so the proof has to run again on the merged tree.
+	if (base?.behind) {
+		const mine = new Set((pr.files?.nodes ?? []).map((f) => f.path));
+		const shared = [...new Set(base.files.filter((f) => mine.has(f)))];
+		// GitHub gives a renamed file's new path only, so a base change to its old path cannot be seen: block on any base change.
+		const renamed = base.files.length > 0 && (pr.files?.nodes ?? []).some((f) => f.changeType === "RENAMED");
+		const unread = base.count >= COMPARE_FILES || (base.count > 0 && pr.files?.pageInfo?.hasNextPage);
+		const which = shared.length
+			? `files this PR changes: ${shared.slice(0, 5).join(", ")}${shared.length > 5 ? ` and ${shared.length - 5} more` : ""}`
+			: unread
+				? "more files than pr-state reads"
+				: "files, and this PR renames a file whose old path GitHub does not report";
+		if (shared.length || unread || renamed)
+			return say("BLOCKER", `base-moved: ${pr.baseRefName} is ${plural(base.behind, "commit")} ahead and changes ${which}; merge it in and run the proof again`);
+	}
 	const commit = pr.commits?.nodes?.[0]?.commit;
 	// ponytail: reads the first 100 checks and threads; page through them if a PR ever has more.
-	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage)
-		return say("BLOCKER", "too-many: over 100 checks or review threads, so read them on GitHub");
+	// It reads the last 100 reviews, and blocks when there are more, because an older bot review on this head could hold findings; and the first 100 files, so base-moved blocks when it cannot read them all.
+	if (commit?.statusCheckRollup?.contexts?.pageInfo?.hasNextPage || pr.reviewThreads?.pageInfo?.hasNextPage || pr.reviews?.pageInfo?.hasPreviousPage)
+		return say("BLOCKER", "too-many: over 100 checks, review threads or reviews, so read them on GitHub");
 	const checks = (commit?.statusCheckRollup?.contexts?.nodes ?? []).map((c) =>
 		c.__typename === "StatusContext"
 			? { name: c.context, failed: ["FAILURE", "ERROR"].includes(c.state), pending: ["PENDING", "EXPECTED"].includes(c.state) }
@@ -788,14 +1092,18 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 	const failed = checks.filter((c) => c.failed).map((c) => c.name);
 	if (failed.length) return say("BLOCKER", `failing-checks: ${failed.join(", ")}`);
 	if (open.length) return say("BLOCKER", threads);
+	if (bots.findings) return say("BLOCKER", bots.findings);
 	if (pr.reviewDecision === "CHANGES_REQUESTED") return say("BLOCKER", "changes-requested");
 	const reported = new Set(checks.map((c) => c.name));
 	const pending = [...checks.filter((c) => c.pending).map((c) => c.name), ...required.filter((name) => !reported.has(name)).map((name) => `${name} (required, not started)`)];
 	if (pending.length) return say("WAITING", `checks: ${pending.join(", ")}`);
 	const latest = Math.max(
-		...[commit?.committedDate, pr.updatedAt, pr.comments?.nodes?.[0]?.createdAt, pr.reviews?.nodes?.[0]?.submittedAt].filter(Boolean).map((t) => Date.parse(t)),
+		...[commit?.committedDate, pr.updatedAt, pr.comments?.nodes?.[0]?.createdAt, ...(pr.reviews?.nodes ?? []).map((r) => r.submittedAt)].filter(Boolean).map((t) => Date.parse(t)),
 	);
-	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment, review or edit was ${Math.round((now - latest) / 1000)}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
+	const ago = Math.round((now - latest) / 1000);
+	if (bots.missing.length && now - latest < BOT_WAIT_MS)
+		return say("WAITING", `bot-review: ${bots.missing.join(", ")} reviewed earlier heads but not this one yet; the last push, comment, review or edit was ${ago}s ago, and bots get ${BOT_WAIT_MS / 60000} minutes`);
+	if (now - latest < SETTLE_MS) return say("WAITING", `settle: the last push, comment, review or edit was ${ago}s ago, and review bots get ${SETTLE_MS / 60000} minutes`);
 	if (pr.mergeable === "UNKNOWN" || pr.mergeStateStatus === "UNKNOWN") return say("WAITING", "mergeable-unknown: GitHub is still computing whether it merges");
 	if (pr.mergeStateStatus === "BEHIND") return say("BLOCKER", "behind-base: merge the base branch in");
 	if (pr.reviewDecision === "REVIEW_REQUIRED") return say("WAITING", "review-required: a human must review");
@@ -803,8 +1111,11 @@ export function prVerdict(pr, now = Date.now(), required = []) {
 	const approval = checks.filter((c) => c.approval).map((c) => c.name);
 	if (approval.length) return say("WAITING", `approval: ${approval.join(", ")} waits on a person`);
 	if (pr.mergeStateStatus === "BLOCKED") return say("BLOCKER", "merge-blocked: a branch rule GitHub does not name blocks the merge");
-	if (!checks.length) return say("READY", "ci-none: no checks reported; trust it only when a second run on the same head agrees");
-	return say("READY");
+	const ready = [];
+	if (!checks.length) ready.push("ci-none: no checks reported; trust it only when a second run on the same head agrees");
+	if (bots.missing.length) ready.push(`bot-unreviewed: ${bots.missing.join(", ")} reviewed earlier heads but not this one in ${BOT_WAIT_MS / 60000} minutes; ask once for a review of this head`);
+	if (base?.behind) ready.push(`base: ${pr.baseRefName} is ${plural(base.behind, "commit")} ahead, in none of this PR's files`);
+	return say("READY", ready.join("; "));
 }
 
 const TRANSIENT = /HTTP (5\d\d|429)|secondary rate limit|timed? ?out|connection (reset|refused)|\bEOF\b|temporar|could not resolve host|TLS handshake/i;
@@ -818,7 +1129,7 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 function gh(args) {
 	for (let attempt = 0; ; attempt++) {
 		try {
-			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+			return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
 		} catch (err) {
 			const message = String(err.stderr || err.message).trim();
 			if (attempt === 4 || !isTransient(message)) throw new Error(message);
@@ -827,12 +1138,15 @@ function gh(args) {
 	}
 }
 
+// A branch name as a URL path, so a character such as `#` or `?` stays part of the name.
+export const refPath = (ref) => ref.split("/").map(encodeURIComponent).join("/");
+
 // The base branch's required checks, from rulesets and from classic branch protection.
 // Reading protection needs admin rights, so a refusal means only that this source is unknown.
 function requiredChecks(base) {
 	const sources = [
-		[`repos/{owner}/{repo}/rules/branches/${base}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
-		[`repos/{owner}/{repo}/branches/${base}/protection/required_status_checks`, ".contexts[]?"],
+		[`repos/{owner}/{repo}/rules/branches/${refPath(base)}`, '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'],
+		[`repos/{owner}/{repo}/branches/${refPath(base)}/protection/required_status_checks`, ".contexts[]?"],
 	];
 	const names = new Set();
 	for (const [path, jq] of sources) {
@@ -841,6 +1155,12 @@ function requiredChecks(base) {
 		} catch {}
 	}
 	return [...names];
+}
+
+// How far the base branch is ahead of the head, and the files it changed since they parted, in one compare call.
+function baseAhead(pr) {
+	const jq = "{behind: .ahead_by, count: (.files // [] | length), files: [.files[]? | .filename, (.previous_filename // empty)]}";
+	return JSON.parse(gh(["api", `repos/{owner}/{repo}/compare/${pr.headRefOid}...${refPath(pr.baseRefName)}`, "--jq", jq]));
 }
 
 export function prState(number, waitSeconds = 0) {
@@ -858,15 +1178,23 @@ export function prState(number, waitSeconds = 0) {
 		const body = JSON.parse(raw);
 		if (body.errors?.length || !body.data?.repository?.pullRequest) throw new Refusal(`gh could not read PR ${number}: ${JSON.stringify(body.errors ?? body)}`);
 		const pr = body.data.repository.pullRequest;
-		if (pr.state === "OPEN") required ??= requiredChecks(pr.baseRefName);
-		const verdict = prVerdict(pr, Date.now(), required ?? []);
+		let base;
+		if (pr.state === "OPEN") {
+			required ??= requiredChecks(pr.baseRefName);
+			try {
+				base = baseAhead(pr);
+			} catch (err) {
+				throw new Refusal(`gh could not compare PR ${number}'s head with ${pr.baseRefName}: ${err.message}`);
+			}
+		}
+		const verdict = prVerdict(pr, Date.now(), required ?? [], base);
 		const left = deadline - Date.now();
 		if (!verdict.startsWith("WAITING") || left <= 0) return verdict;
 		sleep(Math.min(60_000, left));
 	}
 }
 
-const BOOLEAN_FLAGS = new Set(["--project-skills"]);
+const BOOLEAN_FLAGS = new Set(["--project-skills", "--size"]);
 
 function flags(args) {
 	const out = { _: [] };
@@ -883,6 +1211,7 @@ const ALLOWED = {
 	home: [],
 	brief: ["playbook", "goal", "finish", "kind", "delivery"],
 	check: ["through", "head"],
+	status: ["size"],
 	seat: ["runtime", "task", "cross", "avoid"],
 	"check-seats": ["task"],
 	preflight: ["runtime", "task"],
@@ -911,6 +1240,9 @@ export function main(argv) {
 			if (through !== undefined && !(Number.isInteger(through) && through > 0)) throw new Usage(`--through must be a step number: ${f.through}`);
 			return check(taskHome(), f._[0], through, f.head);
 		}
+		case "status":
+			if (f._.length > 1) throw new Usage("status takes at most one task id");
+			return status(taskHome(), f._[0], f.size === true);
 		case "seat":
 			if (f._.length < 1) throw new Usage("seat takes a role name");
 			return seat(loadModels(taskHome(), undefined, f.task), f._.join(" "), f.runtime, f.cross, f.avoid)
@@ -938,7 +1270,7 @@ export function main(argv) {
 			if (f._.length !== 1) throw new Usage("link-skills takes one worktree path");
 			return linkSkills(process.cwd(), f._[0]);
 		default:
-			throw new Usage("commands: home, brief, check, seat, check-seats, preflight, lock, unlock, pr-state, exclude, link-skills");
+			throw new Usage("commands: home, brief, check, status, seat, check-seats, preflight, lock, unlock, pr-state, exclude, link-skills");
 	}
 }
 
