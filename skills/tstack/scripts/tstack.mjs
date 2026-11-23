@@ -42,6 +42,8 @@ const HASHED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{64})\b/im;
 const COMMITTED_SUBJECT = /^Subject:[^\n`]*`([^`]+)`[^\n]*?\b([0-9a-f]{7,40})\b/im;
 const REVIEW_HEAD = /^Head ([0-9a-f]{7,40}), round (\d+)\s*$/;
 const CHECKED_SPEC = /^(\/\S+) sha256 ([0-9a-f]{64})$/m;
+const AWAY_GRANT = /^away(-\d+)?\.md$/;
+const CITED_GRANT = /\bdecisions\/(away(?:-\d+)?\.md)\b/;
 
 export class Refusal extends Error {}
 class Usage extends Error {}
@@ -270,7 +272,7 @@ export function check(home, id, through, head, cwd = process.cwd()) {
 	}
 	if (through === undefined) problems.push(...workerGaps(taskDir));
 	if (head !== undefined) problems.push(...headGaps(taskDir, head, cwd, task.delivery === "pr" && through === undefined, closed));
-	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed));
+	problems.push(...reviewCapGaps(taskDir, closed), ...staleGaps(taskDir, cwd, closed), ...awayGaps(taskDir));
 	if (problems.length) throw new Refusal(problems.join("\n"));
 	return `ok ${id}: ${wanted.length} required file${wanted.length === 1 ? "" : "s"} present`;
 }
@@ -426,6 +428,41 @@ function reviewCapGaps(taskDir, closed) {
 	return gaps;
 }
 
+// The bodies of every `## <heading>` section, joined, or undefined when the markdown has none.
+function sections(markdown, heading) {
+	const parts = markdown.split(/^(?=##\s)/m).filter((part) => new RegExp(`^##\\s+${heading}\\s*$`, "i").test(part.split("\n", 1)[0]));
+	return parts.length ? parts.map((part) => part.slice(part.indexOf("\n") + 1)).join("\n") : undefined;
+}
+
+// A lead answers a question itself only under the human's granted away grant, and only until the human returns.
+// What is wrong with one decision's use of an away grant: undefined when it neither opens with taken nor cites a grant, "" when its use is sound.
+function awayGap(taskDir, name) {
+	const text = prose(readIfFile(insideTask(taskDir, `decisions/${name}`)));
+	const answer = sections(text, "Answer") ?? "";
+	const taken = /^\s*taken\b/i.test(answer);
+	const grant = answer.match(CITED_GRANT)?.[1];
+	if (!taken && !grant) return undefined;
+	const kind = text.match(/^Kind:\s*(\S+)/im)?.[1];
+	const grantText = grant ? prose(readIfFile(insideTask(taskDir, `decisions/${grant}`))) : "";
+	const ended = sections(grantText, "Ended");
+	const listed = new Set([...(ended ?? "").matchAll(/\bdecisions\/([a-z0-9][a-z0-9-]*\.md)/g)].map((m) => m[1]));
+	if (kind?.toLowerCase() !== "question")
+		return `decisions/${name} is ${kind ? `a ${kind} decision` : "a decision with no Kind line"}, which waits for the human: an away grant answers question decisions only`;
+	if (name.startsWith("review-")) return `decisions/${name} is a review checkpoint, which waits for the human: an away grant never answers one`;
+	if (!taken) return `decisions/${name} cites decisions/${grant}, so its answer must open with taken`;
+	if (!grant) return `decisions/${name} is taken under no away grant: cite the decisions/away.md the human granted`;
+	if (!GRANTED.test(grantText)) return `decisions/${name} cites decisions/${grant}, which is missing or not granted`;
+	if (!/^Kind:\s*away\b/im.test(grantText)) return `decisions/${name} cites decisions/${grant}, which is not a Kind: away grant`;
+	if (ended !== undefined && !listed.has(name))
+		return `decisions/${name} is taken under decisions/${grant}, which ended without listing it: ask the human, or list it there if you took it before they returned`;
+	return "";
+}
+
+function awayGaps(taskDir) {
+	const dir = join(taskDir, "decisions");
+	return (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md") && !AWAY_GRANT.test(f)) : []).map((name) => awayGap(taskDir, name)).filter(Boolean);
+}
+
 function sha256(path) {
 	return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
@@ -544,7 +581,10 @@ function taskFacts(home, queues, id, sized) {
 		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
 		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
-			.filter(({ body }) => !ANSWERED_OR_DENIED.test(body))
+			.filter(({ name, body }) => {
+				const gap = awayGap(taskDir, name);
+				return gap === undefined ? !ANSWERED_OR_DENIED.test(body) : gap !== "";
+			})
 			.map(({ name, body }) => {
 				const question = body.match(/^#\s+(.+)$/m)?.[1].trim();
 				return `decisions/${name}${question ? `: ${question}` : ""}`;

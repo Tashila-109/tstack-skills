@@ -221,7 +221,11 @@ Each principle's leaf is `../principle-<name>/SKILL.md` beside this skill.
 
 **Always stop** for irreversible actions: force-pushes, deploys, data deletion, messages to people outside the project, and every merge. Rules 2 and 3 above own these.
 
-**Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going. They never extend to merging or discarding work.
+**Session overrides:** "Don't stop" / "run until done" / "be fully autonomous" → keep going. They never extend to merging or discarding work.
+
+**Away.** "afk" / "I'm away" / "stepping out" / "going to bed" / "babysit the rest" → keep going, and take your own recommendation on `question` decisions under an away grant, as [decisions.md](references/decisions.md#while-the-human-is-away) says.
+Away mode applies to whichever playbook is running, and never switches playbooks.
+Gates, merges and everything under **Always stop** still wait for the human.
 
 **Full stop and full send.** A task request that says "full stop" or "full send" asks for the task carried to a PR while the human is away.
 It is not a request to stop, as in Lead step 7.
