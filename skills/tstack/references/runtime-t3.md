@@ -79,7 +79,8 @@ When the launch is refused, ask the human to open a thread in New worktree mode 
    - a base the human or the brief names;
    - otherwise, for an item that builds on another item, such as in autopilot-stack, or on commits not yet pushed, that local branch, with `startFromOrigin: false`;
    - otherwise, for independent work, the default branch on its remote, such as `origin/main`, with `startFromOrigin: true`, or the local default branch with `false` when the project has no remote.
-     Find the remote with `git remote` and its default branch with `git rev-parse --abbrev-ref <remote>/HEAD`, rather than assuming `origin`.
+     Read it from the branch the local default tracks, `git for-each-ref --format='%(upstream:short)' refs/heads/<default>`, rather than assuming `origin`.
+     When that prints nothing, use the local default branch with `false`.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": <from step 2> }`;
@@ -274,8 +275,7 @@ When the human has browser access on in T3, every session has T3's browser tools
 Device access gives the simulator tools the same way.
 Use them to drive a web UI or a simulator only when the current request, your brief, or the project's `verify-*` skill asks for that work.
 Rules below follow T3's browser and device instructions, per T3 source at 4f7c529085 (2026-11-27); not yet measured live.
-For a web UI, a verify skill that names its own driver keeps it.
-Otherwise switch to another browser driver only when the tools are absent, `preview_open` says the browser is unsupported, the human asks, or two preview calls fail on one step, and quote the error when you switch.
+For a web UI, switch to another browser driver, such as one a verify skill names, only when the tools are absent, `preview_open` says the browser is unsupported, the human asks, or two preview calls fail on one step, and quote the error when you switch.
 For a simulator, always use the device tools, even when a verify skill or a brief names another driver such as `xcrun simctl`, `idb` or `adb`.
 Drive a device another way only when the human explicitly asks.
 Those commands stay fine for builds, installs, logs and what `agent-device` cannot do.
