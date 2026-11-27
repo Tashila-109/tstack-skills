@@ -194,8 +194,10 @@ Watch only while the PR waits on something that will happen without you, such as
    On `WAITING review-required` or `WAITING approval`, first tell the human the PR waits on their review or approval.
    Once the watch is armed, run `pr-state` once more before you end your turn, because a review that landed before the watch was armed wakes nothing.
    This also covers a result whose `next` says the checks already pass.
-   Act on a verdict that is not `WAITING` now, and on a `WAITING` that only a review, an approval or another event will end, leave the watch armed and end your turn.
-   With a watch already armed, skip the call and end your turn.
+   With a watch already armed, skip the call.
+   Act on a verdict that is not `WAITING` now.
+   On a `WAITING` that no watch event ends, arm the heartbeat as the paragraph below says before you end your turn, whether or not the watch was already armed.
+   On any other `WAITING`, leave the watch armed and end your turn.
 5. On each wake, start again at step 1.
    A wake is news, not a merge decision.
 6. When you stop, or the PR merges, call `unwatch_pull_request`.
