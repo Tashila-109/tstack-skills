@@ -61,7 +61,7 @@ The reply says what the page means, the conclusion or the decision it supports, 
 ## A running app
 
 To show a web app or a simulator as it runs, follow [Proving on the real surface](../tstack/references/runtime-t3.md#proving-on-the-real-surface).
-Use T3's browser and device tools only when the request or the project's verify skill asks for that work, and close each preview tab you opened.
+That section owns when to use T3's browser and device tools, which tab to reuse, and which tabs to close.
 A screenshot you saved from them goes into a page by its absolute path.
 
 ## In a tstack task

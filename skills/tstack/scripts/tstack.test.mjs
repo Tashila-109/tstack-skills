@@ -268,6 +268,29 @@ test("check-seats names each seat T3 does not advertise, and the ID it goes by",
 	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5\n${instances}`), bare, null), /model not advertised/);
 });
 
+test("check-seats resolves a seat T3's short list left out from a saved search, and reports an unsearched one apart", () => {
+	const option = { id: "effort", values: ["medium", "high"] };
+	const short = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [{ id: "claude-opus-5-5", options: [option] }], omittedModels: 4 }] };
+	const instances = "t3 instances: claude=claudeAgent/effort";
+	const lines = parseModels(`lead: claude/claude-opus-5-5@high\nbug-fix: claude/claude-sonnet-5-5@high\n${instances}`);
+	assert.throws(() => checkSeats(lines, short, null), (err) => {
+		assert.match(err.message, /^incomplete catalog: these seats are unchecked until a search lists them\nbug-fix: claudeAgent claude-sonnet-5-5: not in T3's short list, which left out 4 models; save orchestrator_capabilities with search "claude-sonnet-5-5"/);
+		assert.doesNotMatch(err.message, /not advertised/);
+		return true;
+	});
+	const found = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [{ id: "claude-sonnet-5-5", options: [option] }], omittedModels: 0 }] };
+	assert.equal(checkSeats(lines, [short, found], null), "ok: 2 seats advertised");
+	const wrongEffort = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [{ id: "claude-sonnet-5-5", options: [{ id: "effort", values: ["low"] }] }] }] };
+	assert.throws(() => checkSeats(lines, [short, wrongEffort], null), /bug-fix: claudeAgent claude-sonnet-5-5: effort high not offered \(low\)/);
+	const none = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [] }] };
+	assert.throws(() => checkSeats(lines, [short, none], null), /claude-sonnet-5-5: model not advertised, unless a search for "claude-sonnet-5-5" lists it$/);
+	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5@max\nbug-fix: claude/claude-sonnet-5-5\n${instances}`), short, null), (err) => {
+		assert.match(err.message, /^lead: claudeAgent claude-opus-5-5: effort max not offered/);
+		assert.match(err.message, /\nincomplete catalog: /);
+		return true;
+	});
+});
+
 test("check-seats reads a real T3 catalog: provider reasons, cross-provider limits, boolean options and panel families", () => {
 	const caps = JSON.parse(readFileSync(new URL("./t3-catalog.fixture.json", import.meta.url), "utf8"));
 	const instances = "t3 instances: claude=claudeAgent/effort, codex=codex/reasoningEffort, pi=pi/thinking, grok=grok/reasoningEffort, open=opencode/x";
