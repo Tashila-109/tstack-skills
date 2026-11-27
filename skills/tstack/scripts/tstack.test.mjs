@@ -995,6 +995,14 @@ test("preflight names each seat that will not resolve, a locked signing key and 
 	assert.match(run("t3", "local"), /^ok: /);
 	assert.throws(() => run("herdr", "local"), /seat "verify": no Herdr fast-mode flag known for harness claude/m);
 	assert.throws(() => run("t3", "nope"), /no task nope at/);
+
+	const long = "a".repeat(25);
+	brief(home, long, { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => run("herdr", long), new RegExp(`task id ${long} is 25 characters, and Herdr agent names hold 32, .*at most 24 characters$`, "m"));
+	assert.match(run("t3", long), /^ok: /, "only Herdr limits the name");
+	const fits = "a".repeat(24);
+	brief(home, fits, { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.match(run("herdr", fits), /^ok: /);
 });
 
 test("lock is held by one task at a time, and a finished task must have released it", () => {
