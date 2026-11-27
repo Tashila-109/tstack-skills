@@ -911,20 +911,20 @@ export function seat(models, role, runtime, cross, avoid) {
 
 // T3 returns a short model list per instance and counts the rest in `omittedModels`, so a model can be missing only from the list.
 // Each further catalog, such as an `orchestrator_capabilities` result for `search: "<model>"`, adds its models to the instance's.
-// A model counts as not advertised only when some catalog lists that instance with nothing omitted.
-function mergeCatalogs(catalogs) {
+// A search lists only its matches and does not echo its term, so it proves the models it lists and nothing about the rest.
+// A model counts as not advertised only when the first catalog, the short list, lists that instance with nothing omitted.
+function mergeCatalogs([first, ...searches]) {
 	const providers = new Map();
-	for (const caps of catalogs)
+	for (const p of first?.providers ?? [])
+		providers.set(p.providerInstanceId, { ...p, models: [...(p.models ?? [])], complete: !(p.omittedModels > 0), omittedModels: p.omittedModels ?? 0 });
+	for (const caps of searches)
 		for (const p of caps.providers ?? []) {
 			const seen = providers.get(p.providerInstanceId);
-			const complete = !(p.omittedModels > 0);
 			if (!seen) {
-				providers.set(p.providerInstanceId, { ...p, models: [...(p.models ?? [])], complete, shortListOmitted: p.omittedModels ?? 0 });
+				providers.set(p.providerInstanceId, { ...p, models: [...(p.models ?? [])], complete: false, omittedModels: p.omittedModels ?? 0 });
 				continue;
 			}
 			for (const m of p.models ?? []) if (!seen.models.some((x) => x.id === m.id)) seen.models.push(m);
-			seen.complete ||= complete;
-			seen.omittedModels = Math.min(seen.omittedModels ?? 0, p.omittedModels ?? 0);
 		}
 	return providers;
 }
@@ -956,10 +956,11 @@ export function checkSeats(models, caps, roles = templateRoles()) {
 				problems.add(`${where}: instance ${s.providerInstanceId} cannot run a child for a parent on another provider${why}`);
 			else if (!model) {
 				const near = provider.models.filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
-				if (near.length) problems.add(`${where}: model not advertised; advertised as ${near.join(" or ")}`);
-				else if (!provider.complete)
-					unlisted.add(`${where}: not in T3's short list, which left out ${provider.omittedModels} model${provider.omittedModels === 1 ? "" : "s"}; save orchestrator_capabilities with search "${s.model}" and pass that file too`);
-				else problems.add(`${where}: model not advertised${provider.shortListOmitted > 0 ? `, unless a search for "${s.model}" lists it` : ""}`);
+				const hint = near.length ? `; listed as ${near.join(" or ")}` : "";
+				if (!provider.complete)
+					unlisted.add(`${where}: not in T3's short list, which left out ${provider.omittedModels} model${provider.omittedModels === 1 ? "" : "s"}, or in a saved search${hint}; save orchestrator_capabilities with search "${s.model}" and pass that file too`);
+				else if (near.length) problems.add(`${where}: model not advertised; advertised as ${near.join(" or ")}`);
+				else problems.add(`${where}: model not advertised`);
 			} else
 				for (const o of s.options ?? []) {
 					// T3 lists an option's choices as `values`, or in older catalogs as `options` beside a `type`.

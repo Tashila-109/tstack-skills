@@ -274,7 +274,7 @@ test("check-seats resolves a seat T3's short list left out from a saved search, 
 	const instances = "t3 instances: claude=claudeAgent/effort";
 	const lines = parseModels(`lead: claude/claude-opus-5-5@high\nbug-fix: claude/claude-sonnet-5-5@high\n${instances}`);
 	assert.throws(() => checkSeats(lines, short, null), (err) => {
-		assert.match(err.message, /^incomplete catalog: these seats are unchecked until a search lists them\nbug-fix: claudeAgent claude-sonnet-5-5: not in T3's short list, which left out 4 models; save orchestrator_capabilities with search "claude-sonnet-5-5"/);
+		assert.match(err.message, /^incomplete catalog: these seats are unchecked until a search lists them\nbug-fix: claudeAgent claude-sonnet-5-5: not in T3's short list, which left out 4 models, or in a saved search; save orchestrator_capabilities with search "claude-sonnet-5-5"/);
 		assert.doesNotMatch(err.message, /not advertised/);
 		return true;
 	});
@@ -283,7 +283,15 @@ test("check-seats resolves a seat T3's short list left out from a saved search, 
 	const wrongEffort = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [{ id: "claude-sonnet-5-5", options: [{ id: "effort", values: ["low"] }] }] }] };
 	assert.throws(() => checkSeats(lines, [short, wrongEffort], null), /bug-fix: claudeAgent claude-sonnet-5-5: effort high not offered \(low\)/);
 	const none = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [] }] };
-	assert.throws(() => checkSeats(lines, [short, none], null), /claude-sonnet-5-5: model not advertised, unless a search for "claude-sonnet-5-5" lists it$/);
+	assert.throws(() => checkSeats(lines, [short, none], null), /incomplete catalog: .*\nbug-fix: claudeAgent claude-sonnet-5-5: not in T3's short list, which left out 4 models, or in a saved search;/s);
+	const three = parseModels(`lead: claude/claude-opus-5-5@high\nbug-fix: claude/claude-sonnet-5-5@high\nreview: claude/claude-haiku-5-5@high\n${instances}`);
+	assert.throws(() => checkSeats(three, [short, found], null), (err) => {
+		assert.match(err.message, /review: claudeAgent claude-haiku-5-5: not in T3's short list/, "a search for one model says nothing about another");
+		assert.doesNotMatch(err.message, /not advertised|bug-fix/);
+		return true;
+	});
+	const suffixed = { providers: [{ providerInstanceId: "claudeAgent", canRunChildTask: true, models: [{ id: "vendor/claude-sonnet-5-5" }] }] };
+	assert.throws(() => checkSeats(lines, [short, suffixed], null), /bug-fix: claudeAgent claude-sonnet-5-5: not in T3's short list, .*; listed as vendor\/claude-sonnet-5-5;/, "a suffix match does not reject an ID still left out");
 	assert.throws(() => checkSeats(parseModels(`lead: claude/claude-opus-5-5@max\nbug-fix: claude/claude-sonnet-5-5\n${instances}`), short, null), (err) => {
 		assert.match(err.message, /^lead: claudeAgent claude-opus-5-5: effort max not offered/);
 		assert.match(err.message, /\nincomplete catalog: /);

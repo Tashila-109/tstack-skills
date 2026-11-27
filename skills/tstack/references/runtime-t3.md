@@ -78,7 +78,8 @@ When the launch is refused, ask the human to open a thread in New worktree mode 
 2. Pick the base, per T3 source at 4f7c529085 (2026-11-27); not yet measured live:
    - a base the human or the brief names;
    - otherwise, for an item that builds on another item, such as in autopilot-stack, or on commits not yet pushed, that local branch, with `startFromOrigin: false`;
-   - otherwise, for independent work, the default branch as `origin/<default>` with `startFromOrigin: true`, or the local default branch with `false` when the project has no remote.
+   - otherwise, for independent work, the default branch on its remote, such as `origin/main`, with `startFromOrigin: true`, or the local default branch with `false` when the project has no remote.
+     Find the remote with `git remote` and its default branch with `git rev-parse --abbrev-ref <remote>/HEAD`, rather than assuming `origin`.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": <from step 2> }`;
@@ -184,7 +185,8 @@ Watch only while the PR waits on something that will happen without you, such as
 4. On `WAITING`, call `watch_pull_request` with the PR's `url`, and with `until: "merged"` when you merge it yourself under a grant, then end your turn.
    A new watch lasts until checks finish by default, and `until: "merged"` keeps the thread working until it merges, closes or is unwatched.
    On `WAITING review-required` or `WAITING approval`, first tell the human the PR waits on their review or approval.
-   When the result's `next` says the checks already pass, act on it now, from step 2.
+   When the result's `next` says the checks already pass, run `pr-state` once more.
+   Act on a verdict that is not `WAITING` now, and on a `WAITING` that only a review, an approval or another event will end, leave the watch armed and end your turn.
 5. On each wake, start again at step 1.
    A wake is news, not a merge decision.
 6. When you stop, or the PR merges, call `unwatch_pull_request`.
@@ -270,9 +272,13 @@ The project holds other scheduled tasks, so never delete one whose ID you did no
 
 When the human has browser access on in T3, every session has T3's browser tools, a delegated worker's included.
 Device access gives the simulator tools the same way.
-Use them to drive a web UI or a simulator only when the current request, your brief, or the project's `verify-*` skill asks for that work, and the verify skill names no driver of its own.
+Use them to drive a web UI or a simulator only when the current request, your brief, or the project's `verify-*` skill asks for that work.
 Rules below follow T3's browser and device instructions, per T3 source at 4f7c529085 (2026-11-27); not yet measured live.
-Switch to the verify skill's driver only when the tools are absent, `preview_open` says the browser is unsupported, the human asks, or two preview calls fail on one step, and quote the error when you switch.
+For a web UI, a verify skill that names its own driver keeps it.
+Otherwise switch to another browser driver only when the tools are absent, `preview_open` says the browser is unsupported, the human asks, or two preview calls fail on one step, and quote the error when you switch.
+For a simulator, always use the device tools, even when a verify skill or a brief names another driver such as `xcrun simctl`, `idb` or `adb`.
+Drive a device another way only when the human explicitly asks.
+Those commands stay fine for builds, installs, logs and what `agent-device` cannot do.
 
 - A web UI: call `preview_status` first, and reuse a tab it lists that can be automated.
   Otherwise call `preview_open`, then `preview_navigate` with `{ "target": { "kind": "environment-port", "port": <dev server port> } }`.
