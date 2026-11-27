@@ -64,7 +64,7 @@ Stop and ask the human to run `tstack-setup`.
 
 When a seat fails to launch, because the provider is down, logged out, or lacks the model:
 - a single-seat role stops, and the lead asks the human;
-  on T3, `tstack.mjs check-seats` on a saved `orchestrator_capabilities` result names each failing seat, and the ID its model goes by when only the provider prefix differs;
+  on T3, `tstack.mjs check-seats` on a saved `orchestrator_capabilities` result names each failing seat, the ID its model goes by when only the provider prefix differs, and each seat T3's short list left out, which a saved `search` result settles;
 - a panel continues with the seats that launched, and the result names each dropout.
 
 Never run a seat on a different model than the one configured without the human's word.

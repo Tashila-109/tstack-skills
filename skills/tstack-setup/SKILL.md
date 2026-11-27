@@ -118,6 +118,7 @@ Write `~/.tstack/models.md` by default, replacing the whole file so a rerun give
 Write `<home>/models.md` only when the human wants this project to differ, and put only the differing lines in it.
 Then run `tstack.mjs seat lead --runtime t3`, `--runtime herdr` or `--runtime standalone`, for the runtime in use, and confirm it prints a seat.
 On T3, also run `tstack.mjs check-seats <file>` on the saved `orchestrator_capabilities` result, and fix every line it names.
+Settle an `incomplete catalog` as [runtime-t3.md](../tstack/references/runtime-t3.md#facts-to-rely-on) says.
 It names a provider T3 cannot run with T3's own reason, such as a CLI that is not logged in, and a panel role whose seats share one model family.
 It checks the global and the project file together, so run it again whenever either file changes, including a project file written by hand.
 Last, run `tstack.mjs preflight --runtime <runtime>` and tell the human each line it prints.

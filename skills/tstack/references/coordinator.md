@@ -9,6 +9,8 @@ The queue is a table with a `Task` column and a `State` column, because `status`
 Answer a status question as the router's [Status](../SKILL.md#status) says, from `tstack.mjs status` with no ID.
 
 1. Before the first lead starts, run `tstack.mjs preflight --runtime <runtime>`, and on T3 `tstack.mjs check-seats <file>` on a freshly saved `orchestrator_capabilities` result, as the router's Intake does for unattended work.
+   That check covers your own thread only, and each lead checks its own before it delegates, as [runtime-t3.md](runtime-t3.md#facts-to-rely-on) says.
+   The human's request for the program is their request for the leads' new threads.
    Ask the human once for everything they name, and start the program playbook only when each check you ran passes.
    Run the program playbook.
    For each lead it starts, run `tstack.mjs brief` for the item, then launch-lead per the runtime reference, with your own thread or agent name as the launch block's `coordinator:`.

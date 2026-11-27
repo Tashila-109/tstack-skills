@@ -8,7 +8,7 @@
 //   node tstack.mjs backlog <id>
 //   node tstack.mjs status [<id>]
 //   node tstack.mjs seat <role> --runtime t3|herdr|standalone [--task <id>] [--cross <model> [--avoid <model>,...]]
-//   node tstack.mjs check-seats <saved orchestrator_capabilities result> [--task <id>]
+//   node tstack.mjs check-seats <saved orchestrator_capabilities result> [<saved search result>...] [--task <id>]
 //   node tstack.mjs preflight [--runtime t3|herdr|standalone] [--task <id>]
 //   node tstack.mjs lock <name> --task <id>
 //   node tstack.mjs unlock <name> --task <id>
@@ -909,9 +909,30 @@ export function seat(models, role, runtime, cross, avoid) {
 	});
 }
 
+// T3 returns a short model list per instance and counts the rest in `omittedModels`, so a model can be missing only from the list.
+// Each further catalog, such as an `orchestrator_capabilities` result for `search: "<model>"`, adds its models to the instance's.
+// A search lists only its matches and does not echo its term, so it proves the models it lists and nothing about the rest.
+// A model counts as not advertised only when the first catalog, the short list, lists that instance with nothing omitted.
+function mergeCatalogs([first, ...searches]) {
+	const providers = new Map();
+	for (const p of first?.providers ?? [])
+		providers.set(p.providerInstanceId, { ...p, models: [...(p.models ?? [])], complete: !(p.omittedModels > 0), omittedModels: p.omittedModels ?? 0 });
+	for (const caps of searches)
+		for (const p of caps.providers ?? []) {
+			const seen = providers.get(p.providerInstanceId);
+			if (!seen) {
+				providers.set(p.providerInstanceId, { ...p, models: [...(p.models ?? [])], complete: false, omittedModels: p.omittedModels ?? 0 });
+				continue;
+			}
+			for (const m of p.models ?? []) if (!seen.models.some((x) => x.id === m.id)) seen.models.push(m);
+		}
+	return providers;
+}
+
 export function checkSeats(models, caps, roles = templateRoles()) {
-	const providers = new Map((caps.providers ?? []).map((p) => [p.providerInstanceId, p]));
+	const providers = mergeCatalogs(Array.isArray(caps) ? caps : [caps]);
 	const problems = new Set();
+	const unlisted = new Set();
 	const checked = new Set();
 	for (const role of roles ?? []) if (!models.has(role)) problems.add(`no line for role "${role}"; every role needs one`);
 	for (const role of models.keys()) {
@@ -934,8 +955,12 @@ export function checkSeats(models, caps, roles = templateRoles()) {
 			else if (provider.canRunCrossProviderChildTask === false)
 				problems.add(`${where}: instance ${s.providerInstanceId} cannot run a child for a parent on another provider${why}`);
 			else if (!model) {
-				const near = (provider.models ?? []).filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
-				problems.add(`${where}: model not advertised${near.length ? `; advertised as ${near.join(" or ")}` : ""}`);
+				const near = provider.models.filter((m) => m.id.endsWith(`/${s.model}`)).map((m) => m.id);
+				const hint = near.length ? `; listed as ${near.join(" or ")}` : "";
+				if (!provider.complete)
+					unlisted.add(`${where}: not in T3's short list, which left out ${provider.omittedModels} model${provider.omittedModels === 1 ? "" : "s"}, or in a saved search${hint}; save orchestrator_capabilities with search "${s.model}" and pass that file too`);
+				else if (near.length) problems.add(`${where}: model not advertised; advertised as ${near.join(" or ")}`);
+				else problems.add(`${where}: model not advertised`);
 			} else
 				for (const o of s.options ?? []) {
 					// T3 lists an option's choices as `values`, or in older catalogs as `options` beside a `type`.
@@ -947,6 +972,7 @@ export function checkSeats(models, caps, roles = templateRoles()) {
 				}
 		}
 	}
+	if (unlisted.size) problems.add(["incomplete catalog: these seats are unchecked until a search lists them", ...unlisted].join("\n"));
 	if (problems.size) throw new Refusal([...problems].join("\n"));
 	return `ok: ${checked.size} seat${checked.size === 1 ? "" : "s"} advertised`;
 }
@@ -1356,9 +1382,12 @@ export function main(argv) {
 				.map((s) => JSON.stringify(s))
 				.join("\n");
 		case "check-seats": {
-			if (f._.length !== 1) throw new Usage("check-seats takes the path of a saved orchestrator_capabilities result");
-			const caps = JSON.parse(readFileSync(f._[0], "utf8"));
-			return checkSeats(loadModels(taskHome(), undefined, f.task), Array.isArray(caps) ? JSON.parse(caps[0].text) : caps);
+			if (!f._.length) throw new Usage("check-seats takes the paths of saved orchestrator_capabilities results, the short list first");
+			const catalogs = f._.map((path) => {
+				const caps = JSON.parse(readFileSync(path, "utf8"));
+				return Array.isArray(caps) ? JSON.parse(caps[0].text) : caps;
+			});
+			return checkSeats(loadModels(taskHome(), undefined, f.task), catalogs);
 		}
 		case "preflight":
 			if (f._.length) throw new Usage("preflight takes no arguments, only --runtime and --task");
