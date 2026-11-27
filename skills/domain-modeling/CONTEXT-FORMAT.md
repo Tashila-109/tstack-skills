@@ -12,7 +12,7 @@ A customer's request to buy one or more products.
 _Avoid_: Purchase, transaction
 
 **Invoice**:
-A request for payment sent to a customer after delivery.
+A request for payment for an **Order**, sent to the customer after delivery.
 _Avoid_: Bill, payment request
 ```
 
@@ -20,6 +20,7 @@ _Avoid_: Bill, payment request
 
 - Pick one word per concept and list the rejected synonyms under `_Avoid_`.
 - Define what the term is, not what it does, in one or two sentences.
+- Bold other glossary terms inside a definition, such as `**Order**`, and let the sentence around it say how the two relate.
 - Include only terms specific to this project.
   General programming concepts such as timeouts or error types stay out even when the project uses them heavily.
 - Group terms under subheadings when natural clusters appear; a flat list is fine otherwise.

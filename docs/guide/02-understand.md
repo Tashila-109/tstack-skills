@@ -105,6 +105,22 @@ You get a table ranked against your current design and one question: which candi
 Each one you take becomes a line you start as its own task, and the rest go in the report's follow-ups with the reason each was left.
 To review only what changed since you last took from the project, name the commit you took last.
 
+## Find the words with reframe
+
+When you can't name what you're after, type `/reframe` with your own description, or `$reframe` in Codex and T3, or `/skill:reframe` in Pi, and point it at your files:
+
+```text
+/reframe the settings page saves some fields right away and others only on submit, and people lose edits.
+```
+
+The agent gives 8 to 12 expert terms, ranked by how much each would change what you build.
+For each term, the agent names the part of your description it covers and what you can ask an agent for with it.
+It links to a project, paper or system that uses the term that way, after checking the link.
+It also borrows terms from 2 or 3 neighboring fields that solved the same problem under other names, and says where each analogy breaks.
+Then it rewrites your description with the new words.
+Send the rewrite, or run `/sharpen` on it.
+The [reframe](../../skills/reframe/SKILL.md) skill runs only when you type it.
+
 ## Why this comes first
 
 The Feature and Refactoring playbooks start by running `how` over the code they touch.
