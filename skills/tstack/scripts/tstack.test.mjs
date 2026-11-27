@@ -1218,6 +1218,9 @@ test("status <id> shows one task's steps and lists every item", () => {
 	]);
 	writeFileSync(join(task, "evidence/dispatch.md"), "Brief `briefs/fix.md`, result `results/fix.md`.\n");
 	assert.match(status(home, "one"), /^finished workers no evidence file cites: none$/m, "a citation under evidence/ collects it");
+	writeFileSync(join(home, "autopilot-q.md"), "| Task | State |\n| --- | --- |\n| one | hold requested: stopped by the human, 2026-11-27 |\n");
+	assert.match(status(home, "one"), /^held: 1\n  autopilot-q\.md says hold requested: stopped by the human, 2026-11-27$/m, "a hold the lead has not acknowledged still shows");
+	assert.match(status(home), /^  hold requested: one: hold requested: stopped by the human, 2026-11-27$/m);
 	assert.throws(() => status(home, "missing"), /no task missing at/);
 	assert.throws(() => status(home, "../one"), /task id must match/);
 	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);

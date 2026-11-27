@@ -174,6 +174,7 @@ A hold is requested when you send it, and the task is held only once the lead ac
 1. Run `herdr agent get <lead>`.
    If it is `blocked`, a prompt is refused, so read its screen, tell the human the hold waits on that dialog, and send the hold once the dialog clears.
 2. Otherwise send `herdr agent prompt <lead> "hold <id>: <the human's words>"` without waiting first, so the hold does not wait for the lead's turn to end.
+   If Herdr refuses it with `agent_blocked`, the lead reached a dialog after step 1, so handle it as step 1 says.
 3. The hold is requested until the lead sends `held <id>:`, naming each worker it stopped and whether that worker's pane has left `herdr pane list`.
    Only then is the task held.
 4. If the lead settles without sending `held <id>:`, read its screen.
