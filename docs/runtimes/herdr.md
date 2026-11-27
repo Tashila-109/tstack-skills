@@ -54,7 +54,7 @@ tstack never answers a trust dialog.
 
 Open the lead's tab and ask it where the task stands.
 From a shell, `herdr agent get <lead name>` shows the state of a lead that moved to its own tab.
-The lead name is `<task id>-lead`, or a suffixed name such as `<task id>-lead-2` after a handoff, and an autopilot's coordinator records it in `.tstack/tasks/<task id>/lead.txt`.
+The lead name is `<task id>-lead`, or a suffixed name such as `<task id>-lead-2` after a handoff, and whoever launches the lead, a coordinator or the lead itself, records it in `.tstack/tasks/<task id>/lead.txt`.
 A `blocked` state means an approval or a question is on its screen.
 Answer approvals yourself in that pane.
 tstack also raises a Herdr notification naming the task's tab when it needs you.

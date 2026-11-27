@@ -1003,6 +1003,9 @@ test("preflight names each seat that will not resolve, a locked signing key and 
 	const fits = "a".repeat(24);
 	brief(home, fits, { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
 	assert.match(run("herdr", fits), /^ok: /);
+	brief(home, "1-fix", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => run("herdr", "1-fix"), /task id 1-fix starts with "1", and Herdr agent names start with a letter/m);
+	assert.match(run("t3", "1-fix"), /^ok: /, "only Herdr needs a leading letter");
 });
 
 test("lock is held by one task at a time, and a finished task must have released it", () => {

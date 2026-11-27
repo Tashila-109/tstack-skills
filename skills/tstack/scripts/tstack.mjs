@@ -972,6 +972,7 @@ export function loadModels(home, globalDir = globalHome(), task) {
 
 const SIGN_MS = 60_000;
 const HERDR_NAME_MAX = 32;
+const HERDR_NAME = /^[a-z][a-z0-9_-]{0,31}$/;
 const errorLine = (text) => String(text ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "no output";
 
 // What has stopped unattended runs before, each as a line saying what only the human can do about it.
@@ -1000,7 +1001,9 @@ export function preflight(home, runtime, task, { cwd = process.cwd(), env = proc
 		}
 
 	// Herdr agent names hold 32 characters, and a handoff names the lead <id>-lead-<n>, so the ID must leave room for <id>-lead-99.
-	if (runtime === "herdr" && task !== undefined && `${task}-lead-99`.length > HERDR_NAME_MAX)
+	if (runtime === "herdr" && task !== undefined && !/^[a-z]/.test(task))
+		problems.push(`task id ${task} starts with "${task[0]}", and Herdr agent names start with a letter, so ${task}-lead will not launch: start the task again with an ID that starts with a letter`);
+	else if (runtime === "herdr" && task !== undefined && !HERDR_NAME.test(`${task}-lead-99`))
 		problems.push(`task id ${task} is ${task.length} characters, and Herdr agent names hold ${HERDR_NAME_MAX}, so ${task}-lead-2 or a later handoff name will not fit: start the task again with an ID of at most ${HERDR_NAME_MAX - "-lead-99".length} characters`);
 
 	const git = (args, opts) => execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });

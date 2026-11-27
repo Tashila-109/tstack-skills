@@ -20,7 +20,7 @@ Read IDs from the response instead of predicting them.
   Send every message as [Sending a prompt](#sending-a-prompt) says.
 - Agent names match `[a-z][a-z0-9_-]{0,31}` and are unique on the Herdr server.
   The 32-character limit covers the whole name, suffix included, such as `<id>-lead-2`.
-  `tstack.mjs preflight --runtime herdr --task <id>` refuses a task ID too long for its lead's handoff names.
+  `tstack.mjs preflight --runtime herdr --task <id>` refuses a task ID that does not start with a letter or is too long for its lead's handoff names.
   Keep each worker's `<name>` short enough that `<id>-<name>` fits too.
 - `herdr agent start` returns `agent_not_ready` when the agent is blocked at startup, for example on a trust dialog.
   Never answer a trust dialog.
@@ -31,7 +31,7 @@ Read IDs from the response instead of predicting them.
 
 ## Sending a prompt
 
-Every message tstack sends another agent goes through these steps.
+Every message tstack sends another agent goes through these steps, except a hold, which [hold](#hold) sends at once.
 
 1. Wait for the agent to settle: `herdr agent wait <name> --timeout 600000`.
    With no `--until`, it returns on `idle`, `done` or `blocked`.
@@ -42,14 +42,17 @@ Every message tstack sends another agent goes through these steps.
    Run `herdr agent get <name>` and `herdr agent read <name> --source recent-unwrapped --lines 80`, and act on what they show.
    When they leave it unclear, see [When get and read are unclear](#when-get-and-read-are-unclear).
 4. On `idle` or `done`, send `herdr agent prompt <name> "<message>" --wait --until working --until blocked --timeout 30000`.
-   It returns once the agent starts work on it or stops on a dialog.
-5. On `blocked`, the message arrived and the agent stopped on a dialog.
+   It returns once the pane starts a turn or stops on a dialog.
+   Herdr watches the pane, not your message, so that turn or dialog may belong to another sender's message.
+5. An `agent_blocked` error means Herdr refused the message before typing it: go back to step 2.
+   A `blocked` status after the send means the message was typed and a dialog followed.
    Read it and tell the human as step 2 says, but do not send the message again.
    On `agent_prompt_stalled`, which means no activity within five seconds, or on a timeout, the message may still have arrived.
    Read the screen, and send the message again only when it is not there.
 
-Another agent can prompt the same agent between steps 1 and 4, so your message can land mid-turn.
-When delivery matters, such as a decision you end your turn on, check the screen shows your message.
+Another agent can prompt the same agent between steps 1 and 4, so your message can land mid-turn, and the state you see can come from that agent's message.
+A message is delivered only once the recipient answers it, such as `held <id>:` for a hold or a reply that names your task.
+Before you repeat consequential work, such as a launch block, check the lead's screen and its task folder for any sign it started, and resend only when there is none.
 
 ## Lead
 
@@ -73,8 +76,9 @@ A lead uses this to move a ship task out of the primary checkout, a coordinator 
    For `inherit`, start your own harness with your own model and effort, as delegate does.
 5. Send the launch block to `<lead name>` as [Sending a prompt](#sending-a-prompt) steps 4 and 5 say.
    A coordinator sets `coordinator:` to its agent name, and a lead moving its own task leaves that line out.
-6. A coordinator writes the lead name, tab ID and worktree path to `<home>/tasks/<id>/lead.txt` and ends its turn, because the lead prompts it when it reports.
+6. Write the lead name, tab ID and worktree path to `<home>/tasks/<id>/lead.txt` before you end your turn, whether you are a coordinator or a lead moving or replacing its own task.
    Every later message to this lead goes to the name in `lead.txt`, never to a name rebuilt from the task ID.
+   A coordinator then ends its turn, because the lead prompts it when it reports.
    A lead moving its own task tells the human to continue in the tab labelled `<id>`, and stops.
 
 ### report and decide (a coordinator's lead)
