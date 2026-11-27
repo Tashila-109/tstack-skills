@@ -1209,6 +1209,7 @@ test("status <id> shows one task's steps and lists every item", () => {
 		"closed: no",
 		"held: 1",
 		"  autopilot-q.md says held: stopped by the human, 2026-11-21",
+		"hold requested, not yet acknowledged: none",
 		"open decisions: none",
 		"finished workers no evidence file cites: 1",
 		"  results/fix.md ends DONE",
@@ -1219,8 +1220,9 @@ test("status <id> shows one task's steps and lists every item", () => {
 	writeFileSync(join(task, "evidence/dispatch.md"), "Brief `briefs/fix.md`, result `results/fix.md`.\n");
 	assert.match(status(home, "one"), /^finished workers no evidence file cites: none$/m, "a citation under evidence/ collects it");
 	writeFileSync(join(home, "autopilot-q.md"), "| Task | State |\n| --- | --- |\n| one | hold requested: stopped by the human, 2026-11-27 |\n");
-	assert.match(status(home, "one"), /^held: 1\n  autopilot-q\.md says hold requested: stopped by the human, 2026-11-27$/m, "a hold the lead has not acknowledged still shows");
-	assert.match(status(home), /^  hold requested: one: hold requested: stopped by the human, 2026-11-27$/m);
+	assert.match(status(home, "one"), /^held: none\nhold requested, not yet acknowledged: 1\n  autopilot-q\.md says hold requested: stopped by the human, 2026-11-27$/m, "a hold the lead has not acknowledged shows apart from a held one");
+	assert.match(status(home), /^  hold requested: autopilot-q\.md says hold requested: stopped by the human, 2026-11-27$/m);
+	assert.doesNotMatch(status(home), /^  held: /m);
 	assert.throws(() => status(home, "missing"), /no task missing at/);
 	assert.throws(() => status(home, "../one"), /task id must match/);
 	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);

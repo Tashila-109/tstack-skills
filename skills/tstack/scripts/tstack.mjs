@@ -691,7 +691,8 @@ function taskFacts(home, queues, id, sized) {
 		reached: Math.max(0, ...steps.filter((s) => s.artifacts.length && !s.missing.length).map((s) => s.n)),
 		report: Boolean(text("report.md").trim()),
 		closed,
-		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && HOLDING.has(i.word)).map((i) => `${q.file} says ${i.state}`)),
+		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
+		holdRequested: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "hold").map((i) => `${q.file} says ${i.state}`)),
 		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
 			.filter(({ name, body }) => {
@@ -729,8 +730,6 @@ function summaryLine(f) {
 	return [f.task.playbook, f.task.kind, f.task.delivery, `created ${created}`, reached, ...(f.report ? ["report written"] : []), ...(f.closed ? ["closed"] : []), ...(f.size ? [f.size] : [])].join(", ");
 }
 
-// A coordinator writes `hold requested:` until the lead acknowledges a hold, then `held:`; both wait on the human's release.
-const HOLDING = new Set(["held", "hold"]);
 const UNCOLLECTED = "finished workers no evidence file cites";
 const RUNNING = "briefs with no verdict yet";
 
@@ -741,7 +740,8 @@ function queueLines(q) {
 	const tally = [...counts].map(([word, n]) => `${n} ${word}`).join(", ");
 	return [
 		`program ${q.file}: ${q.items.length} item${q.items.length === 1 ? "" : "s"}, ${tally}${q.heartbeat ? `, heartbeat ${q.heartbeat}` : ""}`,
-		...q.items.filter((i) => HOLDING.has(i.word)).map((i) => `  ${i.word === "held" ? "held" : "hold requested"}: ${i.task}: ${i.state}`),
+		...q.items.filter((i) => i.word === "held").map((i) => `  held: ${i.task}: ${i.state}`),
+		...q.items.filter((i) => i.word === "hold").map((i) => `  hold requested: ${i.task}: ${i.state}`),
 	];
 }
 
@@ -765,6 +765,7 @@ export function status(home, id, sized = false) {
 			`report: ${f.report ? "written" : "not written"}`,
 			`closed: ${f.closed ? "yes, decisions/close.md is granted" : "no"}`,
 			...list("held", f.held),
+			...list("hold requested, not yet acknowledged", f.holdRequested),
 			...list("open decisions", f.open),
 			...list(UNCOLLECTED, f.uncollected),
 			...list(RUNNING, f.running),
@@ -790,6 +791,7 @@ export function status(home, id, sized = false) {
 		lines.push(
 			`${name}: ${summaryLine(f)}`,
 			...f.held.map((item) => `  held: ${item}`),
+			...f.holdRequested.map((item) => `  hold requested: ${item}`),
 			...f.open.map((item) => `  open decision: ${item}`),
 			...[
 				[UNCOLLECTED, f.uncollected],
