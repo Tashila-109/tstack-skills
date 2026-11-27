@@ -21,7 +21,8 @@ Each line that check changed says "per T3 source at 4f7c529085 (2026-11-27); not
 - Your own thread ID is `currentThreadId` in `t3_thread_list`.
 - `t3_thread_launch` starts the new thread in its caller's runtime and interaction modes, and refuses a broader mode than the caller's, per T3 source at 4f7c529085 (2026-11-27); not yet measured live.
   So a supervised caller may launch, and its thread asks for approvals as the caller does.
-  Below Full access, T3 skips the project action that runs on worktree create, so with a per-project install the new worktree has no skills, and the human runs that action there before the lead starts.
+  Below Full access, T3 skips the project action that runs on worktree create, so with a per-project install the new worktree would start with no skills.
+  So below Full access, when the primary checkout has a `skills-lock.json`, do not launch: use the refused-launch fallback in [launch-lead](#launch-lead), whose New worktree thread runs that action.
   Pass a `clientRequestId`, and after an error or a lost response, retry with the same key.
 - T3 starts a top-level thread only when the human asked for a new thread.
   A coordinator's leads and a lead's handoff are that ask, because the human asked for the program or the handoff.
@@ -73,6 +74,7 @@ Never delete it yourself.
 A coordinator uses this to start each lead, and a lead uses it to hand off its task to a fresh thread.
 A lead moving its own ship task out of the primary checkout uses [Moving your own task](#moving-your-own-task) instead.
 When the launch is refused, ask the human to open a thread in New worktree mode and send the launch block as its first message, then stop.
+For a refused handoff, ask instead for a thread in the lead's existing worktree, at its path on `task/<id>`, so the replacement keeps the branch and any uncommitted work, and never for a new worktree.
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime t3 --task <id>`.
 2. Pick the base, per T3 source at 4f7c529085 (2026-11-27); not yet measured live:
@@ -193,7 +195,7 @@ Watch only while the PR waits on something that will happen without you, such as
    A wake is news, not a merge decision.
 6. When you stop, or the PR merges, call `unwatch_pull_request`.
 
-The watch lasts across pushes, so never call `watch_pull_request` again on a wake.
+The watch lasts across pushes and past green checks, whatever its `until`, so never call `watch_pull_request` again on a wake, unless its result says it is exhausted or you unwatched it.
 It wakes you on a failed check, passing required checks, the other checks settling, checks awaiting approval, no checks reported for 15 minutes, a new comment or review from another GitHub account, a conflict, a removal from the merge queue, and once on a merge or close that you did not make from the command line.
 It never wakes on the base moving ahead without a conflict, or on review bots going quiet.
 After ten wakes in a row for comments only, it stops waking, and its result says it is exhausted, so arm it again only when the PR still waits.
@@ -225,7 +227,7 @@ Otherwise the worktree stays for the human.
 ## Coordinator
 
 Start with Full access, so your leads launch with it and their worktrees run the project action that runs on worktree create.
-A supervised coordinator can launch leads too, per T3 source at 4f7c529085 (2026-11-27); not yet measured live, and its leads ask the human for each approval and start without that action.
+A supervised coordinator can launch leads too, per T3 source at 4f7c529085 (2026-11-27); not yet measured live, and its leads ask the human for each approval, and with a per-project install it launches them as [Facts to rely on](#facts-to-rely-on) says.
 Pin your own thread with `t3_thread_organize` and `{ "action": "pin" }`, so T3 never auto-settles it.
 
 ### Talking to a lead
