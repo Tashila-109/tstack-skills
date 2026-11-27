@@ -162,7 +162,7 @@ Ask `tstack-help` what a skill does and when to use it.
 | Group | Skills |
 | --- | --- |
 | Router and setup | `tstack`, `tstack-setup`, `tstack-help` |
-| Understand | `how`, `why`, `explain`, `chart`, `recall`, `teach`, `in-your-own-words`, `ketchup`, `sharpen` |
+| Understand | `how`, `why`, `explain`, `chart`, `recall`, `teach`, `in-your-own-words`, `ketchup`, `sharpen`, `reframe` |
 | Plan | `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets` |
 | Design | `architect`, `arena`, `swarm`, `interrogate`, `figure-it-out` |
 | Build and clean | `tdd`, `no-comments`, `unslop`, `technical-writing`, `typescript-best-practices`, `blast-radius`, `benchmark-checklist` |
