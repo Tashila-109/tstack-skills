@@ -107,7 +107,7 @@ To review only what changed since you last took from the project, name the commi
 
 ## Find the words with reframe
 
-When you can't name what you're after, type `/reframe` with your own description, and point it at your files:
+When you can't name what you're after, type `/reframe` with your own description, or `$reframe` in Codex and T3, or `/skill:reframe` in Pi, and point it at your files:
 
 ```text
 /reframe the settings page saves some fields right away and others only on submit, and people lose edits.
