@@ -81,8 +81,9 @@ For a refused handoff, ask instead for a thread in the lead's existing worktree,
    - a base the human or the brief names;
    - otherwise, for an item that builds on another item, such as in autopilot-stack, or on commits not yet pushed, that local branch, with `startFromOrigin: false`;
    - otherwise, for independent work, the default branch on its remote, such as `origin/main`, with `startFromOrigin: true`, or the local default branch with `false` when the project has no remote.
-     Read it from the branch the local default tracks, `git for-each-ref --format='%(upstream:short)' refs/heads/<default>`, rather than assuming `origin`.
-     When that prints nothing, use the local default branch with `false`.
+     Take the remote from `git remote`: the only one, or with several, the one the local default branch tracks, `git for-each-ref --format='%(upstream:remotename)' refs/heads/<default>`.
+     Take that remote's default branch from `git rev-parse --abbrev-ref <remote>/HEAD`, after `git remote set-head <remote> --auto` when that ref is missing.
+     Use the local default branch with `false` only when `git remote` prints nothing.
 3. Call `t3_thread_launch` with:
    - `title`: `<id> lead`
    - `workspaceStrategy`: `{ "type": "worktree", "baseRef": "<base>", "branch": "task/<id>", "startFromOrigin": <from step 2> }`;
@@ -189,7 +190,8 @@ Watch only while the PR waits on something that will happen without you, such as
    `until` sets how long the thread shows as working, not how long the watch lasts: the default `checks` until checks finish, and `merged` until the PR merges, closes or is unwatched.
    The watch itself stays on either way, so a review that lands after green checks still wakes you.
    On `WAITING review-required` or `WAITING approval`, first tell the human the PR waits on their review or approval.
-   When the result's `next` says the checks already pass, run `pr-state` once more.
+   Once the watch is armed, run `pr-state` once more before you end your turn, because a review that landed before the watch was armed wakes nothing.
+   This also covers a result whose `next` says the checks already pass.
    Act on a verdict that is not `WAITING` now, and on a `WAITING` that only a review, an approval or another event will end, leave the watch armed and end your turn.
 5. On each wake, start again at step 1.
    A wake is news, not a merge decision.
