@@ -183,8 +183,9 @@ Watch only while the PR waits on something that will happen without you, such as
 1. Handle the review threads already on the PR, because a watch wakes you only on new ones.
 2. Push every fix, then run `tstack.mjs pr-state <pr number>` once, without `--wait`.
 3. Act on a verdict that is not `WAITING` as the babysit playbook says.
-4. On `WAITING`, call `watch_pull_request` with the PR's `url`, and with `until: "merged"` when you merge it yourself under a grant, then end your turn.
-   A new watch lasts until checks finish by default, and `until: "merged"` keeps the thread working until it merges, closes or is unwatched.
+4. On `WAITING`, call `watch_pull_request` with the PR's `url`, and with `until: "merged"` when you will act on the PR after its checks, such as answering a review or merging under a grant, then end your turn.
+   `until` sets how long the thread shows as working, not how long the watch lasts: the default `checks` until checks finish, and `merged` until the PR merges, closes or is unwatched.
+   The watch itself stays on either way, so a review that lands after green checks still wakes you.
    On `WAITING review-required` or `WAITING approval`, first tell the human the PR waits on their review or approval.
    When the result's `next` says the checks already pass, run `pr-state` once more.
    Act on a verdict that is not `WAITING` now, and on a `WAITING` that only a review, an approval or another event will end, leave the watch armed and end your turn.
