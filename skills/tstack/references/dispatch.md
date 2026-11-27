@@ -17,7 +17,7 @@ The runtime reference owns the exact calls: [runtime-t3.md](runtime-t3.md) in a 
 | notify | lead | Send another task's lead a message without interrupting it, such as a hold before a plan amendment or the granted change after it. Find its thread or agent in that task's `lead.txt`, or ask the human; on standalone, follow its reference. Start the message with `from <your task id> lead:`. |
 | decide | lead | Write a decision file and put it to the human, as [decisions.md](decisions.md) says. |
 | watch-pr | lead | Wait for the PR's next verdict from `tstack.mjs pr-state`, which reads checks, review threads, conflicts and the base, without a sleep loop of your own. |
-| hold | coordinator | Stop a lead's turn at once, on the human's stop. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for the coordinator's release. A lead the human talks to is held by the human's own stop. |
+| hold | coordinator | Request a stop of a lead's turn at once, on the human's stop. The task counts as held only once the lead acknowledges it, as the runtime reference's hold says. The held lead stops its running workers, as the runtime reference's collect says, makes no commits, pushes or new workers, and waits for the coordinator's release. A lead the human talks to is held by the human's own stop. |
 
 ### The launch block
 

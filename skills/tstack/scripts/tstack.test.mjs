@@ -1026,6 +1026,17 @@ test("preflight names each seat that will not resolve, a locked signing key and 
 	assert.match(run("t3", "local"), /^ok: /);
 	assert.throws(() => run("herdr", "local"), /seat "verify": no Herdr fast-mode flag known for harness claude/m);
 	assert.throws(() => run("t3", "nope"), /no task nope at/);
+
+	const long = "a".repeat(25);
+	brief(home, long, { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => run("herdr", long), new RegExp(`task id ${long} is 25 characters, and Herdr agent names hold 32, .*at most 24 characters$`, "m"));
+	assert.match(run("t3", long), /^ok: /, "only Herdr limits the name");
+	const fits = "a".repeat(24);
+	brief(home, fits, { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.match(run("herdr", fits), /^ok: /);
+	brief(home, "1-fix", { playbook: "sample", goal: "g", finish: "f", playbooksDir: playbooks });
+	assert.throws(() => run("herdr", "1-fix"), /task id 1-fix starts with "1", and Herdr agent names start with a letter/m);
+	assert.match(run("t3", "1-fix"), /^ok: /, "only Herdr needs a leading letter");
 });
 
 test("lock is held by one task at a time, and a finished task must have released it", () => {
@@ -1229,6 +1240,7 @@ test("status <id> shows one task's steps and lists every item", () => {
 		"closed: no",
 		"held: 1",
 		"  autopilot-q.md says held: stopped by the human, 2026-11-21",
+		"hold requested, not yet acknowledged: none",
 		"open decisions: none",
 		"finished workers no evidence file cites: 1",
 		"  results/fix.md ends DONE",
@@ -1238,6 +1250,10 @@ test("status <id> shows one task's steps and lists every item", () => {
 	]);
 	writeFileSync(join(task, "evidence/dispatch.md"), "Brief `briefs/fix.md`, result `results/fix.md`.\n");
 	assert.match(status(home, "one"), /^finished workers no evidence file cites: none$/m, "a citation under evidence/ collects it");
+	writeFileSync(join(home, "autopilot-q.md"), "| Task | State |\n| --- | --- |\n| one | hold requested: stopped by the human, 2026-11-27 |\n");
+	assert.match(status(home, "one"), /^held: none\nhold requested, not yet acknowledged: 1\n  autopilot-q\.md says hold requested: stopped by the human, 2026-11-27$/m, "a hold the lead has not acknowledged shows apart from a held one");
+	assert.match(status(home), /^  hold requested: autopilot-q\.md says hold requested: stopped by the human, 2026-11-27$/m);
+	assert.doesNotMatch(status(home), /^  held: /m);
 	assert.throws(() => status(home, "missing"), /no task missing at/);
 	assert.throws(() => status(home, "../one"), /task id must match/);
 	assert.throws(() => main(["status", "a", "b"]), /status takes at most one task id/);

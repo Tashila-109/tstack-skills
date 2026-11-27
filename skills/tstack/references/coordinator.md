@@ -20,7 +20,7 @@ Answer a status question as the router's [Status](../SKILL.md#status) says, from
    - For a decision, ask the human as [decisions.md](decisions.md#for-a-coordinators-lead) says, record their answer in the decision file, and send it to the lead.
    - For a handoff, start a fresh lead from the handoff file, as the **handoff** skill's "Relaunching a lead" says.
    - On the human's stop, hold every running lead, as dispatch.md's hold verb says, until the human releases it.
-     Set each held item's State to `held: <the human's words>, <date>`, and set it back when you release the lead.
+     Set each item's State to `held: <the human's words>, <date>` once the runtime reference's hold says the lead is held, to `hold requested: <the human's words>, <date>` until then, and set it back when you release the lead.
 3. When a lead reports done, run `tstack.mjs check <id> --head <its head SHA>`.
    A refusal goes back to the lead.
    Read `report.md` and the evidence it cites, then audit and merge as the program playbook says.

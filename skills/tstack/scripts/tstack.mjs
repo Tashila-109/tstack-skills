@@ -692,6 +692,7 @@ function taskFacts(home, queues, id, sized) {
 		report: Boolean(text("report.md").trim()),
 		closed,
 		held: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "held").map((i) => `${q.file} says ${i.state}`)),
+		holdRequested: queues.flatMap((q) => q.items.filter((i) => i.task === id && i.word === "hold").map((i) => `${q.file} says ${i.state}`)),
 		open: latestRevisions(mdFiles(join(taskDir, "decisions")))
 			.map((name) => ({ name, body: prose(text(`decisions/${name}`)) }))
 			.filter(({ name, body }) => {
@@ -740,6 +741,7 @@ function queueLines(q) {
 	return [
 		`program ${q.file}: ${q.items.length} item${q.items.length === 1 ? "" : "s"}, ${tally}${q.heartbeat ? `, heartbeat ${q.heartbeat}` : ""}`,
 		...q.items.filter((i) => i.word === "held").map((i) => `  held: ${i.task}: ${i.state}`),
+		...q.items.filter((i) => i.word === "hold").map((i) => `  hold requested: ${i.task}: ${i.state}`),
 	];
 }
 
@@ -763,6 +765,7 @@ export function status(home, id, sized = false) {
 			`report: ${f.report ? "written" : "not written"}`,
 			`closed: ${f.closed ? "yes, decisions/close.md is granted" : "no"}`,
 			...list("held", f.held),
+			...list("hold requested, not yet acknowledged", f.holdRequested),
 			...list("open decisions", f.open),
 			...list(UNCOLLECTED, f.uncollected),
 			...list(RUNNING, f.running),
@@ -788,6 +791,7 @@ export function status(home, id, sized = false) {
 		lines.push(
 			`${name}: ${summaryLine(f)}`,
 			...f.held.map((item) => `  held: ${item}`),
+			...f.holdRequested.map((item) => `  hold requested: ${item}`),
 			...f.open.map((item) => `  open decision: ${item}`),
 			...[
 				[UNCOLLECTED, f.uncollected],
@@ -997,6 +1001,8 @@ export function loadModels(home, globalDir = globalHome(), task) {
 }
 
 const SIGN_MS = 60_000;
+const HERDR_NAME_MAX = 32;
+const HERDR_NAME = /^[a-z][a-z0-9_-]{0,31}$/;
 const errorLine = (text) => String(text ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "no output";
 
 // What has stopped unattended runs before, each as a line saying what only the human can do about it.
@@ -1023,6 +1029,12 @@ export function preflight(home, runtime, task, { cwd = process.cwd(), env = proc
 			if (!(err instanceof Refusal)) throw err;
 			problems.push(`${err.message}: fix that file, or run tstack-setup`);
 		}
+
+	// Herdr agent names hold 32 characters, and a handoff names the lead <id>-lead-<n>, so the ID must leave room for <id>-lead-99.
+	if (runtime === "herdr" && task !== undefined && !/^[a-z]/.test(task))
+		problems.push(`task id ${task} starts with "${task[0]}", and Herdr agent names start with a letter, so ${task}-lead will not launch: start the task again with an ID that starts with a letter`);
+	else if (runtime === "herdr" && task !== undefined && !HERDR_NAME.test(`${task}-lead-99`))
+		problems.push(`task id ${task} is ${task.length} characters, and Herdr agent names hold ${HERDR_NAME_MAX}, so ${task}-lead-2 or a later handoff name will not fit: start the task again with an ID of at most ${HERDR_NAME_MAX - "-lead-99".length} characters`);
 
 	const git = (args, opts) => execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
 	let signs = false;

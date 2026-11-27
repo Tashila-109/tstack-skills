@@ -43,7 +43,8 @@ To change them, add a `herdr args <harness>: <flags>` line to `~/.tstack/models.
 Only that file may hold such a line.
 
 A lead that an autopilot's coordinator launched reports by typing into the coordinator's pane, but only once the coordinator is idle.
-A message typed into a busy agent takes over its turn, so leads wait first.
+What a busy agent does with a typed message depends on its harness, so leads wait first, and never type into an agent that shows an approval or a question.
+Per Herdr 0.9.5 help and docs (2026-11-27); not yet measured live.
 
 If a new agent stops at startup on a trust dialog, the launch reports which tab it is in.
 Answer it yourself.
@@ -52,19 +53,23 @@ tstack never answers a trust dialog.
 ## Check on a lead
 
 Open the lead's tab and ask it where the task stands.
-From a shell, `herdr agent get <task id>-lead` shows the state of a lead that moved to its own tab.
+From a shell, `herdr agent get <lead name>` shows the state of a lead that moved to its own tab.
+The lead name is `<task id>-lead`, or a suffixed name such as `<task id>-lead-2` after a handoff, and whoever launches the lead, a coordinator or the lead itself, records it in `.tstack/tasks/<task id>/lead.txt`.
 A `blocked` state means an approval or a question is on its screen.
 Answer approvals yourself in that pane.
+tstack also raises a Herdr notification naming the task's tab when it needs you.
 
 ## Stop running work
 
 Stop the lead's turn in its pane, then tell it what to change.
 The lead stops its workers and makes no commits, pushes or new workers until you tell it to go on.
 To stop an autopilot, tell its coordinator, which holds every lead.
+A lead counts as held only once it tells the coordinator it has stopped its workers, so ask the coordinator which leads are held and which still have a hold requested.
 
 ## After the merge
 
 The lead removes its own worktree and `task/<task id>`, and tells you the tab can be closed.
-Git refuses to remove a worktree with work that has not landed, and the lead stops there instead of forcing it.
+Git refuses to remove a worktree with uncommitted changes, and the lead stops there instead of forcing it.
+A clean worktree can still sit on a branch whose commits have not landed, so the lead deletes the branch only after its own check that the work landed: the merge reached the default branch for a local-only task, or the PR shows merged.
 For follow-ups, the lead lists them in its final reply and adds them to `.tstack/backlog.md`, each with an ID, or files them in the tracker the project names.
 To take one, open a new pane and name its ID, or its tracker issue, in your request.

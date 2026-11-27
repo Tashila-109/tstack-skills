@@ -113,8 +113,9 @@ where does this stand?
   The lead stops and asks instead of switching models.
   Sign in under T3's provider settings, then answer the decision.
 - **Typing into a busy agent on Herdr.**
-  A prompt sent to an agent mid-turn takes over that turn.
+  Herdr types a prompt into the pane even mid-turn, and whether the agent drops its turn or takes the message later depends on its harness.
   tstack's own messages wait for the agent to be idle, and so should yours.
+  A stop typed this way is not a stop until the agent says it has stopped, which is why a coordinator's hold waits for the lead's `held` reply.
 - **Starting a lead without auto mode on Herdr.**
   A lead runs many small commands.
   Start Claude Code with `--permission-mode auto`, or approve each one as it comes.
