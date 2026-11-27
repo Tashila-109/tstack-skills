@@ -43,7 +43,7 @@ Ten skills that agents may invoke on their own have no such file: `chart`, `code
 | `<project>/.tstack/autopilot-<name>-heartbeat.txt` | coordinator, on T3 | The ID of the scheduled task the coordinator armed as the program's check-in. |
 | `<project>/.tstack/tasks/<id>/task.json` | `tstack.mjs brief` | The frozen playbook steps and the artifacts each step must write. |
 | `<project>/.tstack/tasks/<id>/brief.md` | `tstack.mjs brief` | The goal, the finish, the design source and delivery answers when it was given them, the steps, and the learnings. |
-| `<project>/.tstack/tasks/<id>/lead.txt` | whoever launches the lead | An autopilot lead's T3 thread ID, or its Herdr agent name, tab and worktree. |
+| `<project>/.tstack/tasks/<id>/lead.txt` | whoever launches the lead | A lead's T3 thread ID, or its Herdr agent name, tab and worktree. |
 | `<project>/.tstack/tasks/<id>/launch.md` | lead, on the standalone runtime | The launch block you send as the first message of the task's new session. |
 | `<project>/.tstack/tasks/<id>/notify-<other id>.md` | the lead, on the standalone runtime | A message for another task's lead, which you tell that lead to read. |
 | `<project>/.tstack/tasks/<id>/heartbeat.txt` | lead, on T3 | The ID of the scheduled task the lead armed as its heartbeat, removed when the lead deletes that schedule. |
@@ -142,7 +142,7 @@ Each line is `<role>[, <role>...]: <seat>[, <seat>...]`.
 | notify | lead | Messages another task's lead without interrupting it, such as a hold before a plan amendment. The receiver acts only on the granted decision it names. |
 | decide | lead | Writes a decision file and asks you in its thread. A coordinator's lead sends it to the coordinator. |
 | watch-pr | lead | Waits for the PR's next verdict from `tstack.mjs pr-state`. On T3, the lead also arms T3's PR watch when it opens the PR. |
-| hold | coordinator | Stops a lead's turn at once on your stop, until you release it. A lead you talk to is held by your own stop. |
+| hold | coordinator | Asks a lead to stop at once on your stop, and counts it held once the lead acknowledges, until you release it. A lead you talk to is held by your own stop. |
 
 ## Playbooks
 

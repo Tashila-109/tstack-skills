@@ -75,7 +75,7 @@ Use the runtime's launch-lead for a handoff: [T3](../tstack/references/runtime-t
 Add one line under the launch block: `Pick up from <path to the handoff file>, following the session-pickup playbook.`
 For your own handoff, leave the launch block's `coordinator:` line out, and tell the human which thread, tab or session to continue in.
 A coordinator archives the old thread on T3 or closes the old tab on Herdr.
-On Herdr, whoever launches the new lead, a coordinator or the lead handing itself off, updates `<home>/tasks/<id>/lead.txt` with the new agent name and tab; on T3 a coordinator updates it with the new thread.
+The runtime's launch-lead says who updates `<home>/tasks/<id>/lead.txt` for the new lead.
 
 ## For a coordinator: handing off the coordinator
 
