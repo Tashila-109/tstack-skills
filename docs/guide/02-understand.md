@@ -114,7 +114,8 @@ When you can't name what you're after, type `/reframe` with your own description
 ```
 
 The agent gives 8 to 12 expert terms, ranked by how much each would change what you build.
-Each comes with the part of your description it names, a real project that uses it, with the link checked, and what it lets you ask an agent for.
+For each term, the agent names the part of your description it covers and what you can ask an agent for with it.
+It links to a project, paper or system that uses the term that way, after checking the link.
 It also borrows terms from 2 or 3 neighboring fields that solved the same problem under other names, and says where each analogy breaks.
 Then it rewrites your description with the new words.
 Send the rewrite, or run `/sharpen` on it.
