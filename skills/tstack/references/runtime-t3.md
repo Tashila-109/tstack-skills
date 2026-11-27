@@ -74,6 +74,7 @@ Never delete it yourself.
 A coordinator uses this to start each lead, and a lead uses it to hand off its task to a fresh thread.
 A lead moving its own ship task out of the primary checkout uses [Moving your own task](#moving-your-own-task) instead.
 When the launch is refused, ask the human to open a thread in New worktree mode and send the launch block as its first message, then stop.
+A coordinator adds one line under that launch block: `First send the coordinator report <id>: thread <your currentThreadId>.`, and writes that thread ID to `<home>/tasks/<id>/lead.txt` when the report arrives.
 For a refused handoff, ask instead for a thread in the lead's existing worktree, at its path on `task/<id>`, so the replacement keeps the branch and any uncommitted work, and never for a new worktree.
 
 1. Run `tstack.mjs seat "lead <playbook>" --runtime t3 --task <id>`.
@@ -82,6 +83,7 @@ For a refused handoff, ask instead for a thread in the lead's existing worktree,
    - otherwise, for an item that builds on another item, such as in autopilot-stack, or on commits not yet pushed, that local branch, with `startFromOrigin: false`;
    - otherwise, for independent work, the default branch on its remote, such as `origin/main`, with `startFromOrigin: true`, or the local default branch with `false` when the project has no remote.
      Take the remote from `git remote`: the only one, or with several, the one the local default branch tracks, `git for-each-ref --format='%(upstream:remotename)' refs/heads/<default>`.
+     When there are several and that prints nothing, ask the human which remote to use.
      Take that remote's default branch from `git rev-parse --abbrev-ref <remote>/HEAD`, after `git remote set-head <remote> --auto` when that ref is missing.
      Use the local default branch with `false` only when `git remote` prints nothing.
 3. Call `t3_thread_launch` with:
@@ -186,13 +188,14 @@ Watch only while the PR waits on something that will happen without you, such as
 1. Handle the review threads already on the PR, because a watch wakes you only on new ones.
 2. Push every fix, then run `tstack.mjs pr-state <pr number>` once, without `--wait`.
 3. Act on a verdict that is not `WAITING` as the babysit playbook says.
-4. On `WAITING`, call `watch_pull_request` with the PR's `url`, and with `until: "merged"` when you will act on the PR after its checks, such as answering a review or merging under a grant, then end your turn.
+4. On `WAITING`, when no watch is armed yet or its last result said it is exhausted, call `watch_pull_request` with the PR's `url`, and with `until: "merged"` when you will act on the PR after its checks, such as answering a review or merging under a grant, then end your turn.
    `until` sets how long the thread shows as working, not how long the watch lasts: the default `checks` until checks finish, and `merged` until the PR merges, closes or is unwatched.
    The watch itself stays on either way, so a review that lands after green checks still wakes you.
    On `WAITING review-required` or `WAITING approval`, first tell the human the PR waits on their review or approval.
    Once the watch is armed, run `pr-state` once more before you end your turn, because a review that landed before the watch was armed wakes nothing.
    This also covers a result whose `next` says the checks already pass.
    Act on a verdict that is not `WAITING` now, and on a `WAITING` that only a review, an approval or another event will end, leave the watch armed and end your turn.
+   With a watch already armed, skip the call and end your turn.
 5. On each wake, start again at step 1.
    A wake is news, not a merge decision.
 6. When you stop, or the PR merges, call `unwatch_pull_request`.
