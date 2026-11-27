@@ -49,8 +49,9 @@ Every message tstack sends another agent goes through these steps, except a hold
    Read it and tell the human as step 2 says, but do not send the message again.
    On `agent_prompt_stalled`, which means no activity within five seconds, or on a timeout, the message may still have arrived or be queued, so do not send it again yet.
    Wait for the agent to settle as step 1 says, then read its screen with `--lines 400`.
-   Send the message once more only when the agent is `idle` or `done`, the screen does not show it, and no reply to it has come.
-   Otherwise, or when the second send stalls too, tell the human as [Telling the human](#telling-the-human) says.
+   When the screen shows the message or a reply to it has come, it was delivered, so stop here.
+   Send it once more only when the agent is `idle` or `done`, the screen does not show it, and no reply has come.
+   When the agent has not settled, or the second send stalls too, tell the human as [Telling the human](#telling-the-human) says.
 
 Another agent can prompt the same agent between steps 1 and 4, so your message can land mid-turn, and the state you see can come from that agent's message.
 A message is delivered only once the recipient answers it, such as `held <id>:` for a hold or a reply that names your task.
